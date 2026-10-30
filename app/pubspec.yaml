@@ -1,0 +1,52 @@
+name: spottr
+description: "Spottr — adaptive gym plans and a live camera form coach."
+publish_to: 'none'
+version: 0.1.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Workspace packages
+  coach_engine:
+    path: ../packages/coach_engine
+  exercise_library:
+    path: ../packages/exercise_library
+  plan_engine:
+    path: ../packages/plan_engine
+  pose_camera:
+    path: ../packages/pose_camera
+  pose_core:
+    path: ../packages/pose_core
+
+  # Local-first persistence
+  drift: ^2.20.0
+  drift_flutter: ^0.2.0
+  path: ^1.9.0
+  path_provider: ^2.1.4
+
+  # State, voice, i18n
+  flutter_riverpod: ^3.0.0
+  flutter_tts: ^4.2.0
+  intl: any
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.13
+  sqlite3: ^2.4.0
+  drift_dev: ^2.20.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/exercises/

@@ -1,0 +1,37 @@
+# Shared analysis settings for every package in the workspace.
+# Package-level analysis_options.yaml files include this file.
+include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # The engine is config-driven; an unhandled enum case is a bug, not a warning.
+    missing_enum_constant_in_switch: error
+    unused_import: error
+    unused_local_variable: error
+    dead_code: error
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/generated_plugin_registrant.dart"
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_dynamic_calls
+    - avoid_slow_async_io
+    - cancel_subscriptions
+    - close_sinks
+    - prefer_const_constructors
+    - prefer_const_declarations
+    - prefer_final_locals
+    - prefer_single_quotes
+    - require_trailing_commas
+    - sort_constructors_first
+    - throw_in_finally
+    - unawaited_futures
+    - unnecessary_parenthesis
+    - use_super_parameters

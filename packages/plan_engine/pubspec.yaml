@@ -1,0 +1,17 @@
+name: plan_engine
+description: Workout plan generation templates and adaptive progression rules. Pure Dart, no Flutter.
+version: 0.1.0
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  meta: ^1.15.0
+  exercise_library:
+    path: ../exercise_library
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

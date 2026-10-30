@@ -1,0 +1,88 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Spottr",
+  "@appTitle": {
+    "description": "Application name, shown in the task switcher and app bar."
+  },
+
+  "disclaimerTitle": "Before we start",
+  "@disclaimerTitle": {
+    "description": "Heading of the mandatory safety screen shown during onboarding."
+  },
+
+  "disclaimerBody": "Spottr gives you form feedback and flags movement that looks risky. It is not medical advice, and it cannot guarantee you will avoid injury. If you are injured or in pain, talk to a doctor or physiotherapist before training.",
+  "@disclaimerBody": {
+    "description": "Safety disclaimer. Wording is deliberate: feedback and flagging, never a promise of injury prevention."
+  },
+
+  "disclaimerAccept": "I understand",
+  "@disclaimerAccept": {
+    "description": "Button that records acceptance of the safety disclaimer."
+  },
+
+  "painButton": "I feel pain",
+  "@painButton": {
+    "description": "Always-visible button during a set. Ends the set and logs it."
+  },
+
+  "setSummaryTitle": "Set done",
+  "@setSummaryTitle": {
+    "description": "Heading of the post-set summary sheet."
+  },
+
+  "repsCounted": "{count, plural, =0{No reps counted} =1{1 rep} other{{count} reps}}",
+  "@repsCounted": {
+    "description": "Rep tally in the set summary.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "repsRemaining": "{count, plural, =1{Last one} other{{count} to go}}",
+  "@repsRemaining": {
+    "description": "Spoken and shown near the end of a set.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "formScoreLabel": "Form {score}%",
+  "@formScoreLabel": {
+    "description": "Form score for a rep or a set, 0 to 100.",
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+
+  "cueTurnPhoneSideways": "Turn the phone to the side so I can see your depth",
+  "@cueTurnPhoneSideways": {
+    "description": "Fired when the camera angle cannot support the depth and back rules."
+  },
+
+  "cueTrackingLost": "I lost you — step back into frame",
+  "@cueTrackingLost": {
+    "description": "Fired when pose tracking drops out mid-set. Counting pauses."
+  },
+
+  "coachStyleHype": "Hype",
+  "@coachStyleHype": {
+    "description": "Coach personality option: energetic and loud."
+  },
+
+  "coachStyleCalm": "Calm",
+  "@coachStyleCalm": {
+    "description": "Coach personality option: technical and encouraging."
+  },
+
+  "coachStyleTough": "Tough",
+  "@coachStyleTough": {
+    "description": "Coach personality option: direct, drill-sergeant."
+  }
+}

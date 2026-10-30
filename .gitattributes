@@ -1,0 +1,19 @@
+# Normalize to LF in the index. Without this, generated code written on
+# Windows (CRLF) never matches what the Linux CI runner regenerates (LF), and
+# the stale-codegen gate in CI fails on every run.
+* text=auto eol=lf
+
+# Scripts that Windows tooling executes directly.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.jar binary
+*.keystore binary

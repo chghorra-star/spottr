@@ -1,0 +1,21 @@
+name: spottr_workspace
+description: Spottr monorepo root. Holds no code; defines the pub workspace.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+
+# Every package shares one resolution and one pubspec.lock at this root.
+# Run `flutter pub get` HERE, not inside a package.
+workspace:
+  - app
+  - packages/coach_engine
+  - packages/exercise_library
+  - packages/harness
+  - packages/plan_engine
+  - packages/pose_camera
+  - packages/pose_core
+
+dev_dependencies:
+  lints: ^6.0.0

@@ -1,0 +1,17 @@
+name: exercise_library
+description: Curated exercise catalog — schema, JSON loading, and integrity validation. Pure Dart, no Flutter.
+version: 0.1.0
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  meta: ^1.15.0
+  pose_core:
+    path: ../pose_core
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

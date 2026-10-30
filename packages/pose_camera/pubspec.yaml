@@ -1,0 +1,30 @@
+name: pose_camera
+description: Camera capture and on-device pose inference. Native CameraX/ML Kit and AVFoundation/ML Kit stream landmark frames to Dart; pixel buffers never cross the bridge.
+version: 0.1.0
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.8
+  pose_core:
+    path: ../pose_core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.spottr.pose_camera
+        pluginClass: PoseCameraPlugin
+      ios:
+        pluginClass: PoseCameraPlugin

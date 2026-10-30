@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.44.7
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      # The app's database tests run on the host VM, so they need a system
+      # sqlite rather than the one sqlite3_flutter_libs bundles for devices.
+      - name: Install sqlite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-0
+
+      - name: Resolve workspace
+        run: flutter pub get
+
+      - name: Check generated code is current
+        run: |
+          flutter gen-l10n --project-dir app
+          cd app && dart run build_runner build --delete-conflicting-outputs
+          cd ..
+          if ! git diff --exit-code -- '*.g.dart' 'app/lib/l10n'; then
+            echo "::error::Generated code is stale. Run tool/generate.ps1 and commit the result."
+            exit 1
+          fi
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test pure Dart packages
+        run: |
+          for pkg in pose_core exercise_library coach_engine plan_engine harness; do
+            if ls packages/$pkg/test/*_test.dart >/dev/null 2>&1; then
+              echo "::group::dart test $pkg"
+              (cd packages/$pkg && dart test --reporter expanded)
+              echo "::endgroup::"
+            else
+              echo "no tests yet in $pkg, skipping"
+            fi
+          done
+
+      - name: Test Flutter packages
+        run: |
+          (cd app && flutter test)
+          (cd packages/pose_camera && flutter test)
+
+      # The accuracy gate (rep count >= 95%, form-rule false-positive rate)
+      # is wired in here once the harness exists in M5.
