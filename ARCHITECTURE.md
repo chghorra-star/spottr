@@ -124,6 +124,21 @@ Launch rules: squat depth, knee valgus (front), back rounding (side), hips
 rising early (side), elbow flare, lockout, range of motion, tempo, plank hip
 sag.
 
+**No single angle sees everything.** Depth and spinal position need the side
+view; left-right symmetry such as knee valgus needs the front. So a camera
+config names every rule the exercise has and says which ones each acceptable
+angle cannot evaluate. The invariants the catalog validator enforces are
+therefore *not* "the recommended angle supports every rule" — that is
+impossible — but:
+
+- the recommended angle evaluates at least as many rules as any other
+  acceptable angle, since it is what the setup screen asks the user for, and
+- no rule is disabled at every acceptable angle, which would mean it can never
+  fire.
+
+This was corrected during M1: the original invariant was unsatisfiable by any
+real exercise, and writing the catalog is what exposed it.
+
 ## Coach voice
 
 ```dart
@@ -147,18 +162,109 @@ All user-facing strings live in ARB files from day one.
 
 ```
 PlanRequest{goal, daysPerWeek, sessionMinutes, level, equipment, injuries, runDays}
-  -> WeekTemplate         fullBody x2-3 | upperLower x4 | ppl x5-6
-  -> SlotSpec per day     {pattern, priority, metric, repRangeByGoal}
-  -> filter candidates    equipment available, difficulty <= level+1,
+  -> WeekTemplate         fullBody x2-3 | upperLower x4 | ppl+UL x5 | ppl x6
+  -> viability check      fall back to full-body if a split would leave a day
+                          without compound work
+  -> weekday assignment   classic spread, shifted off run days, rotated to keep
+                          leg work away from pre-run slots
+  -> SlotSpec per day     {pattern, targetMuscle?, priority, sets}
+  -> filter candidates    equipment available, difficulty <= level,
                           no contraindication against a declared injury
-  -> rank                 camera-supported first, then pattern fit,
-                          then variety against recent history
+  -> rank                 difficulty fit, then camera support, then equipment
+                          use, then variety
   -> fit to time budget   sets x (reps x tempo + rest) <= sessionMinutes
 ```
 
-Hybrid goal: run days are marked, heavy squat/hinge/lunge slots are forbidden
-the day before one, and running output is text suggestion only. Spottr does not
-track runs.
+Generation is a pure function of the request and the catalog. No randomness, no
+clock, no I/O, and ranking ties break on exercise id, so the same request always
+produces the same plan — which is what makes the golden tests meaningful.
+
+**Difficulty is a hard gate at or below the user's level**, not level+1.
+Offering an advanced movement to a beginner is how people get hurt, and the
+catalog carries enough beginner work in every pattern that bodyweight training
+can cover.
+
+### Ranking weights
+
+Scores are additive and the constants are the policy, so they live together in
+`PlanGenerator` where they can be read side by side:
+
+| Factor | Weight | Why |
+| --- | --- | --- |
+| Difficulty step (primary slot) | 200 | Appropriate loading dominates everything |
+| Difficulty step (accessory slot) | 0 | Nobody needs an advanced calf raise |
+| Camera support | 200 | Worth exactly one level of progression |
+| Each piece of equipment used | 10 | A gym member should not get bodyweight squats |
+| Used earlier this week | −3 | Variety breaks ties only |
+| Used recently | −5 | Variety breaks ties only |
+
+Two of these came directly out of reviewing the golden output. Variety was
+originally weighted at −40 and was downgrading a dumbbell owner to bodyweight
+squats mid-week; the brief lists variety as the *last* criterion, so it now only
+breaks ties. And difficulty applied to accessory slots was costing gym users
+their camera-coached plank in favour of a hanging knee raise, which is why
+accessory slots ignore difficulty entirely.
+
+### When a split is the wrong prescription
+
+A split dedicates whole days to one pattern group, which assumes the user can
+train that group. A bodyweight-only user has no pulling exercise at all, and a
+user with wrist and shoulder injuries may have no available pressing movement —
+either way the split hands them a day with no compound work in it.
+
+So before scheduling, each day of the intended template is checked: if removing
+the patterns this user cannot train would leave fewer than two primary slots,
+the split is abandoned for full-body days and a `templateSimplified` note
+records which patterns forced it. A split missing one pattern out of four is
+fine and is simply noted; a split with a collapsed day is not.
+
+This was found by the property tests, not by reasoning — see Testing below.
+
+### Hybrid goal
+
+Run days are marked and training is kept off them wherever the week has room; a
+session only shares a day with a run when every other day is taken, which is
+the honest outcome for six gym days and three runs.
+
+Leg work is kept away from runs by two mechanisms. First, the template's day
+order is **rotated** to put leg-heavy days on slots that are not the night
+before a run — rotation rather than free reordering, so upper/lower alternation
+can never collapse into two lower days back to back. Second, where placement
+cannot avoid it, leg-dominant compound slots are capped at two sets and a
+`legVolumeReducedForRun` note explains why. The brief asks to avoid *heavy* leg
+work, not to skip legs, so volume comes down rather than the session losing its
+purpose.
+
+Running output is a text suggestion keyed to experience. Spottr does not track
+runs.
+
+### Plan notes
+
+The generator reports its own compromises rather than hiding them:
+`unfilledSlot`, `templateSimplified`, `legVolumeReducedForRun`,
+`trimmedForTime`, `dayUnderfilled`. Each carries a machine-readable detail and
+an optional weekday, and the UI maps the kind to prose. A short session should
+look explained, not broken.
+
+## Plan edits
+
+Swap, reorder and move-day are pure functions returning a new plan.
+
+The prescription rules — the pre-run leg cap and the time-budget trim — live in
+`DayRules`, shared by the generator and every edit, so an edited plan is
+indistinguishable from a generated one. They derive from
+`PlannedExercise.templateSets` rather than the current set count, which makes
+them idempotent and means a day moved onto the night before a run loses leg
+volume while a day moved clear of one gets it back.
+
+A swap is re-prescribed from scratch rather than inheriting the old targets,
+because swapping a rep-counted exercise for a hold has to turn reps into
+seconds. Swaps are validated against the same hard constraints as generation,
+so a swap can never reintroduce something contraindicated.
+
+Reordering deliberately does *not* re-apply the day rules: a day the user
+trimmed by hand should not spring back to full volume because they dragged a
+row.
 
 ## Progression
 
@@ -212,9 +318,22 @@ or landmark traces off the device.
 
 - Pure-Dart packages hold the logic, so most of the suite runs in milliseconds
   with no device and no Flutter engine.
-- Plan generation is checked with property tests over randomized profiles
-  asserting invariants — no contraindicated exercise, correct day count, every
-  day inside its time budget — rather than only golden outputs.
+- The catalog is hand-authored data, so a validator checks every
+  cross-reference, ladder direction, alternative symmetry and camera angle
+  declaration, and a test asserts it reports nothing. Separate tests pin the
+  rep-counter and form-rule vocabularies in both directions, so a typo in a
+  catalog entry and a planned rule that nothing uses both fail.
+- Plan generation is checked by **property tests** over 300 randomized
+  profiles, asserting invariants rather than outputs: correct day count, no
+  contraditions of equipment, injury or level, no duplicate within a day, every
+  day inside its budget, at least one compound per day, no heavy legs before a
+  run, and never clashing with a run day when the week had room. The seed is
+  fixed so failures reproduce, and the failing profile is printed. The same
+  invariants are re-checked after a random swap, reorder and day move.
+- Plan generation is **also** pinned by golden files for twelve representative
+  profiles, regenerated with `UPDATE_GOLDENS=1`. Property tests prove what must
+  always be true; goldens show what the generator actually decides, so a
+  ranking change arrives as a readable diff.
 - Progression is a decision table.
 - The live coach is tested by driving `FakePoseCamera` through a recorded set
   and asserting the exact cue sequence.
@@ -225,3 +344,8 @@ Acceptance targets: rep count accuracy >= 95% at the recommended angle, form
 warnings firing on labeled faults with a low false-positive rate. These are
 measurements against labeled footage, not checkboxes — see `docs/dev-loop.md`
 for where that footage comes from and what is honestly claimable without it.
+
+The property tests have already earned their keep: they found that a
+bodyweight-only user on a five or six day split was being handed a pull day
+with no pull in it, and then that the same hole existed for pushing once
+injuries were in play. Neither was reachable from the hand-written cases.

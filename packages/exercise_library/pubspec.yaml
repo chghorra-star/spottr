@@ -8,6 +8,7 @@ environment:
   sdk: ^3.12.2
 
 dependencies:
+  collection: ^1.19.0
   meta: ^1.15.0
   pose_core:
     path: ../pose_core

@@ -1,0 +1,219 @@
+import 'package:exercise_library/exercise_library.dart';
+import 'package:meta/meta.dart';
+
+import 'goal.dart';
+import 'templates.dart';
+
+/// Why a plan does not look like the plain template.
+enum PlanNoteKind {
+  /// A slot the catalog could not fill for this user, usually missing
+  /// equipment. Surfaced rather than hidden so the UI can explain a short
+  /// session instead of looking broken.
+  unfilledSlot,
+
+  /// Leg volume was cut because a run follows the next day.
+  legVolumeReducedForRun,
+
+  /// Work was removed to fit the session into its time budget.
+  trimmedForTime,
+
+  /// The requested split was replaced by full-body days because the user
+  /// cannot train one of the patterns it depends on.
+  templateSimplified,
+
+  /// A day ended up with too little compound work to be a real session.
+  ///
+  /// Almost always a bodyweight-only user on a four-plus day split, where
+  /// the template asks for pulling that no bodyweight exercise can supply.
+  dayUnderfilled,
+}
+
+/// One thing the generator wants the user to know.
+@immutable
+class PlanNote {
+  const PlanNote(this.kind, this.detail, {this.weekday});
+
+  final PlanNoteKind kind;
+
+  /// Machine-readable specifics: a pattern name, an exercise id, or a day
+  /// type. The UI maps [kind] to prose and uses this for the detail.
+  final String detail;
+
+  final int? weekday;
+
+  @override
+  String toString() => '${kind.name}($detail'
+      '${weekday == null ? '' : ', weekday $weekday'})';
+}
+
+/// One prescribed exercise within a day.
+@immutable
+class PlannedExercise {
+  const PlannedExercise({
+    required this.exerciseId,
+    required this.slotPattern,
+    required this.priority,
+    required this.sets,
+    required this.templateSets,
+    required this.metric,
+    required this.restSeconds,
+    required this.secondsPerRep,
+    this.repsMin,
+    this.repsMax,
+    this.holdSeconds,
+  });
+
+  final String exerciseId;
+
+  /// The pattern of the slot this fills, which is not always the exercise's
+  /// own pattern: an isolation fallback can fill an accessory slot.
+  final MovementPattern slotPattern;
+
+  final SlotPriority priority;
+
+  /// Sets actually prescribed, after any pre-run leg cap or time trimming.
+  final int sets;
+
+  /// Sets the template asked for, before any reduction.
+  ///
+  /// Kept so that moving a day onto or away from a pre-run slot can
+  /// re-derive the prescription instead of guessing what it used to be.
+  final int templateSets;
+
+  final MetricType metric;
+  final int restSeconds;
+  final double secondsPerRep;
+
+  /// Target rep range, for [MetricType.reps].
+  final int? repsMin;
+  final int? repsMax;
+
+  /// Target hold, for [MetricType.holdSeconds].
+  final int? holdSeconds;
+
+  bool get isPrimary => priority == SlotPriority.primary;
+
+  /// Midpoint of the rep range, used for time estimates.
+  int get repsMid =>
+      repsMin == null || repsMax == null ? 0 : (repsMin! + repsMax!) ~/ 2;
+
+  /// Rough wall-clock cost of this exercise, work plus rest.
+  int get estimatedSeconds {
+    final perSet = metric == MetricType.holdSeconds
+        ? (holdSeconds ?? 0) + restSeconds
+        : (repsMid * secondsPerRep).round() + restSeconds;
+    return sets * perSet;
+  }
+
+  PlannedExercise copyWith({int? sets, int? templateSets}) => PlannedExercise(
+        exerciseId: exerciseId,
+        slotPattern: slotPattern,
+        priority: priority,
+        sets: sets ?? this.sets,
+        templateSets: templateSets ?? this.templateSets,
+        metric: metric,
+        restSeconds: restSeconds,
+        secondsPerRep: secondsPerRep,
+        repsMin: repsMin,
+        repsMax: repsMax,
+        holdSeconds: holdSeconds,
+      );
+
+  @override
+  String toString() => '$exerciseId x$sets';
+}
+
+/// One training day.
+@immutable
+class PlannedDay {
+  const PlannedDay({
+    required this.weekday,
+    required this.type,
+    required this.labelKey,
+    required this.precedesRunDay,
+    required this.exercises,
+  });
+
+  /// Time reserved for warming up, included in [estimatedSeconds].
+  static const int warmupSeconds = 360;
+
+  /// ISO weekday, 1 = Monday.
+  final int weekday;
+
+  final DayType type;
+  final String labelKey;
+
+  /// Whether a run follows tomorrow. Leg volume is reduced on these days.
+  final bool precedesRunDay;
+
+  final List<PlannedExercise> exercises;
+
+  List<PlannedExercise> get primaryExercises =>
+      exercises.where((e) => e.isPrimary).toList();
+
+  /// Estimated session length including the warm-up.
+  int get estimatedSeconds =>
+      warmupSeconds +
+      exercises.fold(0, (total, e) => total + e.estimatedSeconds);
+
+  int get estimatedMinutes => (estimatedSeconds / 60).ceil();
+
+  PlannedDay copyWith({List<PlannedExercise>? exercises}) => PlannedDay(
+        weekday: weekday,
+        type: type,
+        labelKey: labelKey,
+        precedesRunDay: precedesRunDay,
+        exercises: exercises ?? this.exercises,
+      );
+
+  @override
+  String toString() => 'Day $weekday ${type.name}: ${exercises.join(', ')}';
+}
+
+/// A generated week.
+@immutable
+class WeekPlan {
+  const WeekPlan({
+    required this.templateId,
+    required this.goal,
+    required this.days,
+    required this.runWeekdays,
+    required this.runSuggestionKeys,
+    required this.notes,
+  });
+
+  final String templateId;
+  final Goal goal;
+
+  /// Training days, ordered by weekday.
+  final List<PlannedDay> days;
+
+  /// The user's run days, carried through so the UI can show the whole week.
+  final Set<int> runWeekdays;
+
+  /// ARB keys for the text running suggestions. Hybrid goal only, and never
+  /// any tracking.
+  final List<String> runSuggestionKeys;
+
+  final List<PlanNote> notes;
+
+  Iterable<PlannedExercise> get allExercises =>
+      days.expand((day) => day.exercises);
+
+  /// Distinct exercises across the week.
+  Set<String> get exerciseIds =>
+      allExercises.map((e) => e.exerciseId).toSet();
+
+  WeekPlan copyWith({List<PlannedDay>? days, List<PlanNote>? notes}) =>
+      WeekPlan(
+        templateId: templateId,
+        goal: goal,
+        days: days ?? this.days,
+        runWeekdays: runWeekdays,
+        runSuggestionKeys: runSuggestionKeys,
+        notes: notes ?? this.notes,
+      );
+
+  @override
+  String toString() => 'WeekPlan($templateId, ${days.length} days)';
+}

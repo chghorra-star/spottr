@@ -11,8 +11,10 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M0 complete — workspace, packages, CI, localization, theme, and the local
-database schema are in place. 41 tests green, analyzer clean. No features yet.
+M1 complete — a 54-exercise curated catalog with an integrity validator, and a
+deterministic plan generator with scheduling, ranking, time budgeting, hybrid
+run-day rules, and swap/reorder/move-day editing. 203 tests green, analyzer
+clean. No UI yet: the engine is there, the screens are M2.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 [docs/dev-loop.md](docs/dev-loop.md) for how to run and verify it.
@@ -20,8 +22,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | Milestone | Scope | State |
 | --- | --- | --- |
 | M0 | Scaffold and rails | done |
-| M1 | Exercise library + plan generation | next |
-| M2 | Onboarding, profile, plan UI | |
+| M1 | Exercise library + plan generation | done |
+| M2 | Onboarding, profile, plan UI | next |
 | M3 | Workout logging + progression | |
 | M4 | Pose plumbing, native bridge, overlay | |
 | M5 | Rep counting + accuracy harness | |

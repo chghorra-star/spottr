@@ -5,6 +5,7 @@
 /// analysis stack is testable from recorded fixtures without a device.
 library;
 
+export 'src/camera_angle.dart';
 export 'src/geometry.dart';
 export 'src/joint.dart';
 export 'src/landmark.dart';
