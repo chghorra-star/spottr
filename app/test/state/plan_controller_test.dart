@@ -178,7 +178,11 @@ void main() {
       final legWork = before.days
           .expand((d) => d.exercises)
           .firstWhere((e) => e.isPrimary && e.slotPattern.isLegDominant);
-      expect(legWork.sets, legWork.templateSets, reason: 'premise: uncapped');
+      expect(
+        legWork.sets,
+        greaterThan(DayRules.preRunLegSetCap),
+        reason: 'premise: uncapped',
+      );
 
       final from = before.days.first.weekday;
       await controller.moveDay(fromWeekday: from, toWeekday: 6);
@@ -195,8 +199,19 @@ void main() {
       final returned =
           (await plan()).days.firstWhere((d) => d.weekday == from);
       expect(returned.precedesRunDay, isFalse);
-      for (final exercise in returned.exercises) {
-        expect(exercise.sets, exercise.templateSets);
+      final legWorkAfter = returned.exercises
+          .where((e) => e.isPrimary && e.slotPattern.isLegDominant);
+      expect(legWorkAfter, isNotEmpty);
+      for (final exercise in legWorkAfter) {
+        // Not back to the template exactly: with the run gone, the day is
+        // free to grow into its budget again. What matters is that the cap
+        // was lifted. Optional work is left out of this — it starts at two
+        // sets by design and may simply not have had room to grow.
+        expect(
+          exercise.sets,
+          greaterThan(DayRules.preRunLegSetCap),
+          reason: '${exercise.exerciseId} is still capped',
+        );
       }
     });
 

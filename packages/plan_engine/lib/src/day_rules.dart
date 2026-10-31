@@ -34,40 +34,172 @@ abstract final class DayRules {
   /// Minimum sets a trimmed exercise keeps before it is dropped instead.
   static const int minimumSets = 2;
 
-  static DayRulesResult apply(PlannedDay day, PlanRequest request) {
+  /// Most sets an exercise is ever given, by the kind of slot it fills.
+  ///
+  /// This is what stops "use the time available" from turning into junk
+  /// volume. Compound work earns the extra sets first and tops out highest;
+  /// optional work is there to round out a long session, not to become the
+  /// session. A day that reaches these caps and still has time left is as
+  /// full as it is going to get, and the generator says so.
+  static int maxSetsFor(SlotPriority priority) => switch (priority) {
+        SlotPriority.primary => 5,
+        SlotPriority.accessory => 4,
+        SlotPriority.optional => 3,
+      };
+
+  /// Most working sets a single session is ever given.
+  ///
+  /// The per-exercise caps alone do not bound this: a nine-exercise gym day
+  /// can reach them all and come to thirty-seven sets, which is not a long
+  /// session but a bad one. Somebody who sets aside ninety minutes is better
+  /// served by being told their session comes to seventy than by being given
+  /// another seven sets they do not need.
+  ///
+  /// Optional slots start at [minimumSets] in the templates for the same
+  /// reason this exists. If they started full they would spend the session's
+  /// budget before the compounds had theirs, and filling would stop with the
+  /// squat on three sets and the lateral raise on three.
+  static const int maxWorkingSetsPerDay = 32;
+
+  /// Muscles that have to be fresh for a run.
+  static const Set<MuscleGroup> _legMuscles = {
+    MuscleGroup.quads,
+    MuscleGroup.hamstrings,
+    MuscleGroup.glutes,
+    MuscleGroup.calves,
+    MuscleGroup.adductors,
+    MuscleGroup.abductors,
+  };
+
+  static DayRulesResult apply(
+    PlannedDay day,
+    PlanRequest request,
+    ExerciseCatalog catalog,
+  ) {
     final notes = <PlanNote>[];
     var exercises = [
       for (final exercise in day.exercises)
-        _applyRunRule(exercise, day, notes),
+        _applyRunRule(exercise, day, catalog),
     ];
 
+    if (exercises.length != day.exercises.length ||
+        _anyCapped(day, exercises)) {
+      // One note for the day, not one per exercise. Before this rule
+      // reached isolation work a pre-run day capped three lifts; now it
+      // caps six, and six sentences saying the same thing is not an
+      // explanation, it is noise.
+      notes.add(
+        PlanNote(
+          PlanNoteKind.legVolumeReducedForRun,
+          day.type.name,
+          weekday: day.weekday,
+        ),
+      );
+    }
+
     exercises = _fitToBudget(exercises, day.weekday, request, notes);
+    exercises = _fillBudget(exercises, day, request, catalog);
 
     return DayRulesResult(day.copyWith(exercises: exercises), notes);
+  }
+
+  static bool _anyCapped(PlannedDay day, List<PlannedExercise> exercises) {
+    for (var index = 0; index < exercises.length; index++) {
+      if (exercises[index].sets < day.exercises[index].templateSets) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Whether [exercise] puts meaningful load through the legs.
+  ///
+  /// Asked of the catalog rather than of the slot, because the slot does not
+  /// know: a leg extension fills an *isolation* slot and is more fatiguing
+  /// for the quads than the squat sets the pre-run rule just took away.
+  static bool _loadsLegs(PlannedExercise exercise, ExerciseCatalog catalog) {
+    if (exercise.slotPattern.isLegDominant) return true;
+    final entry = catalog[exercise.exerciseId];
+    if (entry == null) return false;
+    return entry.primaryMuscles.any(_legMuscles.contains);
+  }
+
+  /// The most sets [exercise] may have on [day], after every rule that caps
+  /// it rather than counts it.
+  static int _ceilingFor(
+    PlannedExercise exercise,
+    PlannedDay day,
+    ExerciseCatalog catalog,
+  ) {
+    if (day.precedesRunDay && _loadsLegs(exercise, catalog)) {
+      return preRunLegSetCap;
+    }
+    return maxSetsFor(exercise.priority);
+  }
+
+  /// Grows the day into whatever time the budget has left.
+  ///
+  /// Sets are added one at a time, compound work first, cycling through the
+  /// exercises so the volume spreads rather than piling onto whichever lift
+  /// happens to be first. Nothing is added past [_ceilingFor], which is what
+  /// keeps the pre-run leg cap intact in a long session.
+  ///
+  /// Deriving everything from `templateSets` and the budget is what makes
+  /// this idempotent: applying the rules to an already-filled day gives the
+  /// same day back, so an edit does not inflate the week a little more each
+  /// time the user drags a row.
+  static List<PlannedExercise> _fillBudget(
+    List<PlannedExercise> original,
+    PlannedDay day,
+    PlanRequest request,
+    ExerciseCatalog catalog,
+  ) {
+    final budget = request.sessionMinutes * 60;
+    final exercises = [...original];
+
+    int total() =>
+        PlannedDay.warmupSeconds +
+        exercises.fold(0, (sum, e) => sum + e.estimatedSeconds);
+
+    int workingSets() => exercises.fold(0, (sum, e) => sum + e.sets);
+
+    for (final priority in SlotPriority.values) {
+      var added = true;
+      while (added) {
+        added = false;
+        for (var index = 0; index < exercises.length; index++) {
+          if (workingSets() >= maxWorkingSetsPerDay) return exercises;
+
+          final exercise = exercises[index];
+          if (exercise.priority != priority) continue;
+          if (exercise.sets >= _ceilingFor(exercise, day, catalog)) continue;
+
+          final grown = exercise.copyWith(sets: exercise.sets + 1);
+          final cost = grown.estimatedSeconds - exercise.estimatedSeconds;
+          if (total() + cost > budget) continue;
+
+          exercises[index] = grown;
+          added = true;
+        }
+      }
+    }
+
+    return exercises;
   }
 
   static PlannedExercise _applyRunRule(
     PlannedExercise exercise,
     PlannedDay day,
-    List<PlanNote> notes,
+    ExerciseCatalog catalog,
   ) {
     final shouldCap = day.precedesRunDay &&
-        exercise.isPrimary &&
-        exercise.slotPattern.isLegDominant &&
+        _loadsLegs(exercise, catalog) &&
         exercise.templateSets > preRunLegSetCap;
 
     if (!shouldCap) {
       // Reset to the template, so a day that moved clear of a run recovers.
       return exercise.copyWith(sets: exercise.templateSets);
     }
-
-    notes.add(
-      PlanNote(
-        PlanNoteKind.legVolumeReducedForRun,
-        exercise.exerciseId,
-        weekday: day.weekday,
-      ),
-    );
     return exercise.copyWith(sets: preRunLegSetCap);
   }
 
@@ -90,6 +222,14 @@ abstract final class DayRules {
         exercises.fold(0, (sum, e) => sum + e.estimatedSeconds);
 
     while (total() > budget && exercises.isNotEmpty) {
+      // Optional work goes first and goes quietly: it is what the template
+      // offers when there is time, so its absence is not news.
+      final lastOptional = exercises.lastIndexWhere((e) => e.isOptional);
+      if (lastOptional >= 0) {
+        exercises.removeAt(lastOptional);
+        continue;
+      }
+
       final lastAccessory = exercises.lastIndexWhere((e) => !e.isPrimary);
       if (lastAccessory >= 0) {
         notes.add(

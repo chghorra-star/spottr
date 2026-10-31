@@ -202,7 +202,7 @@ class PlanEdits {
     int? replacingWeekday,
   }) {
     final oldWeekday = replacingWeekday ?? updated.weekday;
-    final result = DayRules.apply(updated, request);
+    final result = DayRules.apply(updated, request, catalog);
 
     final days = [
       for (final existing in plan.days)

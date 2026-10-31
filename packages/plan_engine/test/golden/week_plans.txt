@@ -1,20 +1,20 @@
 === 01 fat loss, bodyweight at home, 3 days ===
 template: full_body_3
-Mon day_full_body  ~23 min
-    bodyweight_squat          primary   3 x 12-15 reps   rest 45s
-    push_up                   primary   3 x 12-15 reps   rest 45s
-    glute_bridge              primary   3 x 12-15 reps   rest 45s
-    plank                     accessory 3 x 40s hold     rest 45s
-Wed day_full_body  ~23 min
-    bodyweight_squat          primary   3 x 12-15 reps   rest 45s
-    push_up                   primary   3 x 12-15 reps   rest 45s
-    glute_bridge              primary   3 x 12-15 reps   rest 45s
-    plank                     accessory 3 x 40s hold     rest 45s
-Fri day_full_body  ~23 min
-    bodyweight_squat          primary   3 x 12-15 reps   rest 45s
-    push_up                   primary   3 x 12-15 reps   rest 45s
-    glute_bridge              primary   3 x 12-15 reps   rest 45s
-    plank                     accessory 3 x 40s hold     rest 45s
+Mon day_full_body  ~37 min
+    bodyweight_squat          primary   5 x 12-15 reps   rest 45s
+    push_up                   primary   5 x 12-15 reps   rest 45s
+    glute_bridge              primary   5 x 12-15 reps   rest 45s
+    plank                     accessory 4 x 40s hold     rest 45s
+Wed day_full_body  ~37 min
+    bodyweight_squat          primary   5 x 12-15 reps   rest 45s
+    push_up                   primary   5 x 12-15 reps   rest 45s
+    glute_bridge              primary   5 x 12-15 reps   rest 45s
+    plank                     accessory 4 x 40s hold     rest 45s
+Fri day_full_body  ~37 min
+    bodyweight_squat          primary   5 x 12-15 reps   rest 45s
+    push_up                   primary   5 x 12-15 reps   rest 45s
+    glute_bridge              primary   5 x 12-15 reps   rest 45s
+    plank                     accessory 4 x 40s hold     rest 45s
 notes:
     unfilledSlot: horizontalPull (Mon)
     unfilledSlot: horizontalPull (Wed)
@@ -22,220 +22,296 @@ notes:
 
 === 02 muscle, dumbbells at home, 3 days ===
 template: full_body_3
-Mon day_full_body  ~33 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
+Mon day_full_body  ~45 min
+    goblet_squat              primary   4 x 8-12 reps    rest 75s
     push_up                   primary   3 x 8-12 reps    rest 75s
     db_single_arm_row         primary   3 x 8-12 reps    rest 75s
     glute_bridge              primary   3 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Wed day_full_body  ~33 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+Wed day_full_body  ~45 min
+    goblet_squat              primary   4 x 8-12 reps    rest 75s
     push_up                   primary   3 x 8-12 reps    rest 75s
     db_single_arm_row         primary   3 x 8-12 reps    rest 75s
     glute_bridge              primary   3 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Fri day_full_body  ~33 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+Fri day_full_body  ~45 min
+    goblet_squat              primary   4 x 8-12 reps    rest 75s
     push_up                   primary   3 x 8-12 reps    rest 75s
     db_single_arm_row         primary   3 x 8-12 reps    rest 75s
     glute_bridge              primary   3 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
 
 === 03 muscle, full gym, beginner, 3 days ===
 template: full_body_3
-Mon day_full_body  ~33 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    push_up                   primary   3 x 8-12 reps    rest 75s
-    db_single_arm_row         primary   3 x 8-12 reps    rest 75s
-    glute_bridge              primary   3 x 8-12 reps    rest 75s
+Mon day_full_body  ~60 min
+    goblet_squat              primary   4 x 8-12 reps    rest 75s
+    push_up                   primary   4 x 8-12 reps    rest 75s
+    db_single_arm_row         primary   4 x 8-12 reps    rest 75s
+    glute_bridge              primary   4 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Wed day_full_body  ~33 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    push_up                   primary   3 x 8-12 reps    rest 75s
-    seated_cable_row          primary   3 x 8-12 reps    rest 75s
-    glute_bridge              primary   3 x 8-12 reps    rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    db_curl                   optional  2 x 12-15 reps   rest 75s
+    cable_triceps_pushdown    optional  2 x 12-15 reps   rest 75s
+Wed day_full_body  ~60 min
+    goblet_squat              primary   4 x 8-12 reps    rest 75s
+    push_up                   primary   4 x 8-12 reps    rest 75s
+    seated_cable_row          primary   4 x 8-12 reps    rest 75s
+    glute_bridge              primary   4 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Fri day_full_body  ~33 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    push_up                   primary   3 x 8-12 reps    rest 75s
-    db_single_arm_row         primary   3 x 8-12 reps    rest 75s
-    glute_bridge              primary   3 x 8-12 reps    rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    db_hammer_curl            optional  2 x 12-15 reps   rest 75s
+    db_triceps_extension      optional  2 x 12-15 reps   rest 75s
+Fri day_full_body  ~60 min
+    goblet_squat              primary   4 x 8-12 reps    rest 75s
+    push_up                   primary   4 x 8-12 reps    rest 75s
+    db_single_arm_row         primary   4 x 8-12 reps    rest 75s
+    glute_bridge              primary   4 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    db_curl                   optional  2 x 12-15 reps   rest 75s
+    cable_triceps_pushdown    optional  2 x 12-15 reps   rest 75s
 
 === 04 muscle, full gym, intermediate, 4 days ===
 template: upper_lower_4
-Mon day_upper  ~35 min
+Mon day_upper  ~59 min
     barbell_bench_press       primary   3 x 8-12 reps    rest 75s
     band_assisted_pull_up     primary   3 x 8-12 reps    rest 75s
     db_shoulder_press         primary   3 x 8-12 reps    rest 75s
     db_bent_over_row          primary   3 x 8-12 reps    rest 75s
-    db_curl                   accessory 2 x 12-15 reps   rest 75s
-    cable_triceps_pushdown    accessory 2 x 12-15 reps   rest 75s
-Tue day_lower  ~34 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    db_romanian_deadlift      primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
+    db_curl                   accessory 3 x 12-15 reps   rest 75s
+    cable_triceps_pushdown    accessory 3 x 12-15 reps   rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    face_pull                 optional  2 x 12-15 reps   rest 75s
+    plank                     optional  2 x 45s hold     rest 75s
+Tue day_lower  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 75s
+    db_romanian_deadlift      primary   4 x 8-12 reps    rest 75s
+    db_lunge                  primary   4 x 8-12 reps    rest 75s
     seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Thu day_upper  ~35 min
+    leg_extension             optional  2 x 12-15 reps   rest 75s
+    superman                  optional  2 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  2 x 12-15 reps   rest 75s
+Thu day_upper  ~59 min
     db_bench_press            primary   3 x 8-12 reps    rest 75s
     band_assisted_pull_up     primary   3 x 8-12 reps    rest 75s
     db_shoulder_press         primary   3 x 8-12 reps    rest 75s
     db_bent_over_row          primary   3 x 8-12 reps    rest 75s
-    db_hammer_curl            accessory 2 x 12-15 reps   rest 75s
-    db_triceps_extension      accessory 2 x 12-15 reps   rest 75s
-Fri day_lower  ~34 min
-    hack_squat                primary   3 x 8-12 reps    rest 75s
-    db_romanian_deadlift      primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
+    db_hammer_curl            accessory 3 x 12-15 reps   rest 75s
+    db_triceps_extension      accessory 3 x 12-15 reps   rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    face_pull                 optional  2 x 12-15 reps   rest 75s
+    plank                     optional  2 x 45s hold     rest 75s
+Fri day_lower  ~60 min
+    hack_squat                primary   5 x 8-12 reps    rest 75s
+    db_romanian_deadlift      primary   4 x 8-12 reps    rest 75s
+    db_lunge                  primary   4 x 8-12 reps    rest 75s
     seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
+    leg_extension             optional  2 x 12-15 reps   rest 75s
+    superman                  optional  2 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  2 x 12-15 reps   rest 75s
 
 === 05 fat loss, dumbbells at home, intermediate, 4 days ===
 template: upper_lower_4
-Mon day_upper  ~25 min
-    push_up                   primary   3 x 12-15 reps   rest 45s
-    db_shoulder_press         primary   3 x 12-15 reps   rest 45s
+Mon day_upper  ~45 min
+    push_up                   primary   4 x 12-15 reps   rest 45s
+    db_shoulder_press         primary   4 x 12-15 reps   rest 45s
     db_bent_over_row          primary   3 x 12-15 reps   rest 45s
-    db_curl                   accessory 2 x 15-20 reps   rest 45s
-    db_triceps_extension      accessory 2 x 15-20 reps   rest 45s
-Tue day_lower  ~28 min
+    db_curl                   accessory 3 x 15-20 reps   rest 45s
+    db_triceps_extension      accessory 3 x 15-20 reps   rest 45s
+    db_lateral_raise          optional  2 x 15-20 reps   rest 45s
+    plank                     optional  2 x 40s hold     rest 45s
+Tue day_lower  ~45 min
     goblet_squat              primary   3 x 12-15 reps   rest 45s
     db_romanian_deadlift      primary   3 x 12-15 reps   rest 45s
     db_lunge                  primary   3 x 12-15 reps   rest 45s
     calf_raise                accessory 3 x 15-20 reps   rest 45s
     plank                     accessory 3 x 40s hold     rest 45s
-Thu day_upper  ~25 min
-    push_up                   primary   3 x 12-15 reps   rest 45s
-    db_shoulder_press         primary   3 x 12-15 reps   rest 45s
+    wall_sit                  optional  2 x 40s hold     rest 45s
+    superman                  optional  2 x 15-20 reps   rest 45s
+    bird_dog                  optional  2 x 15-20 reps   rest 45s
+Thu day_upper  ~45 min
+    push_up                   primary   4 x 12-15 reps   rest 45s
+    db_shoulder_press         primary   4 x 12-15 reps   rest 45s
     db_bent_over_row          primary   3 x 12-15 reps   rest 45s
-    db_hammer_curl            accessory 2 x 15-20 reps   rest 45s
-    db_triceps_extension      accessory 2 x 15-20 reps   rest 45s
-Fri day_lower  ~28 min
+    db_hammer_curl            accessory 3 x 15-20 reps   rest 45s
+    db_triceps_extension      accessory 3 x 15-20 reps   rest 45s
+    db_lateral_raise          optional  2 x 15-20 reps   rest 45s
+    plank                     optional  2 x 40s hold     rest 45s
+Fri day_lower  ~45 min
     goblet_squat              primary   3 x 12-15 reps   rest 45s
     db_romanian_deadlift      primary   3 x 12-15 reps   rest 45s
     db_lunge                  primary   3 x 12-15 reps   rest 45s
     calf_raise                accessory 3 x 15-20 reps   rest 45s
     plank                     accessory 3 x 40s hold     rest 45s
+    wall_sit                  optional  2 x 40s hold     rest 45s
+    superman                  optional  2 x 15-20 reps   rest 45s
+    dead_bug                  optional  2 x 15-20 reps   rest 45s
 notes:
     unfilledSlot: verticalPull (Mon)
     unfilledSlot: verticalPull (Thu)
 
 === 06 muscle, full gym, advanced, 5 days ===
 template: ppl_upper_lower_5
-Mon day_push  ~36 min
-    barbell_bench_press       primary   4 x 8-12 reps    rest 75s
-    barbell_overhead_press    primary   3 x 8-12 reps    rest 75s
-    cable_triceps_pushdown    accessory 3 x 12-15 reps   rest 75s
-    db_lateral_raise          accessory 3 x 12-15 reps   rest 75s
-    plank                     accessory 3 x 45s hold     rest 75s
-Tue day_pull  ~30 min
-    pull_up                   primary   4 x 8-12 reps    rest 75s
-    barbell_row               primary   3 x 8-12 reps    rest 75s
+Mon day_push  ~72 min
+    barbell_bench_press       primary   5 x 8-12 reps    rest 75s
+    barbell_overhead_press    primary   5 x 8-12 reps    rest 75s
+    cable_triceps_pushdown    accessory 4 x 12-15 reps   rest 75s
+    db_lateral_raise          accessory 4 x 12-15 reps   rest 75s
+    plank                     accessory 4 x 45s hold     rest 75s
+    cable_fly                 optional  3 x 12-15 reps   rest 75s
+    db_triceps_extension      optional  3 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 75s
+Tue day_pull  ~57 min
+    pull_up                   primary   5 x 8-12 reps    rest 75s
+    barbell_row               primary   5 x 8-12 reps    rest 75s
+    db_curl                   accessory 4 x 12-15 reps   rest 75s
+    face_pull                 accessory 4 x 12-15 reps   rest 75s
+    db_hammer_curl            optional  3 x 12-15 reps   rest 75s
+    plank                     optional  3 x 45s hold     rest 75s
+Wed day_legs  ~73 min
+    barbell_back_squat        primary   5 x 8-12 reps    rest 75s
+    barbell_deadlift          primary   5 x 8-12 reps    rest 75s
+    db_lunge                  primary   5 x 8-12 reps    rest 75s
+    seated_calf_raise         accessory 4 x 12-15 reps   rest 75s
+    plank                     accessory 4 x 45s hold     rest 75s
+    leg_extension             optional  3 x 12-15 reps   rest 75s
+    superman                  optional  3 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 75s
+Fri day_upper  ~73 min
+    db_bench_press            primary   5 x 8-12 reps    rest 75s
+    pull_up                   primary   5 x 8-12 reps    rest 75s
+    barbell_overhead_press    primary   5 x 8-12 reps    rest 75s
+    db_bent_over_row          primary   5 x 8-12 reps    rest 75s
     db_curl                   accessory 3 x 12-15 reps   rest 75s
-    face_pull                 accessory 3 x 12-15 reps   rest 75s
-Wed day_legs  ~36 min
-    barbell_back_squat        primary   4 x 8-12 reps    rest 75s
-    barbell_deadlift          primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
-    seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
-    plank                     accessory 3 x 45s hold     rest 75s
-Fri day_upper  ~35 min
-    db_bench_press            primary   3 x 8-12 reps    rest 75s
-    pull_up                   primary   3 x 8-12 reps    rest 75s
-    barbell_overhead_press    primary   3 x 8-12 reps    rest 75s
-    db_bent_over_row          primary   3 x 8-12 reps    rest 75s
-    db_hammer_curl            accessory 2 x 12-15 reps   rest 75s
-    db_triceps_extension      accessory 2 x 12-15 reps   rest 75s
-Sat day_lower  ~34 min
-    barbell_back_squat        primary   3 x 8-12 reps    rest 75s
-    barbell_romanian_deadlift primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
-    seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
-    plank                     accessory 3 x 45s hold     rest 75s
+    cable_triceps_pushdown    accessory 3 x 12-15 reps   rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    face_pull                 optional  2 x 12-15 reps   rest 75s
+    plank                     optional  2 x 45s hold     rest 75s
+Sat day_lower  ~73 min
+    barbell_back_squat        primary   5 x 8-12 reps    rest 75s
+    barbell_romanian_deadlift primary   5 x 8-12 reps    rest 75s
+    db_lunge                  primary   5 x 8-12 reps    rest 75s
+    seated_calf_raise         accessory 4 x 12-15 reps   rest 75s
+    plank                     accessory 4 x 45s hold     rest 75s
+    leg_extension             optional  3 x 12-15 reps   rest 75s
+    superman                  optional  3 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 75s
 
 === 07 muscle, full gym, advanced, 6 days ===
 template: ppl_6
-Mon day_push  ~36 min
-    barbell_bench_press       primary   4 x 8-12 reps    rest 75s
-    barbell_overhead_press    primary   3 x 8-12 reps    rest 75s
-    cable_triceps_pushdown    accessory 3 x 12-15 reps   rest 75s
-    db_lateral_raise          accessory 3 x 12-15 reps   rest 75s
-    plank                     accessory 3 x 45s hold     rest 75s
-Tue day_pull  ~30 min
-    pull_up                   primary   4 x 8-12 reps    rest 75s
-    barbell_row               primary   3 x 8-12 reps    rest 75s
-    db_curl                   accessory 3 x 12-15 reps   rest 75s
-    face_pull                 accessory 3 x 12-15 reps   rest 75s
-Wed day_legs  ~36 min
-    barbell_back_squat        primary   4 x 8-12 reps    rest 75s
-    barbell_deadlift          primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
-    seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
-    plank                     accessory 3 x 45s hold     rest 75s
-Thu day_push  ~36 min
-    db_bench_press            primary   4 x 8-12 reps    rest 75s
-    barbell_overhead_press    primary   3 x 8-12 reps    rest 75s
-    db_triceps_extension      accessory 3 x 12-15 reps   rest 75s
-    db_lateral_raise          accessory 3 x 12-15 reps   rest 75s
-    plank                     accessory 3 x 45s hold     rest 75s
-Fri day_pull  ~30 min
-    pull_up                   primary   4 x 8-12 reps    rest 75s
-    db_bent_over_row          primary   3 x 8-12 reps    rest 75s
-    db_hammer_curl            accessory 3 x 12-15 reps   rest 75s
-    face_pull                 accessory 3 x 12-15 reps   rest 75s
-Sat day_legs  ~36 min
-    barbell_back_squat        primary   4 x 8-12 reps    rest 75s
-    barbell_romanian_deadlift primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
-    seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
-    plank                     accessory 3 x 45s hold     rest 75s
+Mon day_push  ~72 min
+    barbell_bench_press       primary   5 x 8-12 reps    rest 75s
+    barbell_overhead_press    primary   5 x 8-12 reps    rest 75s
+    cable_triceps_pushdown    accessory 4 x 12-15 reps   rest 75s
+    db_lateral_raise          accessory 4 x 12-15 reps   rest 75s
+    plank                     accessory 4 x 45s hold     rest 75s
+    cable_fly                 optional  3 x 12-15 reps   rest 75s
+    db_triceps_extension      optional  3 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 75s
+Tue day_pull  ~57 min
+    pull_up                   primary   5 x 8-12 reps    rest 75s
+    barbell_row               primary   5 x 8-12 reps    rest 75s
+    db_curl                   accessory 4 x 12-15 reps   rest 75s
+    face_pull                 accessory 4 x 12-15 reps   rest 75s
+    db_hammer_curl            optional  3 x 12-15 reps   rest 75s
+    plank                     optional  3 x 45s hold     rest 75s
+Wed day_legs  ~73 min
+    barbell_back_squat        primary   5 x 8-12 reps    rest 75s
+    barbell_deadlift          primary   5 x 8-12 reps    rest 75s
+    db_lunge                  primary   5 x 8-12 reps    rest 75s
+    seated_calf_raise         accessory 4 x 12-15 reps   rest 75s
+    plank                     accessory 4 x 45s hold     rest 75s
+    leg_extension             optional  3 x 12-15 reps   rest 75s
+    superman                  optional  3 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 75s
+Thu day_push  ~72 min
+    db_bench_press            primary   5 x 8-12 reps    rest 75s
+    barbell_overhead_press    primary   5 x 8-12 reps    rest 75s
+    cable_triceps_pushdown    accessory 4 x 12-15 reps   rest 75s
+    db_lateral_raise          accessory 4 x 12-15 reps   rest 75s
+    plank                     accessory 4 x 45s hold     rest 75s
+    cable_fly                 optional  3 x 12-15 reps   rest 75s
+    db_triceps_extension      optional  3 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 75s
+Fri day_pull  ~57 min
+    pull_up                   primary   5 x 8-12 reps    rest 75s
+    db_bent_over_row          primary   5 x 8-12 reps    rest 75s
+    db_curl                   accessory 4 x 12-15 reps   rest 75s
+    face_pull                 accessory 4 x 12-15 reps   rest 75s
+    db_hammer_curl            optional  3 x 12-15 reps   rest 75s
+    plank                     optional  3 x 45s hold     rest 75s
+Sat day_legs  ~73 min
+    barbell_back_squat        primary   5 x 8-12 reps    rest 75s
+    barbell_romanian_deadlift primary   5 x 8-12 reps    rest 75s
+    db_lunge                  primary   5 x 8-12 reps    rest 75s
+    seated_calf_raise         accessory 4 x 12-15 reps   rest 75s
+    plank                     accessory 4 x 45s hold     rest 75s
+    leg_extension             optional  3 x 12-15 reps   rest 75s
+    superman                  optional  3 x 12-15 reps   rest 75s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 75s
+notes:
+    sessionShorterThanBudget: 73
 
 === 08 hybrid, full gym, runs Tue/Thu/Sun, 4 days ===
 template: upper_lower_4
 runs: Tue, Thu, Sun
 run advice: run_suggestion_steady_35
-Mon day_lower  [run tomorrow]  ~25 min
+Mon day_lower  [run tomorrow]  ~47 min
     goblet_squat              primary   2 x 8-12 reps    rest 60s
     db_romanian_deadlift      primary   2 x 8-12 reps    rest 60s
     db_lunge                  primary   2 x 8-12 reps    rest 60s
-    seated_calf_raise         accessory 3 x 12-15 reps   rest 60s
-    plank                     accessory 3 x 45s hold     rest 60s
-Wed day_upper  [run tomorrow]  ~31 min
-    barbell_bench_press       primary   3 x 8-12 reps    rest 60s
-    band_assisted_pull_up     primary   3 x 8-12 reps    rest 60s
-    db_shoulder_press         primary   3 x 8-12 reps    rest 60s
-    db_bent_over_row          primary   3 x 8-12 reps    rest 60s
-    db_curl                   accessory 2 x 12-15 reps   rest 60s
-    cable_triceps_pushdown    accessory 2 x 12-15 reps   rest 60s
-Fri day_lower  ~30 min
-    hack_squat                primary   3 x 8-12 reps    rest 60s
-    db_romanian_deadlift      primary   3 x 8-12 reps    rest 60s
-    db_lunge                  primary   3 x 8-12 reps    rest 60s
-    seated_calf_raise         accessory 3 x 12-15 reps   rest 60s
-    plank                     accessory 3 x 45s hold     rest 60s
-Sat day_upper  [run tomorrow]  ~31 min
-    db_bench_press            primary   3 x 8-12 reps    rest 60s
-    band_assisted_pull_up     primary   3 x 8-12 reps    rest 60s
-    db_shoulder_press         primary   3 x 8-12 reps    rest 60s
-    db_bent_over_row          primary   3 x 8-12 reps    rest 60s
-    db_hammer_curl            accessory 2 x 12-15 reps   rest 60s
-    db_triceps_extension      accessory 2 x 12-15 reps   rest 60s
+    seated_calf_raise         accessory 2 x 12-15 reps   rest 60s
+    plank                     accessory 4 x 45s hold     rest 60s
+    leg_extension             optional  2 x 12-15 reps   rest 60s
+    superman                  optional  3 x 12-15 reps   rest 60s
+    hanging_knee_raise        optional  3 x 12-15 reps   rest 60s
+Wed day_upper  [run tomorrow]  ~59 min
+    barbell_bench_press       primary   4 x 8-12 reps    rest 60s
+    band_assisted_pull_up     primary   4 x 8-12 reps    rest 60s
+    db_shoulder_press         primary   4 x 8-12 reps    rest 60s
+    db_bent_over_row          primary   4 x 8-12 reps    rest 60s
+    db_curl                   accessory 3 x 12-15 reps   rest 60s
+    cable_triceps_pushdown    accessory 3 x 12-15 reps   rest 60s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 60s
+    face_pull                 optional  2 x 12-15 reps   rest 60s
+    plank                     optional  2 x 45s hold     rest 60s
+Fri day_lower  ~60 min
+    hack_squat                primary   5 x 8-12 reps    rest 60s
+    db_romanian_deadlift      primary   5 x 8-12 reps    rest 60s
+    db_lunge                  primary   5 x 8-12 reps    rest 60s
+    seated_calf_raise         accessory 4 x 12-15 reps   rest 60s
+    plank                     accessory 4 x 45s hold     rest 60s
+    leg_extension             optional  2 x 12-15 reps   rest 60s
+    superman                  optional  2 x 12-15 reps   rest 60s
+    hanging_knee_raise        optional  2 x 12-15 reps   rest 60s
+Sat day_upper  [run tomorrow]  ~59 min
+    db_bench_press            primary   4 x 8-12 reps    rest 60s
+    band_assisted_pull_up     primary   4 x 8-12 reps    rest 60s
+    db_shoulder_press         primary   4 x 8-12 reps    rest 60s
+    db_bent_over_row          primary   4 x 8-12 reps    rest 60s
+    db_hammer_curl            accessory 3 x 12-15 reps   rest 60s
+    db_triceps_extension      accessory 3 x 12-15 reps   rest 60s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 60s
+    face_pull                 optional  2 x 12-15 reps   rest 60s
+    plank                     optional  2 x 45s hold     rest 60s
 notes:
-    legVolumeReducedForRun: goblet_squat (Mon)
-    legVolumeReducedForRun: db_romanian_deadlift (Mon)
-    legVolumeReducedForRun: db_lunge (Mon)
+    legVolumeReducedForRun: lower (Mon)
 
 === 09 fat loss, bodyweight, 2 days, 30 minutes ===
 template: full_body_2
-Mon day_full_body  ~23 min
-    bodyweight_squat          primary   3 x 12-15 reps   rest 45s
-    push_up                   primary   3 x 12-15 reps   rest 45s
+Mon day_full_body  ~30 min
+    bodyweight_squat          primary   4 x 12-15 reps   rest 45s
+    push_up                   primary   4 x 12-15 reps   rest 45s
     glute_bridge              primary   3 x 12-15 reps   rest 45s
     plank                     accessory 3 x 40s hold     rest 45s
-Thu day_full_body  ~23 min
-    bodyweight_squat          primary   3 x 12-15 reps   rest 45s
-    push_up                   primary   3 x 12-15 reps   rest 45s
+Thu day_full_body  ~30 min
+    bodyweight_squat          primary   4 x 12-15 reps   rest 45s
+    push_up                   primary   4 x 12-15 reps   rest 45s
     glute_bridge              primary   3 x 12-15 reps   rest 45s
     plank                     accessory 3 x 40s hold     rest 45s
 notes:
@@ -244,51 +320,70 @@ notes:
 
 === 10 muscle, full gym, bad knees, 3 days ===
 template: full_body_3
-Mon day_full_body  ~34 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    barbell_bench_press       primary   3 x 8-12 reps    rest 75s
-    db_bent_over_row          primary   3 x 8-12 reps    rest 75s
+Mon day_full_body  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 75s
+    barbell_bench_press       primary   4 x 8-12 reps    rest 75s
+    db_bent_over_row          primary   4 x 8-12 reps    rest 75s
     db_romanian_deadlift      primary   3 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Wed day_full_body  ~34 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    db_bench_press            primary   3 x 8-12 reps    rest 75s
-    db_bent_over_row          primary   3 x 8-12 reps    rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    db_curl                   optional  2 x 12-15 reps   rest 75s
+    cable_triceps_pushdown    optional  2 x 12-15 reps   rest 75s
+Wed day_full_body  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 75s
+    db_bench_press            primary   4 x 8-12 reps    rest 75s
+    db_bent_over_row          primary   4 x 8-12 reps    rest 75s
     db_romanian_deadlift      primary   3 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Fri day_full_body  ~34 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    barbell_bench_press       primary   3 x 8-12 reps    rest 75s
-    db_bent_over_row          primary   3 x 8-12 reps    rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    db_hammer_curl            optional  2 x 12-15 reps   rest 75s
+    db_triceps_extension      optional  2 x 12-15 reps   rest 75s
+Fri day_full_body  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 75s
+    barbell_bench_press       primary   4 x 8-12 reps    rest 75s
+    db_bent_over_row          primary   4 x 8-12 reps    rest 75s
     db_romanian_deadlift      primary   3 x 8-12 reps    rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 75s
+    db_curl                   optional  2 x 12-15 reps   rest 75s
+    cable_triceps_pushdown    optional  2 x 12-15 reps   rest 75s
 
 === 11 muscle, full gym, bad back and shoulders, 4 days ===
 template: upper_lower_4
-Mon day_upper  ~30 min
-    chest_press_machine       primary   3 x 8-12 reps    rest 75s
-    lat_pulldown              primary   3 x 8-12 reps    rest 75s
-    inverted_row              primary   3 x 8-12 reps    rest 75s
-    db_curl                   accessory 2 x 12-15 reps   rest 75s
-    cable_triceps_pushdown    accessory 2 x 12-15 reps   rest 75s
-Tue day_lower  ~33 min
-    goblet_squat              primary   3 x 8-12 reps    rest 75s
-    barbell_hip_thrust        primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
+Mon day_upper  ~59 min
+    chest_press_machine       primary   5 x 8-12 reps    rest 75s
+    lat_pulldown              primary   5 x 8-12 reps    rest 75s
+    inverted_row              primary   5 x 8-12 reps    rest 75s
+    db_curl                   accessory 3 x 12-15 reps   rest 75s
+    cable_triceps_pushdown    accessory 3 x 12-15 reps   rest 75s
+    face_pull                 optional  2 x 12-15 reps   rest 75s
+    plank                     optional  2 x 45s hold     rest 75s
+Tue day_lower  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 75s
+    barbell_hip_thrust        primary   4 x 8-12 reps    rest 75s
+    db_lunge                  primary   4 x 8-12 reps    rest 75s
     seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
-Thu day_upper  ~30 min
-    db_floor_press            primary   3 x 8-12 reps    rest 75s
-    lat_pulldown              primary   3 x 8-12 reps    rest 75s
-    inverted_row              primary   3 x 8-12 reps    rest 75s
-    db_hammer_curl            accessory 2 x 12-15 reps   rest 75s
-    db_triceps_extension      accessory 2 x 12-15 reps   rest 75s
-Fri day_lower  ~33 min
-    hack_squat                primary   3 x 8-12 reps    rest 75s
-    barbell_hip_thrust        primary   3 x 8-12 reps    rest 75s
-    db_lunge                  primary   3 x 8-12 reps    rest 75s
+    leg_extension             optional  2 x 12-15 reps   rest 75s
+    superman                  optional  2 x 12-15 reps   rest 75s
+    bird_dog                  optional  2 x 12-15 reps   rest 75s
+Thu day_upper  ~59 min
+    db_floor_press            primary   5 x 8-12 reps    rest 75s
+    lat_pulldown              primary   5 x 8-12 reps    rest 75s
+    inverted_row              primary   5 x 8-12 reps    rest 75s
+    db_hammer_curl            accessory 3 x 12-15 reps   rest 75s
+    db_triceps_extension      accessory 3 x 12-15 reps   rest 75s
+    face_pull                 optional  2 x 12-15 reps   rest 75s
+    plank                     optional  2 x 45s hold     rest 75s
+Fri day_lower  ~60 min
+    hack_squat                primary   5 x 8-12 reps    rest 75s
+    barbell_hip_thrust        primary   4 x 8-12 reps    rest 75s
+    db_lunge                  primary   4 x 8-12 reps    rest 75s
     seated_calf_raise         accessory 3 x 12-15 reps   rest 75s
     plank                     accessory 3 x 45s hold     rest 75s
+    leg_extension             optional  2 x 12-15 reps   rest 75s
+    superman                  optional  2 x 12-15 reps   rest 75s
+    dead_bug                  optional  2 x 12-15 reps   rest 75s
 notes:
     unfilledSlot: verticalPush (Mon)
     unfilledSlot: verticalPush (Thu)
@@ -297,21 +392,30 @@ notes:
 template: full_body_3
 runs: Mon, Fri
 run advice: run_suggestion_easy_20
-Tue day_full_body  ~30 min
-    goblet_squat              primary   3 x 8-12 reps    rest 60s
-    push_up                   primary   3 x 8-12 reps    rest 60s
-    db_single_arm_row         primary   3 x 8-12 reps    rest 60s
-    glute_bridge              primary   3 x 8-12 reps    rest 60s
+Tue day_full_body  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 60s
+    push_up                   primary   5 x 8-12 reps    rest 60s
+    db_single_arm_row         primary   5 x 8-12 reps    rest 60s
+    glute_bridge              primary   5 x 8-12 reps    rest 60s
     plank                     accessory 3 x 45s hold     rest 60s
-Wed day_full_body  ~30 min
-    goblet_squat              primary   3 x 8-12 reps    rest 60s
-    push_up                   primary   3 x 8-12 reps    rest 60s
-    db_single_arm_row         primary   3 x 8-12 reps    rest 60s
-    glute_bridge              primary   3 x 8-12 reps    rest 60s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 60s
+    db_curl                   optional  2 x 12-15 reps   rest 60s
+    db_triceps_extension      optional  2 x 12-15 reps   rest 60s
+Wed day_full_body  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 60s
+    push_up                   primary   5 x 8-12 reps    rest 60s
+    db_single_arm_row         primary   5 x 8-12 reps    rest 60s
+    glute_bridge              primary   5 x 8-12 reps    rest 60s
     plank                     accessory 3 x 45s hold     rest 60s
-Sat day_full_body  ~30 min
-    goblet_squat              primary   3 x 8-12 reps    rest 60s
-    push_up                   primary   3 x 8-12 reps    rest 60s
-    db_single_arm_row         primary   3 x 8-12 reps    rest 60s
-    glute_bridge              primary   3 x 8-12 reps    rest 60s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 60s
+    db_hammer_curl            optional  2 x 12-15 reps   rest 60s
+    db_triceps_extension      optional  2 x 12-15 reps   rest 60s
+Sat day_full_body  ~60 min
+    goblet_squat              primary   5 x 8-12 reps    rest 60s
+    push_up                   primary   5 x 8-12 reps    rest 60s
+    db_single_arm_row         primary   5 x 8-12 reps    rest 60s
+    glute_bridge              primary   5 x 8-12 reps    rest 60s
     plank                     accessory 3 x 45s hold     rest 60s
+    db_lateral_raise          optional  2 x 12-15 reps   rest 60s
+    db_curl                   optional  2 x 12-15 reps   rest 60s
+    db_triceps_extension      optional  2 x 12-15 reps   rest 60s

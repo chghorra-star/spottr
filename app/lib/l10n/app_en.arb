@@ -362,10 +362,11 @@
     }
   },
 
-  "noteLegVolumeReducedForRun": "{exercise} is capped at fewer sets because you run the next day.",
+  "noteLegVolumeReducedForRun": "Leg work on {day} is lighter because you run the next day.",
   "@noteLegVolumeReducedForRun": {
+    "description": "One note per day, not one per exercise: the rule caps every movement that loads the legs, which on a leg day is most of them.",
     "placeholders": {
-      "exercise": {
+      "day": {
         "type": "String"
       }
     }
@@ -394,6 +395,16 @@
   "@noteDayUnderfilled": {
     "placeholders": {
       "day": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noteSessionShorterThanBudget": "Your longest session comes to about {minutes} minutes. Adding more volume with the equipment you have would not be useful training.",
+  "@noteSessionShorterThanBudget": {
+    "description": "Said once for the week when every session fell well short of the length the user chose. Padding the session out would be worse than saying so.",
+    "placeholders": {
+      "minutes": {
         "type": "String"
       }
     }

@@ -130,10 +130,21 @@ void main() {
 
       await start(tester, profile: profile, plan: plan);
 
-      expect(
-        find.text(AppLocalizationsEn().planPreRunBadge),
-        findsNWidgets(preRun.length),
-      );
+      for (final day in preRun) {
+        // Day cards are built lazily, so a card further down the week has
+        // to be scrolled to before it is in the tree at all.
+        final card = find.byKey(UiKeys.planDay(day.weekday));
+        await tester.scrollUntilVisible(card, 300, maxScrolls: 60);
+
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text(AppLocalizationsEn().planPreRunBadge),
+          ),
+          findsOneWidget,
+          reason: 'no pre-run warning on weekday ${day.weekday}',
+        );
+      }
     });
 
     testWidgets('marks the exercises the camera can coach', (tester) async {

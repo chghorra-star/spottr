@@ -5,12 +5,24 @@ import 'package:meta/meta.dart';
 enum DayType { fullBody, upper, lower, push, pull, legs }
 
 /// How hard a slot is to give up when a session has to fit a time budget.
+///
+/// The order is the order things are given up in, so a template can be
+/// written as the longest sensible session and the budget decides how much
+/// of it the user gets.
 enum SlotPriority {
   /// Compound work the session exists for. Dropped only as a last resort.
   primary,
 
-  /// Accessory and core work. Trimmed first.
+  /// Accessory and core work. Trimmed after optional work, and said so when
+  /// it happens: losing your arm work to a short session is worth knowing.
   accessory,
+
+  /// Extra work the session takes on only when there is time for it.
+  ///
+  /// Silent in both directions: an optional slot the catalog cannot fill,
+  /// or one the budget leaves out, says nothing. Its absence is the system
+  /// working as intended, so explaining it would be noise.
+  optional,
 }
 
 /// One position in a day template, expressed as a movement pattern rather
@@ -38,6 +50,8 @@ class SlotSpec {
   final int sets;
 
   bool get isPrimary => priority == SlotPriority.primary;
+
+  bool get isOptional => priority == SlotPriority.optional;
 }
 
 /// A day's shape: what it is called and what goes in it.
@@ -140,8 +154,14 @@ class WeekTemplate {
 // ---------------------------------------------------------------------------
 // Day templates.
 //
-// Slot counts are chosen so that the longest sessions fit comfortably and the
-// shortest ones trim accessories rather than losing their compound work.
+// A template describes the longest sensible version of its session. The time
+// budget decides how much of it the user actually gets: optional work is
+// dropped first and silently, accessories next and with an explanation, and
+// set counts come down before any compound is given up. A long session grows
+// the other way, adding sets up to the caps in `DayRules`.
+//
+// Slots are listed in the order they are given up, which is why the optional
+// ones come last.
 // ---------------------------------------------------------------------------
 
 const _fullBody = DayTemplate(DayType.fullBody, 'day_full_body', [
@@ -154,6 +174,24 @@ const _fullBody = DayTemplate(DayType.fullBody, 'day_full_body', [
     sets: 3,
     priority: SlotPriority.accessory,
   ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.shoulders,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.biceps,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.triceps,
+  ),
 ]);
 
 const _upper = DayTemplate(DayType.upper, 'day_upper', [
@@ -163,15 +201,33 @@ const _upper = DayTemplate(DayType.upper, 'day_upper', [
   SlotSpec(MovementPattern.horizontalPull, sets: 3),
   SlotSpec(
     MovementPattern.isolation,
-    sets: 2,
+    sets: 3,
     priority: SlotPriority.accessory,
     targetMuscle: MuscleGroup.biceps,
   ),
   SlotSpec(
     MovementPattern.isolation,
-    sets: 2,
+    sets: 3,
     priority: SlotPriority.accessory,
     targetMuscle: MuscleGroup.triceps,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.shoulders,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.upperBack,
+  ),
+  SlotSpec(
+    MovementPattern.core,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.core,
   ),
 ]);
 
@@ -189,6 +245,24 @@ const _lower = DayTemplate(DayType.lower, 'day_lower', [
     MovementPattern.core,
     sets: 3,
     priority: SlotPriority.accessory,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.quads,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.lowerBack,
+  ),
+  SlotSpec(
+    MovementPattern.core,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.core,
   ),
 ]);
 
@@ -212,6 +286,24 @@ const _push = DayTemplate(DayType.push, 'day_push', [
     sets: 3,
     priority: SlotPriority.accessory,
   ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.chest,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.triceps,
+  ),
+  SlotSpec(
+    MovementPattern.core,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.core,
+  ),
 ]);
 
 const _pull = DayTemplate(DayType.pull, 'day_pull', [
@@ -229,6 +321,18 @@ const _pull = DayTemplate(DayType.pull, 'day_pull', [
     priority: SlotPriority.accessory,
     targetMuscle: MuscleGroup.upperBack,
   ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.biceps,
+  ),
+  SlotSpec(
+    MovementPattern.core,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.core,
+  ),
 ]);
 
 const _legs = DayTemplate(DayType.legs, 'day_legs', [
@@ -245,5 +349,23 @@ const _legs = DayTemplate(DayType.legs, 'day_legs', [
     MovementPattern.core,
     sets: 3,
     priority: SlotPriority.accessory,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.quads,
+  ),
+  SlotSpec(
+    MovementPattern.isolation,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.lowerBack,
+  ),
+  SlotSpec(
+    MovementPattern.core,
+    sets: 2,
+    priority: SlotPriority.optional,
+    targetMuscle: MuscleGroup.core,
   ),
 ]);

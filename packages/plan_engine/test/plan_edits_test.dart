@@ -450,7 +450,7 @@ void main() {
       final squatBefore = friday.exercises.firstWhere(
         (e) => e.slotPattern == MovementPattern.squat,
       );
-      expect(squatBefore.sets, 3);
+      expect(squatBefore.sets, greaterThan(DayRules.preRunLegSetCap));
 
       final updated = edits.moveDay(
         plan: plan,
@@ -464,7 +464,7 @@ void main() {
       final squatAfter = saturday.exercises.firstWhere(
         (e) => e.slotPattern == MovementPattern.squat,
       );
-      expect(squatAfter.sets, 2);
+      expect(squatAfter.sets, DayRules.preRunLegSetCap);
       expect(
         updated.notes.any(
           (n) =>
@@ -498,8 +498,8 @@ void main() {
         thursday.exercises
             .firstWhere((e) => e.slotPattern == MovementPattern.squat)
             .sets,
-        3,
-        reason: 'template volume should come back once the run is clear',
+        greaterThan(DayRules.preRunLegSetCap),
+        reason: 'leg volume should come back once the run is clear',
       );
       expect(
         away.notes.any(

@@ -165,14 +165,19 @@ void main() {
             contains(strings.pattern(MovementPattern.horizontalPull)),
         const PlanNote(PlanNoteKind.unfilledSlot, 'isolation:biceps'):
             contains(strings.muscle(MuscleGroup.biceps)),
-        const PlanNote(PlanNoteKind.legVolumeReducedForRun, 'goblet_squat'):
-            contains(strings.exercise('goblet_squat')),
+        const PlanNote(PlanNoteKind.legVolumeReducedForRun, 'lower',
+            weekday: 1): contains(strings.weekday(1)),
+        // The same note without a weekday still has to read as a sentence.
+        const PlanNote(PlanNoteKind.legVolumeReducedForRun, 'lower'):
+            contains(strings.dayType(DayType.lower)),
         const PlanNote(PlanNoteKind.trimmedForTime, 'plank'):
             contains(strings.exercise('plank')),
         const PlanNote(PlanNoteKind.templateSimplified, 'horizontalPull,verticalPull'):
             contains(strings.pattern(MovementPattern.verticalPull)),
         const PlanNote(PlanNoteKind.dayUnderfilled, 'pull'):
             contains(strings.dayType(DayType.pull)),
+        const PlanNote(PlanNoteKind.sessionShorterThanBudget, '45'):
+            contains('45'),
       };
 
       for (final entry in cases.entries) {

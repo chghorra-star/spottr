@@ -262,14 +262,23 @@ class PlanStrings {
         PlanNoteKind.unfilledSlot =>
           l10n.noteUnfilledSlot(_slotName(value.detail)),
         PlanNoteKind.legVolumeReducedForRun =>
-          l10n.noteLegVolumeReducedForRun(exercise(value.detail)),
+          l10n.noteLegVolumeReducedForRun(_dayName(value)),
         PlanNoteKind.trimmedForTime =>
           l10n.noteTrimmedForTime(exercise(value.detail)),
         PlanNoteKind.templateSimplified =>
           l10n.noteTemplateSimplified(_patternList(value.detail)),
         PlanNoteKind.dayUnderfilled =>
           l10n.noteDayUnderfilled(dayType(_dayTypeNamed(value.detail))),
+        PlanNoteKind.sessionShorterThanBudget =>
+          l10n.noteSessionShorterThanBudget(value.detail),
       };
+
+  /// The weekday a note belongs to, falling back to the kind of session it
+  /// was. "Leg work on Monday" says more than "on your lower body day", but
+  /// a note without a weekday still has to read as a sentence.
+  String _dayName(PlanNote note) => note.weekday == null
+      ? dayType(_dayTypeNamed(note.detail))
+      : weekday(note.weekday!);
 
   /// Sets and reps, or sets and a hold.
   String prescription(PlannedExercise value) =>

@@ -85,6 +85,13 @@ void _checkInvariants(WeekPlan plan, PlanRequest request) {
       reason: '$context day ${day.weekday} overruns',
     );
 
+    expect(
+      day.exercises.fold(0, (sum, e) => sum + e.sets),
+      lessThanOrEqualTo(DayRules.maxWorkingSetsPerDay),
+      reason: '$context day ${day.weekday} is more volume than a session '
+          'should carry',
+    );
+
     final ids = day.exercises.map((e) => e.exerciseId).toList();
     expect(ids.toSet().length, ids.length, reason: '$context duplicate: $ids');
 
@@ -108,10 +115,14 @@ void _checkInvariants(WeekPlan plan, PlanRequest request) {
       );
 
       expect(planned.sets, greaterThan(0), reason: context);
+      // Sets move in both directions around the template's baseline: down
+      // to fit a short session, up to use a long one. What must hold is the
+      // cap, which is what keeps "use the time available" from becoming
+      // junk volume.
       expect(
         planned.sets,
-        lessThanOrEqualTo(planned.templateSets),
-        reason: '$context prescribed more sets than the template asked for',
+        lessThanOrEqualTo(DayRules.maxSetsFor(planned.priority)),
+        reason: '$context prescribed more sets than the slot allows',
       );
 
       if (planned.metric == MetricType.reps) {

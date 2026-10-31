@@ -196,7 +196,13 @@ void main() {
         plan.notes.any((n) => n.kind == PlanNoteKind.trimmedForTime),
         isFalse,
       );
-      expect(plan.days.first.exercises.length, 5);
+      // Nothing was given up, which for a long session means even the
+      // optional work the template offers last is still there.
+      expect(
+        plan.days.first.exercises
+            .where((e) => e.priority == SlotPriority.optional),
+        isNotEmpty,
+      );
     });
 
     test('keeps at least one primary exercise however tight the budget', () {
@@ -249,8 +255,12 @@ void main() {
         request(daysPerWeek: 4, sessionMinutes: 90, level: Level.advanced),
       );
       final upperDay = plan.days.firstWhere((d) => d.type == DayType.upper);
+      // The accessory isolation slots, not the optional ones a long session
+      // also brings in: those name their own muscles.
       final isolation = upperDay.exercises.where(
-        (e) => e.slotPattern == MovementPattern.isolation,
+        (e) =>
+            e.slotPattern == MovementPattern.isolation &&
+            e.priority == SlotPriority.accessory,
       );
       expect(isolation.length, 2);
 
@@ -567,7 +577,11 @@ void main() {
       final squat = plan.days.first.exercises.firstWhere(
         (e) => e.slotPattern == MovementPattern.squat,
       );
-      expect(squat.sets, 3);
+      expect(
+        squat.sets,
+        greaterThan(DayRules.preRunLegSetCap),
+        reason: 'leg volume was cut with no run to cut it for',
+      );
       expect(
         plan.notes.any((n) => n.kind == PlanNoteKind.legVolumeReducedForRun),
         isFalse,

@@ -34,6 +34,15 @@ enum PlanNoteKind {
   /// Almost always a bodyweight-only user on a four-plus day split, where
   /// the template asks for pulling that no bodyweight exercise can supply.
   dayUnderfilled,
+
+  /// The sessions came out well short of the time the user set aside,
+  /// because there was nothing left worth adding.
+  ///
+  /// Emitted once for the week rather than per day. Telling someone their
+  /// hour produced forty minutes of work is more useful than quietly
+  /// handing them a short session — and padding it out with junk volume
+  /// would be worse than either.
+  sessionShorterThanBudget,
 }
 
 /// One thing the generator wants the user to know.
@@ -109,18 +118,29 @@ class PlannedExercise {
   /// Target hold, for [MetricType.holdSeconds].
   final int? holdSeconds;
 
+  /// Flat allowance for getting set up on an exercise: walking to the rack,
+  /// finding the dumbbells, changing the weight.
+  ///
+  /// Without it the estimate is pure set arithmetic, which is how a session
+  /// billed as thirty minutes came to closer to forty in the gym. One number
+  /// for every exercise is a simplification — a barbell squat costs more
+  /// setup than a plank — but it is a far smaller error than ignoring it.
+  static const int setupSeconds = 60;
+
   bool get isPrimary => priority == SlotPriority.primary;
+
+  bool get isOptional => priority == SlotPriority.optional;
 
   /// Midpoint of the rep range, used for time estimates.
   int get repsMid =>
       repsMin == null || repsMax == null ? 0 : (repsMin! + repsMax!) ~/ 2;
 
-  /// Rough wall-clock cost of this exercise, work plus rest.
+  /// Rough wall-clock cost of this exercise: setup, then work plus rest.
   int get estimatedSeconds {
     final perSet = metric == MetricType.holdSeconds
         ? (holdSeconds ?? 0) + restSeconds
         : (repsMid * secondsPerRep).round() + restSeconds;
-    return sets * perSet;
+    return setupSeconds + sets * perSet;
   }
 
   PlannedExercise copyWith({int? sets, int? templateSets}) => PlannedExercise(

@@ -49,6 +49,13 @@ class PlanGenerator {
   /// Fewer primary exercises than this and the day is not a real session.
   static const int minimumPrimaryExercises = 2;
 
+  /// How far under its budget a week has to fall before Spottr mentions it.
+  ///
+  /// Sets are a coarse unit — two or three minutes each — so a session will
+  /// often land a few minutes short simply because one more set would not
+  /// fit. That is not worth a sentence; a missing twenty minutes is.
+  static const int shortfallMinutes = 10;
+
   final ExerciseCatalog catalog;
 
   WeekPlan generate(PlanRequest request) {
@@ -73,6 +80,8 @@ class PlanGenerator {
         ),
     ];
 
+    _noteShortSessions(days, request, notes);
+
     return WeekPlan(
       templateId: schedule.templateId,
       goal: request.goal,
@@ -81,6 +90,28 @@ class PlanGenerator {
       runSuggestionKeys: _runSuggestions(request),
       notes: notes,
     );
+  }
+
+  /// Says so when the week could not be filled to the length the user chose.
+  ///
+  /// Only when *every* day falls short, which is the case where the cause is
+  /// the user's equipment, level or injuries rather than one thin day. A
+  /// bodyweight-at-home user who sets aside ninety minutes should be told
+  /// that the catalog ran out, not handed a padded session.
+  void _noteShortSessions(
+    List<PlannedDay> days,
+    PlanRequest request,
+    List<PlanNote> notes,
+  ) {
+    if (days.isEmpty) return;
+
+    final longest = days
+        .map((day) => day.estimatedMinutes)
+        .reduce((a, b) => a > b ? a : b);
+
+    if (longest < request.sessionMinutes - shortfallMinutes) {
+      notes.add(PlanNote(PlanNoteKind.sessionShorterThanBudget, '$longest'));
+    }
   }
 
   PlannedDay _buildDay({
@@ -101,15 +132,20 @@ class PlanGenerator {
       );
 
       if (choice == null) {
-        notes.add(
-          PlanNote(
-            PlanNoteKind.unfilledSlot,
-            slot.targetMuscle == null
-                ? slot.pattern.name
-                : '${slot.pattern.name}:${slot.targetMuscle!.name}',
-            weekday: scheduled.weekday,
-          ),
-        );
+        // An optional slot the catalog cannot fill is not worth a word: the
+        // user asked for a session, not for a list of things the catalog
+        // does not contain.
+        if (!slot.isOptional) {
+          notes.add(
+            PlanNote(
+              PlanNoteKind.unfilledSlot,
+              slot.targetMuscle == null
+                  ? slot.pattern.name
+                  : '${slot.pattern.name}:${slot.targetMuscle!.name}',
+              weekday: scheduled.weekday,
+            ),
+          );
+        }
         continue;
       }
 
@@ -135,6 +171,7 @@ class PlanGenerator {
         exercises: exercises,
       ),
       request,
+      catalog,
     );
     notes.addAll(result.notes);
 
@@ -221,7 +258,14 @@ class PlanGenerator {
   }) {
     // First pass honours the target muscle; the second drops it, and is only
     // reached when the narrowed search found nothing at all.
-    for (final targetMuscle in [slot.targetMuscle, null]) {
+    //
+    // An optional slot does not get that second pass. It exists to round out
+    // a long session with work for a named muscle, so falling back to
+    // whatever isolation is left would put calf raises on a push day.
+    final passes =
+        slot.isOptional ? [slot.targetMuscle] : [slot.targetMuscle, null];
+
+    for (final targetMuscle in passes) {
       final candidates = catalog
           .candidates(
             available: request.availableEquipment,

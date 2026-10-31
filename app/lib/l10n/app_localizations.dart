@@ -1048,11 +1048,11 @@ abstract class AppLocalizations {
   /// **'No {slot} exercise fits your equipment and injuries, so that slot is empty.'**
   String noteUnfilledSlot(String slot);
 
-  /// No description provided for @noteLegVolumeReducedForRun.
+  /// One note per day, not one per exercise: the rule caps every movement that loads the legs, which on a leg day is most of them.
   ///
   /// In en, this message translates to:
-  /// **'{exercise} is capped at fewer sets because you run the next day.'**
-  String noteLegVolumeReducedForRun(String exercise);
+  /// **'Leg work on {day} is lighter because you run the next day.'**
+  String noteLegVolumeReducedForRun(String day);
 
   /// No description provided for @noteTrimmedForTime.
   ///
@@ -1071,6 +1071,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{day} has less compound work than a full session. More equipment would fix it.'**
   String noteDayUnderfilled(String day);
+
+  /// Said once for the week when every session fell well short of the length the user chose. Padding the session out would be worse than saying so.
+  ///
+  /// In en, this message translates to:
+  /// **'Your longest session comes to about {minutes} minutes. Adding more volume with the equipment you have would not be useful training.'**
+  String noteSessionShorterThanBudget(String minutes);
 
   /// No description provided for @profileTitle.
   ///

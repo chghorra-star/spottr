@@ -567,8 +567,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String noteLegVolumeReducedForRun(String exercise) {
-    return '$exercise is capped at fewer sets because you run the next day.';
+  String noteLegVolumeReducedForRun(String day) {
+    return 'Leg work on $day is lighter because you run the next day.';
   }
 
   @override
@@ -584,6 +584,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String noteDayUnderfilled(String day) {
     return '$day has less compound work than a full session. More equipment would fix it.';
+  }
+
+  @override
+  String noteSessionShorterThanBudget(String minutes) {
+    return 'Your longest session comes to about $minutes minutes. Adding more volume with the equipment you have would not be useful training.';
   }
 
   @override
