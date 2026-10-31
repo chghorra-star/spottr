@@ -14,7 +14,13 @@ medical advice and does not prevent injury.
 M2 complete — onboarding behind a mandatory disclaimer gate, a profile screen,
 and a plan screen that shows the week and explains why it looks the way it
 does, with swap, reorder and move-day editing wired to the plan engine. Plans
-are stored as immutable revisions. 336 tests green, analyzer clean.
+are stored as immutable revisions. 351 tests green, analyzer clean.
+
+Session length now shapes a plan rather than only capping it: a template
+describes the longest sensible session and the budget decides how much of it
+you get, so an hour produces an hour's work instead of half of one. When a
+week genuinely cannot be filled — bodyweight at home tops out around
+forty-five minutes — Spottr says so rather than padding it out.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 [docs/dev-loop.md](docs/dev-loop.md) for how to run and verify it.

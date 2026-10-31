@@ -172,7 +172,8 @@ PlanRequest{goal, daysPerWeek, sessionMinutes, level, equipment, injuries, runDa
                           no contraindication against a declared injury
   -> rank                 difficulty fit, then camera support, then equipment
                           use, then variety
-  -> fit to time budget   sets x (reps x tempo + rest) <= sessionMinutes
+  -> fit to time budget   trim optional, then accessory, then set counts
+  -> fill the time budget grow sets, compounds first, up to the caps
 ```
 
 Generation is a pure function of the request and the catalog. No randomness, no
@@ -205,6 +206,54 @@ breaks ties. And difficulty applied to accessory slots was costing gym users
 their camera-coached plank in favour of a hanging knee raise, which is why
 accessory slots ignore difficulty entirely.
 
+### Session length shapes the plan, it does not only cap it
+
+A template describes the **longest sensible version** of its session. The time
+budget decides how much of it the user actually gets, in both directions: a
+short session gives work up, a long one grows into the time available.
+
+Slots carry a priority, and it is the order things are given up in:
+
+| Priority | Trimmed | Explained | Max sets |
+| --- | --- | --- | --- |
+| `primary` | last | yes | 5 |
+| `accessory` | second | yes | 4 |
+| `optional` | first | **no** | 3 |
+
+Optional work is silent in both directions — a slot the catalog cannot fill,
+or one the budget leaves out, says nothing, because its absence is the system
+working rather than news. It also does not fall back to another muscle when
+its own has nothing available; that fallback is what would put calf raises on
+a push day.
+
+Filling adds sets one at a time, compound work first, cycling through the
+exercises so volume spreads rather than piling onto whichever lift happens to
+be listed first. Two caps stop "use the time available" becoming junk volume:
+the per-slot maximum above, and **32 working sets for the session**. The per
+slot caps alone do not bound it — a nine-exercise gym day reaches all of them
+at thirty-seven sets, which is a worse session, not a longer one. Optional
+slots start at two sets for the same reason: starting full they spent the
+budget before the compounds had theirs, leaving the squat on three sets and
+the lateral raise on three.
+
+Everything derives from `templateSets` and the budget, which is what keeps it
+idempotent — a plan edit re-applies these rules, and an already-filled day
+must come back unchanged rather than inflating a little more each time.
+
+The estimate they work against includes a flat **60 seconds per exercise** for
+getting set up. Without it the estimate is pure set arithmetic, which is how a
+session billed as thirty minutes came to closer to forty in the gym; filling a
+budget against a dishonest estimate would only have made that worse.
+
+When a week still falls well short — bodyweight at home tops out near
+forty-five minutes whatever the user asks for — a single
+`sessionShorterThanBudget` note says so. Telling someone their hour produced
+forty minutes of work is better than quietly handing them a short session, and
+far better than padding it with volume that would not help.
+
+This whole mechanism exists because the measurement was embarrassing: before
+it, requests for 45, 60, 75 and 90 minutes produced **byte-identical weeks**.
+
 ### When a split is the wrong prescription
 
 A split dedicates whole days to one pattern group, which assumes the user can
@@ -230,10 +279,21 @@ Leg work is kept away from runs by two mechanisms. First, the template's day
 order is **rotated** to put leg-heavy days on slots that are not the night
 before a run — rotation rather than free reordering, so upper/lower alternation
 can never collapse into two lower days back to back. Second, where placement
-cannot avoid it, leg-dominant compound slots are capped at two sets and a
-`legVolumeReducedForRun` note explains why. The brief asks to avoid *heavy* leg
-work, not to skip legs, so volume comes down rather than the session losing its
-purpose.
+cannot avoid it, leg work is capped at two sets and a `legVolumeReducedForRun`
+note explains why. The brief asks to avoid *heavy* leg work, not to skip legs,
+so volume comes down rather than the session losing its purpose.
+
+**What counts as leg work is a question for the catalog, not the slot.** The
+rule originally capped leg-dominant *compound* slots, which was enough until
+sessions started growing into their budget: the freed time then went on leg
+extensions and calf raises, which fatigue the quads and calves more than the
+squat sets that had just been removed. A leg extension fills an *isolation*
+slot, so the slot cannot answer this — `DayRules` takes the catalog and asks
+whether the exercise's primary muscles are leg muscles. That turns three
+capped movements on a leg day into six, which is why the note is one per day
+rather than one per exercise.
+
+This was found by reviewing a regenerated golden file, not by a failing test.
 
 Running output is a text suggestion keyed to experience. Spottr does not track
 runs.
@@ -242,9 +302,14 @@ runs.
 
 The generator reports its own compromises rather than hiding them:
 `unfilledSlot`, `templateSimplified`, `legVolumeReducedForRun`,
-`trimmedForTime`, `dayUnderfilled`. Each carries a machine-readable detail and
-an optional weekday, and the UI maps the kind to prose. A short session should
-look explained, not broken.
+`trimmedForTime`, `dayUnderfilled`, `sessionShorterThanBudget`. Each carries a
+machine-readable detail and an optional weekday, and the UI maps the kind to
+prose. A short session should look explained, not broken.
+
+The restraint matters as much as the reporting. Optional work says nothing
+when it is dropped, the leg cap speaks once per day rather than once per
+movement, and the shortfall note is emitted once for the week. A screen full
+of notes explains nothing — it just looks broken in a more detailed way.
 
 ## Plan edits
 
@@ -450,6 +515,12 @@ Acceptance targets: rep count accuracy >= 95% at the recommended angle, form
 warnings firing on labeled faults with a low false-positive rate. These are
 measurements against labeled footage, not checkboxes — see `docs/dev-loop.md`
 for where that footage comes from and what is honestly claimable without it.
+
+The goldens have earned their keep twice over. Reviewing a regenerated file
+is what caught the pre-run rule spending its freed time on leg extensions —
+every test still passed, because every test was asserting what it had been
+told to assert. A diff you read is the only check that catches a plan which
+is valid and wrong.
 
 The property tests have already earned their keep: they found that a
 bodyweight-only user on a five or six day split was being handed a pull day
