@@ -34,8 +34,7 @@ void main() {
     expect(stored.coachPersonality, 'calm');
     // Defaults that the onboarding flow relies on.
     expect(stored.injuries, '[]');
-    expect(stored.disclaimerAccepted, isFalse);
-    expect(stored.units, 'metric');
+    expect(stored.disclaimerAcceptedAt, isNull);
     expect(stored.deletedAt, isNull);
   });
 

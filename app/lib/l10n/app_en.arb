@@ -21,6 +21,11 @@
     "description": "Button that records acceptance of the safety disclaimer."
   },
 
+  "disclaimerRequired": "Spottr needs you to read this before it builds you a plan.",
+  "@disclaimerRequired": {
+    "description": "Shown if the user tries to get past the disclaimer without accepting. There is no way around this screen."
+  },
+
   "painButton": "I feel pain",
   "@painButton": {
     "description": "Always-visible button during a set. Ends the set and logs it."
@@ -76,13 +81,384 @@
     "description": "Coach personality option: energetic and loud."
   },
 
+  "coachStyleHypeDetail": "Loud, fast, and all in. Expect to be shouted at in a good way.",
   "coachStyleCalm": "Calm",
   "@coachStyleCalm": {
     "description": "Coach personality option: technical and encouraging."
   },
 
+  "coachStyleCalmDetail": "Quieter and more technical. Mostly about where your body is.",
   "coachStyleTough": "Tough",
   "@coachStyleTough": {
     "description": "Coach personality option: direct, drill-sergeant."
-  }
+  },
+
+  "coachStyleToughDetail": "Blunt and demanding. Never tells you to push through pain.",
+
+  "onboardingBack": "Back",
+  "onboardingNext": "Next",
+  "onboardingFinish": "Build my plan",
+  "onboardingProgress": "Step {current} of {total}",
+  "@onboardingProgress": {
+    "description": "Position in the onboarding flow.",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+
+
+  "stepGoalTitle": "What are you training for?",
+  "stepDaysTitle": "How many days a week can you train?",
+  "stepDaysValue": "{count, plural, =1{1 day a week} other{{count} days a week}}",
+  "@stepDaysValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "stepSessionTitle": "How long is a session?",
+  "stepSessionValue": "{minutes} minutes",
+  "@stepSessionValue": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+
+  "stepSessionBody": "Spottr trims a session to fit rather than handing you a workout you cannot finish.",
+  "stepLevelTitle": "How much training experience do you have?",
+  "stepBodyTitle": "A few optional details",
+  "stepBodyBody": "Spottr does not need any of these to build your plan. Leave anything blank.",
+  "fieldAge": "Age",
+  "fieldHeight": "Height in cm",
+  "fieldWeight": "Weight in kg",
+  "fieldSex": "Sex",
+
+  "stepInjuriesTitle": "Anything hurting?",
+  "stepInjuriesBody": "Spottr leaves out exercises that load an injured area. This is not medical advice — if something hurts, see a professional.",
+  "fieldInjuryNotes": "Anything else we should know?",
+  "fieldInjuryNotesHint": "Spottr shows this back to you and does not try to interpret it.",
+
+  "stepLocationTitle": "Where do you train?",
+  "stepEquipmentTitle": "Anything else you have?",
+  "stepEquipmentBody": "Pick what you can actually reach. Spottr only prescribes what you can do.",
+
+  "stepRunDaysTitle": "Which days do you run?",
+  "stepRunDaysBody": "Spottr keeps heavy leg work off the day before a run, and suggests runs in text. It never tracks your runs.",
+  "stepCoachTitle": "How should your coach sound?",
+  "stepCoachBody": "You can change this whenever you like.",
+
+  "goalWeightLoss": "Lose fat",
+  "goalWeightLossDetail": "Higher reps and shorter rest, so more work fits in the time you have.",
+  "goalMuscleBuilding": "Build muscle",
+  "goalMuscleBuildingDetail": "Moderate reps and longer rest, so you can load each set properly.",
+  "goalHybrid": "Gym and running",
+  "goalHybridDetail": "Gym sessions scheduled around your runs. Spottr does not track the runs themselves.",
+
+  "levelBeginner": "New to this",
+  "levelBeginnerDetail": "Under a year of consistent training, or starting again.",
+  "levelIntermediate": "Comfortable",
+  "levelIntermediateDetail": "A year or more, and you know the main lifts.",
+  "levelAdvanced": "Experienced",
+  "levelAdvancedDetail": "Several years, and you program for yourself already.",
+
+  "locationHomeNone": "Home, no equipment",
+  "locationHomeNoneDetail": "Bodyweight only.",
+  "locationHomeDumbbells": "Home with dumbbells",
+  "locationHomeDumbbellsDetail": "A pair of dumbbells, adjustable or fixed.",
+  "locationFullGym": "Full gym",
+  "locationFullGymDetail": "Barbells, machines, cables, benches.",
+
+  "sexFemale": "Female",
+  "sexMale": "Male",
+  "sexPreferNotToSay": "Prefer not to say",
+
+  "equipmentDumbbells": "Dumbbells",
+  "equipmentBarbell": "Barbell",
+  "equipmentKettlebell": "Kettlebell",
+  "equipmentBench": "Bench",
+  "equipmentPullUpBar": "Pull-up bar",
+  "equipmentDipBars": "Dip bars",
+  "equipmentCableMachine": "Cable machine",
+  "equipmentMachine": "Weight machines",
+  "equipmentResistanceBand": "Resistance band",
+  "equipmentBox": "Box or sturdy step",
+
+  "bodyPartKnees": "Knees",
+  "bodyPartLowerBack": "Lower back",
+  "bodyPartShoulders": "Shoulders",
+  "bodyPartWrists": "Wrists",
+  "bodyPartHips": "Hips",
+  "bodyPartAnkles": "Ankles",
+  "bodyPartElbows": "Elbows",
+  "bodyPartNeck": "Neck",
+
+  "muscleQuads": "Quads",
+  "muscleHamstrings": "Hamstrings",
+  "muscleGlutes": "Glutes",
+  "muscleCalves": "Calves",
+  "muscleAdductors": "Inner thigh",
+  "muscleAbductors": "Outer hip",
+  "muscleChest": "Chest",
+  "muscleLats": "Lats",
+  "muscleUpperBack": "Upper back",
+  "muscleLowerBack": "Lower back",
+  "muscleShoulders": "Shoulders",
+  "muscleBiceps": "Biceps",
+  "muscleTriceps": "Triceps",
+  "muscleForearms": "Forearms",
+  "muscleCore": "Core",
+  "muscleObliques": "Obliques",
+
+  "patternSquat": "Squat",
+  "patternHinge": "Hinge",
+  "patternLunge": "Lunge",
+  "patternHorizontalPush": "Pressing",
+  "patternVerticalPush": "Overhead pressing",
+  "patternHorizontalPull": "Rowing",
+  "patternVerticalPull": "Pulling up",
+  "patternCore": "Core",
+  "patternIsolation": "Isolation",
+  "patternCarry": "Carry",
+
+  "dayFullBody": "Full body",
+  "dayUpper": "Upper body",
+  "dayLower": "Lower body",
+  "dayPush": "Push",
+  "dayPull": "Pull",
+  "dayLegs": "Legs",
+
+  "weekdayMonday": "Monday",
+  "weekdayTuesday": "Tuesday",
+  "weekdayWednesday": "Wednesday",
+  "weekdayThursday": "Thursday",
+  "weekdayFriday": "Friday",
+  "weekdaySaturday": "Saturday",
+  "weekdaySunday": "Sunday",
+
+  "runSuggestionEasy20": "Easy 20 minutes, conversational pace.",
+  "runSuggestionSteady35": "Steady 35 minutes at a pace you could hold for an hour.",
+  "runSuggestionTempo45": "45 minutes with 20 at tempo in the middle.",
+
+  "planTitle": "Your week",
+  "planEmptyTitle": "No plan yet",
+  "planEmptyBody": "Answer a few questions and Spottr will build your week.",
+  "planEmptyAction": "Start",
+  "planErrorTitle": "Spottr could not load your plan",
+  "planErrorRetry": "Try again",
+  "planRegenerate": "Rebuild my week",
+  "planRegenerateBody": "Spottr will build a fresh week from your profile. Any swaps or reordering you did will be lost.",
+  "planRegenerateConfirm": "Rebuild",
+  "planCancel": "Cancel",
+
+  "planDaySummary": "{count, plural, =1{1 exercise} other{{count} exercises}} · about {minutes} min",
+  "@planDaySummary": {
+    "description": "Subtitle on a day card. The minute figure is an estimate including a warm-up.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+
+  "planPreRunBadge": "You run tomorrow",
+  "planSetsReps": "{sets} × {min}–{max}",
+  "@planSetsReps": {
+    "description": "Sets and the target rep range.",
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      },
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+
+  "planSetsHold": "{sets} × {seconds}s hold",
+  "@planSetsHold": {
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+
+  "planRestBetweenSets": "{seconds}s rest",
+  "@planRestBetweenSets": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+
+  "planCameraCoachedDetail": "Spottr can count your reps and watch your form on this one.",
+  "planRunSuggestionsTitle": "On your run days",
+  "planNotesTitle": "Why your week looks like this",
+  "planActionSwap": "Swap this exercise",
+  "planActionMoveDay": "Move this day",
+  "planActionReorder": "Reorder",
+  "planReorderDone": "Done",
+  "planReorderHint": "Drag to reorder. Spottr keeps the sets and reps you already have.",
+
+  "swapTitle": "Swap {exercise}",
+  "@swapTitle": {
+    "placeholders": {
+      "exercise": {
+        "type": "String"
+      }
+    }
+  },
+
+  "swapBody": "Alternatives that do the same job and fit your equipment and injuries.",
+  "swapNoAlternatives": "Nothing else in the catalog does this job with the equipment you have.",
+  "swapTargets": "Works {muscles}",
+  "@swapTargets": {
+    "placeholders": {
+      "muscles": {
+        "type": "String"
+      }
+    }
+  },
+
+  "moveDayTitle": "Move {day}",
+  "@moveDayTitle": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+
+  "moveDayBody": "Spottr re-checks leg volume against your run days after the move.",
+  "moveDayOccupied": "Already has a session",
+  "moveDayIsRunDay": "You run this day",
+
+  "noteUnfilledSlot": "No {slot} exercise fits your equipment and injuries, so that slot is empty.",
+  "@noteUnfilledSlot": {
+    "description": "Plan note. Shown rather than hidden so a short session looks explained instead of broken.",
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noteLegVolumeReducedForRun": "{exercise} is capped at fewer sets because you run the next day.",
+  "@noteLegVolumeReducedForRun": {
+    "placeholders": {
+      "exercise": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noteTrimmedForTime": "{exercise} was dropped to fit the session length you chose.",
+  "@noteTrimmedForTime": {
+    "placeholders": {
+      "exercise": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noteTemplateSimplified": "Your week uses full-body days instead of a split, because {patterns} cannot be trained with your equipment and injuries.",
+  "@noteTemplateSimplified": {
+    "description": "A split would have left a whole day with nothing in it, so the generator abandoned it.",
+    "placeholders": {
+      "patterns": {
+        "type": "String"
+      }
+    }
+  },
+
+  "noteDayUnderfilled": "{day} has less compound work than a full session. More equipment would fix it.",
+  "@noteDayUnderfilled": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+
+  "profileTitle": "Your profile",
+  "profileSave": "Save",
+  "profileRebuildWarning": "Saving a change to your goal, days, session length, experience, equipment or injuries rebuilds your week.",
+
+  "@_exercise_names": {
+    "description": "Display names for every catalog entry. The catalog stores an ARB key, never prose, so adding an exercise adds a key here; a test fails if one is missing."
+  },
+
+  "exerciseBandAssistedPullUp": "Band-Assisted Pull-Up",
+  "exerciseBarbellBackSquat": "Barbell Back Squat",
+  "exerciseBarbellBenchPress": "Barbell Bench Press",
+  "exerciseBarbellDeadlift": "Barbell Deadlift",
+  "exerciseBarbellHipThrust": "Barbell Hip Thrust",
+  "exerciseBarbellOverheadPress": "Barbell Overhead Press",
+  "exerciseBarbellRomanianDeadlift": "Barbell Romanian Deadlift",
+  "exerciseBarbellRow": "Barbell Row",
+  "exerciseBirdDog": "Bird Dog",
+  "exerciseBodyweightSquat": "Bodyweight Squat",
+  "exerciseCableFly": "Cable Fly",
+  "exerciseCableTricepsPushdown": "Cable Triceps Pushdown",
+  "exerciseCalfRaise": "Calf Raise",
+  "exerciseChestPressMachine": "Chest Press Machine",
+  "exerciseDbBenchPress": "Dumbbell Bench Press",
+  "exerciseDbBentOverRow": "Dumbbell Bent-Over Row",
+  "exerciseDbCurl": "Dumbbell Curl",
+  "exerciseDbFloorPress": "Dumbbell Floor Press",
+  "exerciseDbHammerCurl": "Dumbbell Hammer Curl",
+  "exerciseDbLateralRaise": "Dumbbell Lateral Raise",
+  "exerciseDbLunge": "Dumbbell Lunge",
+  "exerciseDbRomanianDeadlift": "Dumbbell Romanian Deadlift",
+  "exerciseDbShoulderPress": "Dumbbell Shoulder Press",
+  "exerciseDbSingleArmRow": "Single-Arm Dumbbell Row",
+  "exerciseDbTricepsExtension": "Dumbbell Triceps Extension",
+  "exerciseDeadBug": "Dead Bug",
+  "exerciseFacePull": "Face Pull",
+  "exerciseForwardLunge": "Forward Lunge",
+  "exerciseGluteBridge": "Glute Bridge",
+  "exerciseGobletSquat": "Goblet Squat",
+  "exerciseHackSquat": "Hack Squat",
+  "exerciseHangingKneeRaise": "Hanging Knee Raise",
+  "exerciseInclinePushUp": "Incline Push-Up",
+  "exerciseInvertedRow": "Inverted Row",
+  "exerciseKneePushUp": "Knee Push-Up",
+  "exerciseLatPulldown": "Lat Pulldown",
+  "exerciseLegCurl": "Leg Curl",
+  "exerciseLegExtension": "Leg Extension",
+  "exerciseLegPress": "Leg Press",
+  "exerciseMachineShoulderPress": "Machine Shoulder Press",
+  "exerciseMountainClimber": "Mountain Climber",
+  "exercisePikePushUp": "Pike Push-Up",
+  "exercisePlank": "Plank",
+  "exercisePullUp": "Pull-Up",
+  "exercisePushUp": "Push-Up",
+  "exerciseReverseLunge": "Reverse Lunge",
+  "exerciseSeatedCableRow": "Seated Cable Row",
+  "exerciseSeatedCalfRaise": "Seated Calf Raise",
+  "exerciseSidePlank": "Side Plank",
+  "exerciseSingleLegGluteBridge": "Single-Leg Glute Bridge",
+  "exerciseSplitSquat": "Split Squat",
+  "exerciseStepUp": "Step-Up",
+  "exerciseSuperman": "Superman",
+  "exerciseWallSit": "Wall Sit"
 }

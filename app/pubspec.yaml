@@ -28,6 +28,8 @@ dependencies:
   # Local-first persistence
   drift: ^2.20.0
   drift_flutter: ^0.2.0
+  collection: any
+  meta: any
   path: ^1.9.0
   path_provider: ^2.1.4
 

@@ -4,5 +4,8 @@
 /// coach cues. Deliberately free of Flutter and of any camera dependency, so
 /// the whole pipeline runs from recorded fixtures with no device attached.
 ///
-/// Rep counting lands in M5, form rules in M6, cue arbitration in M7.
+/// Rep counting lands in M5, form rules in M6, cue arbitration in M7. The
+/// coach style is here from M2 because onboarding has to collect it.
 library;
+
+export 'src/coach_style.dart';

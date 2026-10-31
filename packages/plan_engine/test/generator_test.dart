@@ -1,5 +1,4 @@
 import 'package:exercise_library/exercise_library.dart';
-import 'package:exercise_library/src/standard_catalog.dart';
 import 'package:plan_engine/plan_engine.dart';
 import 'package:test/test.dart';
 

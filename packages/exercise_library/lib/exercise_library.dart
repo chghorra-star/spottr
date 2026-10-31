@@ -12,3 +12,4 @@ export 'src/camera_support.dart';
 export 'src/catalog.dart';
 export 'src/enums.dart';
 export 'src/exercise.dart';
+export 'src/standard_catalog.dart';

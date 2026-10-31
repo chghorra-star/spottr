@@ -290,11 +290,99 @@ table that will eventually replicate, so adding Supabase later is one
 implementation class rather than a migration across nine tables. Deletes are
 soft; a hard delete is invisible to a peer.
 
+### Plans are immutable revisions
+
+Saving an edited plan writes a **new** plan row and deactivates the previous
+one, rather than rewriting the rows in place. A session log points at the exact
+`plan_exercises` row it was performed against, so a plan somebody has trained
+is never altered underneath its own history. The cost is a few dozen rows per
+edit, which is nothing; what it buys is that "what was I asked to do that day"
+stays answerable, and progression in M3 can read the prescription a set was
+actually logged against.
+
+It also makes the plan stream cheap: because every edit inserts a plan row, a
+watch on the plans table re-emits on every edit without having to watch the day
+and exercise tables too.
+
+### Timestamps are stored as text, in UTC
+
+Drift's default integer format stores unix *seconds* and says nothing about the
+zone, so a UTC value written on one device reads back as a local one with its
+sub-second part gone. For rows that will eventually be reconciled across
+devices by comparing their timestamps, that is not a detail, so the database
+uses `storeDateTimeAsText` and the domain normalizes to UTC on construction.
+`DateTime` equality includes the zone flag, which is how this surfaced: a
+profile that had been through storage would not compare equal to the one that
+went in.
+
+### What a stored row is allowed to cost
+
+Decoding a row Spottr does not recognise is not one decision but two. An
+unknown **injury** is an error: silently dropping it would put exercises back
+into someone's week that were excluded for a reason. Unknown **equipment** is
+skipped: the cost is one fewer option, which is recoverable, whereas refusing
+to load costs the user the app. The asymmetry is deliberate and tested.
+
 `rep_logs` and `form_events` are deliberately **local-only**: per-rep traces and
 rule verdicts are thousands of rows per session, invaluable for debugging and
 for generating harness fixtures, and of no use to another device.
 `database_test.dart` asserts that every table is classified one way or the
 other, so a new table cannot be added without that decision being made.
+
+## App layer
+
+Riverpod for wiring. Repositories and the catalog are providers so nothing in
+the UI reaches into a global, and the two controllers — `ProfileController` and
+`PlanController` — are **interfaces** with database-backed implementations.
+That is not ceremony: it is what lets a widget test assert *what a screen asked
+for* without a database underneath it. A widget test that waits on a real
+SQLite read spends its life fighting the fake clock a widget test runs under,
+and it would be testing the repositories, which have their own tests against a
+real in-memory database.
+
+### Identifiers never reach the screen
+
+The catalog and the plan engine deal only in ids and ARB keys. `PlanStrings` is
+the single seam where those become prose — exercise names, day labels, movement
+patterns, muscles, equipment, injury sites, run suggestions, and the plan notes
+with their details resolved. It takes no `BuildContext`, so the whole mapping
+is unit testable, and the tests walk every enum and the entire catalog rather
+than sampling: the failure this exists to prevent is a raw
+`exercise_db_bent_over_row` appearing on screen.
+
+The catalog's keys are snake_case because it derives them from ids; the ARB
+keys are camelCase because the generated getters have to pass the analyzer.
+One switch knows both spellings, and a test fails if a catalog entry has no
+name.
+
+### The disclaimer is a gate, not a page
+
+Routing asks two questions: is there a profile, and did it clear the
+disclaimer. A profile that exists without acceptance goes back through
+onboarding. Until it is accepted, the only enabled control on screen is the one
+that accepts it, and acceptance is stored as a timestamp rather than a flag —
+"when did they agree, and to which wording" is the question worth being able to
+answer.
+
+### Which profile changes cost the user their plan
+
+Regenerating discards every swap and reorder, so it happens only when an answer
+the generator actually reads has changed: goal, days, session length, level,
+location, equipment, injuries, and run days when either side of the change
+runs. A different coach voice, a corrected body weight or a note typed into the
+injury box rebuild nothing. `UserProfile.wouldChangePlan` is that rule, in one
+place, tested.
+
+Reordering is the mirror image: it deliberately does not re-apply the day
+rules, because a session the user trimmed by hand should not spring back to
+full volume because they dragged a row.
+
+### Defaults are the conservative ones
+
+A new draft starts as a beginner, at home, with no equipment, on three moderate
+sessions. Someone who taps through the questions without reading them gets a
+plan that is too easy, never one that hands a novice a barbell. That is the
+right way round for the failure to happen.
 
 ## Observability
 
@@ -335,6 +423,24 @@ or landmark traces off the device.
   always be true; goldens show what the generator actually decides, so a
   ranking change arrives as a readable diff.
 - Progression is a decision table.
+- Repositories are tested against a real in-memory SQLite, and the plan
+  round-trip is one `expect(loaded, plan)` because the plan value objects have
+  value equality. A round-trip test that compared a handful of fields would
+  pass while silently dropping the rest — which is how the stored-timestamp
+  zone bug was found.
+- Widget tests stub the data layer and the controllers. They assert what a
+  screen shows and what it asks for: that the disclaimer cannot be skipped,
+  that every answer the user gives reaches the saved profile, that the run-days
+  question appears only for the hybrid goal, that a day card marks the
+  exercises the camera can coach, that tapping an alternative asks for that
+  swap, and that rebuilding asks before discarding edits. Loading, empty, error
+  and success are covered for both the router and the plan screen.
+- The safety copy is pinned by tests. The disclaimer has to say "cannot
+  guarantee" and "not medical advice" and point at a professional; the
+  hybrid-goal and run-day text has to say Spottr does not track runs; the tough
+  coach has to say it never tells anyone to push through pain. Softening any of
+  those is a change of claim, not a change of copy, and should have to break a
+  test.
 - The live coach is tested by driving `FakePoseCamera` through a recorded set
   and asserting the exact cue sequence.
 - The accuracy harness reports rep-count error and per-rule precision and

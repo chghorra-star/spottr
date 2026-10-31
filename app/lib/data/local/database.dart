@@ -42,24 +42,51 @@ class Profiles extends Table with SyncMeta {
 
   TextColumn get coachPersonality => text()(); // hype | calm | tough
 
-  /// JSON array of ISO weekday numbers the user runs on (hybrid goal only).
+  /// JSON array of ISO weekday numbers the user runs on.
+  ///
+  /// Kept whatever the goal is, so that a user who switches to hybrid and
+  /// back does not have to enter them twice. Only a hybrid goal actually
+  /// feeds them to the generator.
   TextColumn get runDays => text().withDefault(const Constant('[]'))();
 
-  BoolColumn get disclaimerAccepted =>
-      boolean().withDefault(const Constant(false))();
-  TextColumn get units => text().withDefault(const Constant('metric'))();
+  /// When the safety disclaimer was accepted, or null if it has not been.
+  ///
+  /// A timestamp rather than a flag: this gates the whole app, and "when did
+  /// they agree, and to which wording" is the question you want answerable.
+  DateTimeColumn get disclaimerAcceptedAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// One revision of a generated week.
+///
+/// Plans are immutable: an edit writes a new revision and deactivates the
+/// previous one rather than rewriting its rows. Session logs point at the
+/// exact [PlanExercises] row they were performed against, so a plan the user
+/// has trained is never altered underneath its own history.
 @DataClassName('PlanRow')
 class Plans extends Table with SyncMeta {
   TextColumn get id => text()();
   TextColumn get profileId => text().references(Profiles, #id)();
-  TextColumn get templateId => text()(); // fullBody3 | upperLower4 | ppl6 ...
+  TextColumn get templateId => text()(); // full_body_3 | upper_lower_4 | ppl_6
+  TextColumn get goal => text()();
   DateTimeColumn get createdAt => dateTime()();
+
+  /// Exactly one revision per profile is active at a time.
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+
+  /// JSON array of ISO weekdays the plan was scheduled around.
+  TextColumn get runDays => text().withDefault(const Constant('[]'))();
+
+  /// JSON array of ARB keys for the text running suggestions.
+  TextColumn get runSuggestionKeys =>
+      text().withDefault(const Constant('[]'))();
+
+  /// JSON array of `{kind, detail, weekday}` objects: why the plan does not
+  /// look like the plain template. Stored because the UI explains a short or
+  /// simplified plan from them, and an edit rewrites them.
+  TextColumn get notes => text().withDefault(const Constant('[]'))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -70,10 +97,19 @@ class PlanDays extends Table with SyncMeta {
   TextColumn get id => text()();
   TextColumn get planId => text().references(Plans, #id)();
 
-  /// Position in the week, 0-based. Not a weekday: the user can move days.
-  IntColumn get dayIndex => integer()();
+  /// ISO weekday, 1 = Monday. The weekday is the identity of a session: the
+  /// scheduler places days around run days, and moving a day changes this.
+  IntColumn get weekday => integer()();
+
+  /// `DayType` name, e.g. push. Needed to rebuild the day, since the label
+  /// alone does not say what kind of session it is.
+  TextColumn get dayType => text()();
   TextColumn get labelKey => text()(); // ARB key, e.g. day_push
-  BoolColumn get isRunDay => boolean().withDefault(const Constant(false))();
+
+  /// Whether a run falls the day after this one. Leg volume is capped on
+  /// these days.
+  BoolColumn get precedesRunDay =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -88,7 +124,27 @@ class PlanExercises extends Table with SyncMeta {
   /// Catalog id from the exercise_library package, not a foreign key.
   TextColumn get exerciseId => text()();
 
+  /// `MovementPattern` name of the slot this fills, which is not always the
+  /// exercise's own pattern: an isolation fallback can fill an accessory
+  /// slot. A swap has to keep the slot, so the slot is stored.
+  TextColumn get slotPattern => text()();
+
+  /// `SlotPriority` name. Decides what the time budget trims first.
+  TextColumn get priority => text()();
+
   IntColumn get targetSets => integer()();
+
+  /// Sets the template asked for, before the pre-run leg cap or any time
+  /// trimming. Without it an edit cannot tell a deliberately trimmed day
+  /// from a full one, and moving a day could not restore its volume.
+  IntColumn get templateSets => integer()();
+
+  /// `MetricType` name: reps or holdSeconds.
+  TextColumn get metric => text()();
+
+  IntColumn get restSeconds => integer()();
+  RealColumn get secondsPerRep => real()();
+
   IntColumn get targetRepsMin => integer().nullable()();
   IntColumn get targetRepsMax => integer().nullable()();
   IntColumn get targetHoldSeconds => integer().nullable()();
@@ -225,6 +281,16 @@ class AppDatabase extends _$AppDatabase {
     'rep_logs',
     'form_events',
   };
+
+  /// Timestamps are stored as ISO-8601 text, not as unix seconds.
+  ///
+  /// The integer format says nothing about the zone and truncates to the
+  /// second, so a UTC value written on one device reads back as a local one
+  /// with its sub-second part gone. For rows that will eventually be
+  /// reconciled across devices by their timestamps, that is not a detail.
+  @override
+  DriftDatabaseOptions get options =>
+      const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
   int get schemaVersion => 1;

@@ -1,4 +1,4 @@
-# Spottr
+XX# Spottr
 
 Adaptive gym plans, plus a live form coach through the phone camera: it counts
 reps, flags risky technique, and coaches out loud while you train.
@@ -11,10 +11,10 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M1 complete — a 54-exercise curated catalog with an integrity validator, and a
-deterministic plan generator with scheduling, ranking, time budgeting, hybrid
-run-day rules, and swap/reorder/move-day editing. 203 tests green, analyzer
-clean. No UI yet: the engine is there, the screens are M2.
+M2 complete — onboarding behind a mandatory disclaimer gate, a profile screen,
+and a plan screen that shows the week and explains why it looks the way it
+does, with swap, reorder and move-day editing wired to the plan engine. Plans
+are stored as immutable revisions. 336 tests green, analyzer clean.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 [docs/dev-loop.md](docs/dev-loop.md) for how to run and verify it.
@@ -23,8 +23,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | --- | --- | --- |
 | M0 | Scaffold and rails | done |
 | M1 | Exercise library + plan generation | done |
-| M2 | Onboarding, profile, plan UI | next |
-| M3 | Workout logging + progression | |
+| M2 | Onboarding, profile, plan UI | done |
+| M3 | Workout logging + progression | next |
 | M4 | Pose plumbing, native bridge, overlay | |
 | M5 | Rep counting + accuracy harness | |
 | M6 | Form rules + scoring | |

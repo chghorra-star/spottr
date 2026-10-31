@@ -1,8 +1,16 @@
+import 'package:collection/collection.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:meta/meta.dart';
 
 import 'goal.dart';
 import 'templates.dart';
+
+/// Order-sensitive list comparison, used by the plan value objects below.
+///
+/// A day whose exercises are in a different order is a different day: that is
+/// precisely what reordering produces.
+const _lists = ListEquality<Object?>();
+const _ints = SetEquality<int>();
 
 /// Why a plan does not look like the plain template.
 enum PlanNoteKind {
@@ -40,6 +48,16 @@ class PlanNote {
   final String detail;
 
   final int? weekday;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PlanNote &&
+      other.kind == kind &&
+      other.detail == detail &&
+      other.weekday == weekday;
+
+  @override
+  int get hashCode => Object.hash(kind, detail, weekday);
 
   @override
   String toString() => '${kind.name}($detail'
@@ -120,6 +138,36 @@ class PlannedExercise {
       );
 
   @override
+  bool operator ==(Object other) =>
+      other is PlannedExercise &&
+      other.exerciseId == exerciseId &&
+      other.slotPattern == slotPattern &&
+      other.priority == priority &&
+      other.sets == sets &&
+      other.templateSets == templateSets &&
+      other.metric == metric &&
+      other.restSeconds == restSeconds &&
+      other.secondsPerRep == secondsPerRep &&
+      other.repsMin == repsMin &&
+      other.repsMax == repsMax &&
+      other.holdSeconds == holdSeconds;
+
+  @override
+  int get hashCode => Object.hash(
+        exerciseId,
+        slotPattern,
+        priority,
+        sets,
+        templateSets,
+        metric,
+        restSeconds,
+        secondsPerRep,
+        repsMin,
+        repsMax,
+        holdSeconds,
+      );
+
+  @override
   String toString() => '$exerciseId x$sets';
 }
 
@@ -164,6 +212,24 @@ class PlannedDay {
         labelKey: labelKey,
         precedesRunDay: precedesRunDay,
         exercises: exercises ?? this.exercises,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is PlannedDay &&
+      other.weekday == weekday &&
+      other.type == type &&
+      other.labelKey == labelKey &&
+      other.precedesRunDay == precedesRunDay &&
+      _lists.equals(other.exercises, exercises);
+
+  @override
+  int get hashCode => Object.hash(
+        weekday,
+        type,
+        labelKey,
+        precedesRunDay,
+        Object.hashAll(exercises),
       );
 
   @override
@@ -212,6 +278,26 @@ class WeekPlan {
         runWeekdays: runWeekdays,
         runSuggestionKeys: runSuggestionKeys,
         notes: notes ?? this.notes,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is WeekPlan &&
+      other.templateId == templateId &&
+      other.goal == goal &&
+      _lists.equals(other.days, days) &&
+      _ints.equals(other.runWeekdays, runWeekdays) &&
+      _lists.equals(other.runSuggestionKeys, runSuggestionKeys) &&
+      _lists.equals(other.notes, notes);
+
+  @override
+  int get hashCode => Object.hash(
+        templateId,
+        goal,
+        Object.hashAll(days),
+        _ints.hash(runWeekdays),
+        Object.hashAll(runSuggestionKeys),
+        Object.hashAll(notes),
       );
 
   @override

@@ -7,7 +7,14 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 Write-Host '== Localizations' -ForegroundColor Cyan
-flutter gen-l10n --project-dir app
+Push-Location 'app'
+try {
+  # gen-l10n must run inside the app package: from the workspace root it
+  # reads the root pubspec, finds no `generate: true`, and does nothing.
+  flutter gen-l10n
+} finally {
+  Pop-Location
+}
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host '== Drift' -ForegroundColor Cyan

@@ -1,5 +1,4 @@
 import 'package:exercise_library/exercise_library.dart';
-import 'package:exercise_library/src/standard_catalog.dart';
 import 'package:pose_core/pose_core.dart';
 import 'package:test/test.dart';
 

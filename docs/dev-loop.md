@@ -17,6 +17,24 @@ rule thresholds, cue ordering, form scores.
 
 This layer covers M1 through M3 entirely, plus the logic half of M5 and M6.
 
+### Widget tests do not touch the database
+
+Two things make a widget test that waits on a real SQLite read a bad bet. A
+widget test runs on a fake clock, which never advances the real asynchronous
+work the read is waiting for; and `pumpAndSettle` cannot settle while an
+indeterminate progress indicator is on screen, because it animates forever —
+so a screen that is showing its loading state never settles.
+
+So widget tests stub the two data streams and the controllers (see
+`test/support/pump.dart` and `test/support/fakes.dart`) and assert what the
+screen shows and what it asks for. The database path is covered by the
+repository and controller tests, which are ordinary async tests against a real
+in-memory SQLite and have none of these problems.
+
+What this leaves genuinely untested is the construction of the on-device
+database itself, which needs a real platform. That is integration territory
+and belongs in Layer 2.
+
 ## Layer 2 — Android emulator with the host webcam
 
 The emulator can expose a host camera as its back camera.

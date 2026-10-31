@@ -204,30 +204,17 @@ class $ProfilesTable extends Profiles
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
-  static const VerificationMeta _disclaimerAcceptedMeta =
-      const VerificationMeta('disclaimerAccepted');
+  static const VerificationMeta _disclaimerAcceptedAtMeta =
+      const VerificationMeta('disclaimerAcceptedAt');
   @override
-  late final GeneratedColumn<bool> disclaimerAccepted = GeneratedColumn<bool>(
-    'disclaimer_accepted',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("disclaimer_accepted" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _unitsMeta = const VerificationMeta('units');
-  @override
-  late final GeneratedColumn<String> units = GeneratedColumn<String>(
-    'units',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('metric'),
-  );
+  late final GeneratedColumn<DateTime> disclaimerAcceptedAt =
+      GeneratedColumn<DateTime>(
+        'disclaimer_accepted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     updatedAt,
@@ -248,8 +235,7 @@ class $ProfilesTable extends Profiles
     equipment,
     coachPersonality,
     runDays,
-    disclaimerAccepted,
-    units,
+    disclaimerAcceptedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -396,19 +382,13 @@ class $ProfilesTable extends Profiles
         runDays.isAcceptableOrUnknown(data['run_days']!, _runDaysMeta),
       );
     }
-    if (data.containsKey('disclaimer_accepted')) {
+    if (data.containsKey('disclaimer_accepted_at')) {
       context.handle(
-        _disclaimerAcceptedMeta,
-        disclaimerAccepted.isAcceptableOrUnknown(
-          data['disclaimer_accepted']!,
-          _disclaimerAcceptedMeta,
+        _disclaimerAcceptedAtMeta,
+        disclaimerAcceptedAt.isAcceptableOrUnknown(
+          data['disclaimer_accepted_at']!,
+          _disclaimerAcceptedAtMeta,
         ),
-      );
-    }
-    if (data.containsKey('units')) {
-      context.handle(
-        _unitsMeta,
-        units.isAcceptableOrUnknown(data['units']!, _unitsMeta),
       );
     }
     return context;
@@ -492,14 +472,10 @@ class $ProfilesTable extends Profiles
         DriftSqlType.string,
         data['${effectivePrefix}run_days'],
       )!,
-      disclaimerAccepted: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}disclaimer_accepted'],
-      )!,
-      units: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}units'],
-      )!,
+      disclaimerAcceptedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}disclaimer_accepted_at'],
+      ),
     );
   }
 
@@ -537,10 +513,18 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   final String equipment;
   final String coachPersonality;
 
-  /// JSON array of ISO weekday numbers the user runs on (hybrid goal only).
+  /// JSON array of ISO weekday numbers the user runs on.
+  ///
+  /// Kept whatever the goal is, so that a user who switches to hybrid and
+  /// back does not have to enter them twice. Only a hybrid goal actually
+  /// feeds them to the generator.
   final String runDays;
-  final bool disclaimerAccepted;
-  final String units;
+
+  /// When the safety disclaimer was accepted, or null if it has not been.
+  ///
+  /// A timestamp rather than a flag: this gates the whole app, and "when did
+  /// they agree, and to which wording" is the question you want answerable.
+  final DateTime? disclaimerAcceptedAt;
   const ProfileRow({
     required this.updatedAt,
     this.deletedAt,
@@ -560,8 +544,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     required this.equipment,
     required this.coachPersonality,
     required this.runDays,
-    required this.disclaimerAccepted,
-    required this.units,
+    this.disclaimerAcceptedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -596,8 +579,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     map['equipment'] = Variable<String>(equipment);
     map['coach_personality'] = Variable<String>(coachPersonality);
     map['run_days'] = Variable<String>(runDays);
-    map['disclaimer_accepted'] = Variable<bool>(disclaimerAccepted);
-    map['units'] = Variable<String>(units);
+    if (!nullToAbsent || disclaimerAcceptedAt != null) {
+      map['disclaimer_accepted_at'] = Variable<DateTime>(disclaimerAcceptedAt);
+    }
     return map;
   }
 
@@ -631,8 +615,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       equipment: Value(equipment),
       coachPersonality: Value(coachPersonality),
       runDays: Value(runDays),
-      disclaimerAccepted: Value(disclaimerAccepted),
-      units: Value(units),
+      disclaimerAcceptedAt: disclaimerAcceptedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(disclaimerAcceptedAt),
     );
   }
 
@@ -660,8 +645,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       equipment: serializer.fromJson<String>(json['equipment']),
       coachPersonality: serializer.fromJson<String>(json['coachPersonality']),
       runDays: serializer.fromJson<String>(json['runDays']),
-      disclaimerAccepted: serializer.fromJson<bool>(json['disclaimerAccepted']),
-      units: serializer.fromJson<String>(json['units']),
+      disclaimerAcceptedAt: serializer.fromJson<DateTime?>(
+        json['disclaimerAcceptedAt'],
+      ),
     );
   }
   @override
@@ -686,8 +672,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'equipment': serializer.toJson<String>(equipment),
       'coachPersonality': serializer.toJson<String>(coachPersonality),
       'runDays': serializer.toJson<String>(runDays),
-      'disclaimerAccepted': serializer.toJson<bool>(disclaimerAccepted),
-      'units': serializer.toJson<String>(units),
+      'disclaimerAcceptedAt': serializer.toJson<DateTime?>(
+        disclaimerAcceptedAt,
+      ),
     };
   }
 
@@ -710,8 +697,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     String? equipment,
     String? coachPersonality,
     String? runDays,
-    bool? disclaimerAccepted,
-    String? units,
+    Value<DateTime?> disclaimerAcceptedAt = const Value.absent(),
   }) => ProfileRow(
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -731,8 +717,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     equipment: equipment ?? this.equipment,
     coachPersonality: coachPersonality ?? this.coachPersonality,
     runDays: runDays ?? this.runDays,
-    disclaimerAccepted: disclaimerAccepted ?? this.disclaimerAccepted,
-    units: units ?? this.units,
+    disclaimerAcceptedAt: disclaimerAcceptedAt.present
+        ? disclaimerAcceptedAt.value
+        : this.disclaimerAcceptedAt,
   );
   ProfileRow copyWithCompanion(ProfilesCompanion data) {
     return ProfileRow(
@@ -762,10 +749,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ? data.coachPersonality.value
           : this.coachPersonality,
       runDays: data.runDays.present ? data.runDays.value : this.runDays,
-      disclaimerAccepted: data.disclaimerAccepted.present
-          ? data.disclaimerAccepted.value
-          : this.disclaimerAccepted,
-      units: data.units.present ? data.units.value : this.units,
+      disclaimerAcceptedAt: data.disclaimerAcceptedAt.present
+          ? data.disclaimerAcceptedAt.value
+          : this.disclaimerAcceptedAt,
     );
   }
 
@@ -790,8 +776,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('equipment: $equipment, ')
           ..write('coachPersonality: $coachPersonality, ')
           ..write('runDays: $runDays, ')
-          ..write('disclaimerAccepted: $disclaimerAccepted, ')
-          ..write('units: $units')
+          ..write('disclaimerAcceptedAt: $disclaimerAcceptedAt')
           ..write(')'))
         .toString();
   }
@@ -816,8 +801,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     equipment,
     coachPersonality,
     runDays,
-    disclaimerAccepted,
-    units,
+    disclaimerAcceptedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -841,8 +825,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.equipment == this.equipment &&
           other.coachPersonality == this.coachPersonality &&
           other.runDays == this.runDays &&
-          other.disclaimerAccepted == this.disclaimerAccepted &&
-          other.units == this.units);
+          other.disclaimerAcceptedAt == this.disclaimerAcceptedAt);
 }
 
 class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
@@ -864,8 +847,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<String> equipment;
   final Value<String> coachPersonality;
   final Value<String> runDays;
-  final Value<bool> disclaimerAccepted;
-  final Value<String> units;
+  final Value<DateTime?> disclaimerAcceptedAt;
   final Value<int> rowid;
   const ProfilesCompanion({
     this.updatedAt = const Value.absent(),
@@ -886,8 +868,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.equipment = const Value.absent(),
     this.coachPersonality = const Value.absent(),
     this.runDays = const Value.absent(),
-    this.disclaimerAccepted = const Value.absent(),
-    this.units = const Value.absent(),
+    this.disclaimerAcceptedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProfilesCompanion.insert({
@@ -909,8 +890,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.equipment = const Value.absent(),
     required String coachPersonality,
     this.runDays = const Value.absent(),
-    this.disclaimerAccepted = const Value.absent(),
-    this.units = const Value.absent(),
+    this.disclaimerAcceptedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : deviceId = Value(deviceId),
        id = Value(id),
@@ -939,8 +919,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<String>? equipment,
     Expression<String>? coachPersonality,
     Expression<String>? runDays,
-    Expression<bool>? disclaimerAccepted,
-    Expression<String>? units,
+    Expression<DateTime>? disclaimerAcceptedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -962,8 +941,8 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (equipment != null) 'equipment': equipment,
       if (coachPersonality != null) 'coach_personality': coachPersonality,
       if (runDays != null) 'run_days': runDays,
-      if (disclaimerAccepted != null) 'disclaimer_accepted': disclaimerAccepted,
-      if (units != null) 'units': units,
+      if (disclaimerAcceptedAt != null)
+        'disclaimer_accepted_at': disclaimerAcceptedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -987,8 +966,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Value<String>? equipment,
     Value<String>? coachPersonality,
     Value<String>? runDays,
-    Value<bool>? disclaimerAccepted,
-    Value<String>? units,
+    Value<DateTime?>? disclaimerAcceptedAt,
     Value<int>? rowid,
   }) {
     return ProfilesCompanion(
@@ -1010,8 +988,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       equipment: equipment ?? this.equipment,
       coachPersonality: coachPersonality ?? this.coachPersonality,
       runDays: runDays ?? this.runDays,
-      disclaimerAccepted: disclaimerAccepted ?? this.disclaimerAccepted,
-      units: units ?? this.units,
+      disclaimerAcceptedAt: disclaimerAcceptedAt ?? this.disclaimerAcceptedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1073,11 +1050,10 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     if (runDays.present) {
       map['run_days'] = Variable<String>(runDays.value);
     }
-    if (disclaimerAccepted.present) {
-      map['disclaimer_accepted'] = Variable<bool>(disclaimerAccepted.value);
-    }
-    if (units.present) {
-      map['units'] = Variable<String>(units.value);
+    if (disclaimerAcceptedAt.present) {
+      map['disclaimer_accepted_at'] = Variable<DateTime>(
+        disclaimerAcceptedAt.value,
+      );
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -1106,8 +1082,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('equipment: $equipment, ')
           ..write('coachPersonality: $coachPersonality, ')
           ..write('runDays: $runDays, ')
-          ..write('disclaimerAccepted: $disclaimerAccepted, ')
-          ..write('units: $units, ')
+          ..write('disclaimerAcceptedAt: $disclaimerAcceptedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1185,6 +1160,15 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _goalMeta = const VerificationMeta('goal');
+  @override
+  late final GeneratedColumn<String> goal = GeneratedColumn<String>(
+    'goal',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1211,6 +1195,41 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _runDaysMeta = const VerificationMeta(
+    'runDays',
+  );
+  @override
+  late final GeneratedColumn<String> runDays = GeneratedColumn<String>(
+    'run_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _runSuggestionKeysMeta = const VerificationMeta(
+    'runSuggestionKeys',
+  );
+  @override
+  late final GeneratedColumn<String> runSuggestionKeys =
+      GeneratedColumn<String>(
+        'run_suggestion_keys',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     updatedAt,
@@ -1219,8 +1238,12 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
     id,
     profileId,
     templateId,
+    goal,
     createdAt,
     isActive,
+    runDays,
+    runSuggestionKeys,
+    notes,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1275,6 +1298,14 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
     } else if (isInserting) {
       context.missing(_templateIdMeta);
     }
+    if (data.containsKey('goal')) {
+      context.handle(
+        _goalMeta,
+        goal.isAcceptableOrUnknown(data['goal']!, _goalMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_goalMeta);
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1287,6 +1318,27 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
       context.handle(
         _isActiveMeta,
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('run_days')) {
+      context.handle(
+        _runDaysMeta,
+        runDays.isAcceptableOrUnknown(data['run_days']!, _runDaysMeta),
+      );
+    }
+    if (data.containsKey('run_suggestion_keys')) {
+      context.handle(
+        _runSuggestionKeysMeta,
+        runSuggestionKeys.isAcceptableOrUnknown(
+          data['run_suggestion_keys']!,
+          _runSuggestionKeysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
     return context;
@@ -1322,6 +1374,10 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
         DriftSqlType.string,
         data['${effectivePrefix}template_id'],
       )!,
+      goal: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}goal'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1329,6 +1385,18 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
+      )!,
+      runDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}run_days'],
+      )!,
+      runSuggestionKeys: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}run_suggestion_keys'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
       )!,
     );
   }
@@ -1351,8 +1419,22 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
   final String id;
   final String profileId;
   final String templateId;
+  final String goal;
   final DateTime createdAt;
+
+  /// Exactly one revision per profile is active at a time.
   final bool isActive;
+
+  /// JSON array of ISO weekdays the plan was scheduled around.
+  final String runDays;
+
+  /// JSON array of ARB keys for the text running suggestions.
+  final String runSuggestionKeys;
+
+  /// JSON array of `{kind, detail, weekday}` objects: why the plan does not
+  /// look like the plain template. Stored because the UI explains a short or
+  /// simplified plan from them, and an edit rewrites them.
+  final String notes;
   const PlanRow({
     required this.updatedAt,
     this.deletedAt,
@@ -1360,8 +1442,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     required this.id,
     required this.profileId,
     required this.templateId,
+    required this.goal,
     required this.createdAt,
     required this.isActive,
+    required this.runDays,
+    required this.runSuggestionKeys,
+    required this.notes,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1374,8 +1460,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     map['id'] = Variable<String>(id);
     map['profile_id'] = Variable<String>(profileId);
     map['template_id'] = Variable<String>(templateId);
+    map['goal'] = Variable<String>(goal);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['is_active'] = Variable<bool>(isActive);
+    map['run_days'] = Variable<String>(runDays);
+    map['run_suggestion_keys'] = Variable<String>(runSuggestionKeys);
+    map['notes'] = Variable<String>(notes);
     return map;
   }
 
@@ -1389,8 +1479,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       id: Value(id),
       profileId: Value(profileId),
       templateId: Value(templateId),
+      goal: Value(goal),
       createdAt: Value(createdAt),
       isActive: Value(isActive),
+      runDays: Value(runDays),
+      runSuggestionKeys: Value(runSuggestionKeys),
+      notes: Value(notes),
     );
   }
 
@@ -1406,8 +1500,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       id: serializer.fromJson<String>(json['id']),
       profileId: serializer.fromJson<String>(json['profileId']),
       templateId: serializer.fromJson<String>(json['templateId']),
+      goal: serializer.fromJson<String>(json['goal']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      runDays: serializer.fromJson<String>(json['runDays']),
+      runSuggestionKeys: serializer.fromJson<String>(json['runSuggestionKeys']),
+      notes: serializer.fromJson<String>(json['notes']),
     );
   }
   @override
@@ -1420,8 +1518,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       'id': serializer.toJson<String>(id),
       'profileId': serializer.toJson<String>(profileId),
       'templateId': serializer.toJson<String>(templateId),
+      'goal': serializer.toJson<String>(goal),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isActive': serializer.toJson<bool>(isActive),
+      'runDays': serializer.toJson<String>(runDays),
+      'runSuggestionKeys': serializer.toJson<String>(runSuggestionKeys),
+      'notes': serializer.toJson<String>(notes),
     };
   }
 
@@ -1432,8 +1534,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     String? id,
     String? profileId,
     String? templateId,
+    String? goal,
     DateTime? createdAt,
     bool? isActive,
+    String? runDays,
+    String? runSuggestionKeys,
+    String? notes,
   }) => PlanRow(
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -1441,8 +1547,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
     templateId: templateId ?? this.templateId,
+    goal: goal ?? this.goal,
     createdAt: createdAt ?? this.createdAt,
     isActive: isActive ?? this.isActive,
+    runDays: runDays ?? this.runDays,
+    runSuggestionKeys: runSuggestionKeys ?? this.runSuggestionKeys,
+    notes: notes ?? this.notes,
   );
   PlanRow copyWithCompanion(PlansCompanion data) {
     return PlanRow(
@@ -1454,8 +1564,14 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       templateId: data.templateId.present
           ? data.templateId.value
           : this.templateId,
+      goal: data.goal.present ? data.goal.value : this.goal,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      runDays: data.runDays.present ? data.runDays.value : this.runDays,
+      runSuggestionKeys: data.runSuggestionKeys.present
+          ? data.runSuggestionKeys.value
+          : this.runSuggestionKeys,
+      notes: data.notes.present ? data.notes.value : this.notes,
     );
   }
 
@@ -1468,8 +1584,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
           ..write('id: $id, ')
           ..write('profileId: $profileId, ')
           ..write('templateId: $templateId, ')
+          ..write('goal: $goal, ')
           ..write('createdAt: $createdAt, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('runDays: $runDays, ')
+          ..write('runSuggestionKeys: $runSuggestionKeys, ')
+          ..write('notes: $notes')
           ..write(')'))
         .toString();
   }
@@ -1482,8 +1602,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     id,
     profileId,
     templateId,
+    goal,
     createdAt,
     isActive,
+    runDays,
+    runSuggestionKeys,
+    notes,
   );
   @override
   bool operator ==(Object other) =>
@@ -1495,8 +1619,12 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
           other.id == this.id &&
           other.profileId == this.profileId &&
           other.templateId == this.templateId &&
+          other.goal == this.goal &&
           other.createdAt == this.createdAt &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.runDays == this.runDays &&
+          other.runSuggestionKeys == this.runSuggestionKeys &&
+          other.notes == this.notes);
 }
 
 class PlansCompanion extends UpdateCompanion<PlanRow> {
@@ -1506,8 +1634,12 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
   final Value<String> id;
   final Value<String> profileId;
   final Value<String> templateId;
+  final Value<String> goal;
   final Value<DateTime> createdAt;
   final Value<bool> isActive;
+  final Value<String> runDays;
+  final Value<String> runSuggestionKeys;
+  final Value<String> notes;
   final Value<int> rowid;
   const PlansCompanion({
     this.updatedAt = const Value.absent(),
@@ -1516,8 +1648,12 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
     this.templateId = const Value.absent(),
+    this.goal = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.runDays = const Value.absent(),
+    this.runSuggestionKeys = const Value.absent(),
+    this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PlansCompanion.insert({
@@ -1527,13 +1663,18 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     required String id,
     required String profileId,
     required String templateId,
+    required String goal,
     required DateTime createdAt,
     this.isActive = const Value.absent(),
+    this.runDays = const Value.absent(),
+    this.runSuggestionKeys = const Value.absent(),
+    this.notes = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : deviceId = Value(deviceId),
        id = Value(id),
        profileId = Value(profileId),
        templateId = Value(templateId),
+       goal = Value(goal),
        createdAt = Value(createdAt);
   static Insertable<PlanRow> custom({
     Expression<DateTime>? updatedAt,
@@ -1542,8 +1683,12 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     Expression<String>? id,
     Expression<String>? profileId,
     Expression<String>? templateId,
+    Expression<String>? goal,
     Expression<DateTime>? createdAt,
     Expression<bool>? isActive,
+    Expression<String>? runDays,
+    Expression<String>? runSuggestionKeys,
+    Expression<String>? notes,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1553,8 +1698,12 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
       if (id != null) 'id': id,
       if (profileId != null) 'profile_id': profileId,
       if (templateId != null) 'template_id': templateId,
+      if (goal != null) 'goal': goal,
       if (createdAt != null) 'created_at': createdAt,
       if (isActive != null) 'is_active': isActive,
+      if (runDays != null) 'run_days': runDays,
+      if (runSuggestionKeys != null) 'run_suggestion_keys': runSuggestionKeys,
+      if (notes != null) 'notes': notes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1566,8 +1715,12 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     Value<String>? id,
     Value<String>? profileId,
     Value<String>? templateId,
+    Value<String>? goal,
     Value<DateTime>? createdAt,
     Value<bool>? isActive,
+    Value<String>? runDays,
+    Value<String>? runSuggestionKeys,
+    Value<String>? notes,
     Value<int>? rowid,
   }) {
     return PlansCompanion(
@@ -1577,8 +1730,12 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
       id: id ?? this.id,
       profileId: profileId ?? this.profileId,
       templateId: templateId ?? this.templateId,
+      goal: goal ?? this.goal,
       createdAt: createdAt ?? this.createdAt,
       isActive: isActive ?? this.isActive,
+      runDays: runDays ?? this.runDays,
+      runSuggestionKeys: runSuggestionKeys ?? this.runSuggestionKeys,
+      notes: notes ?? this.notes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1604,11 +1761,23 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     if (templateId.present) {
       map['template_id'] = Variable<String>(templateId.value);
     }
+    if (goal.present) {
+      map['goal'] = Variable<String>(goal.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (runDays.present) {
+      map['run_days'] = Variable<String>(runDays.value);
+    }
+    if (runSuggestionKeys.present) {
+      map['run_suggestion_keys'] = Variable<String>(runSuggestionKeys.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -1625,8 +1794,12 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
           ..write('id: $id, ')
           ..write('profileId: $profileId, ')
           ..write('templateId: $templateId, ')
+          ..write('goal: $goal, ')
           ..write('createdAt: $createdAt, ')
           ..write('isActive: $isActive, ')
+          ..write('runDays: $runDays, ')
+          ..write('runSuggestionKeys: $runSuggestionKeys, ')
+          ..write('notes: $notes, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1692,15 +1865,26 @@ class $PlanDaysTable extends PlanDays
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _dayIndexMeta = const VerificationMeta(
-    'dayIndex',
+  static const VerificationMeta _weekdayMeta = const VerificationMeta(
+    'weekday',
   );
   @override
-  late final GeneratedColumn<int> dayIndex = GeneratedColumn<int>(
-    'day_index',
+  late final GeneratedColumn<int> weekday = GeneratedColumn<int>(
+    'weekday',
     aliasedName,
     false,
     type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dayTypeMeta = const VerificationMeta(
+    'dayType',
+  );
+  @override
+  late final GeneratedColumn<String> dayType = GeneratedColumn<String>(
+    'day_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _labelKeyMeta = const VerificationMeta(
@@ -1714,18 +1898,18 @@ class $PlanDaysTable extends PlanDays
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _isRunDayMeta = const VerificationMeta(
-    'isRunDay',
+  static const VerificationMeta _precedesRunDayMeta = const VerificationMeta(
+    'precedesRunDay',
   );
   @override
-  late final GeneratedColumn<bool> isRunDay = GeneratedColumn<bool>(
-    'is_run_day',
+  late final GeneratedColumn<bool> precedesRunDay = GeneratedColumn<bool>(
+    'precedes_run_day',
     aliasedName,
     false,
     type: DriftSqlType.bool,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_run_day" IN (0, 1))',
+      'CHECK ("precedes_run_day" IN (0, 1))',
     ),
     defaultValue: const Constant(false),
   );
@@ -1736,9 +1920,10 @@ class $PlanDaysTable extends PlanDays
     deviceId,
     id,
     planId,
-    dayIndex,
+    weekday,
+    dayType,
     labelKey,
-    isRunDay,
+    precedesRunDay,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1785,13 +1970,21 @@ class $PlanDaysTable extends PlanDays
     } else if (isInserting) {
       context.missing(_planIdMeta);
     }
-    if (data.containsKey('day_index')) {
+    if (data.containsKey('weekday')) {
       context.handle(
-        _dayIndexMeta,
-        dayIndex.isAcceptableOrUnknown(data['day_index']!, _dayIndexMeta),
+        _weekdayMeta,
+        weekday.isAcceptableOrUnknown(data['weekday']!, _weekdayMeta),
       );
     } else if (isInserting) {
-      context.missing(_dayIndexMeta);
+      context.missing(_weekdayMeta);
+    }
+    if (data.containsKey('day_type')) {
+      context.handle(
+        _dayTypeMeta,
+        dayType.isAcceptableOrUnknown(data['day_type']!, _dayTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayTypeMeta);
     }
     if (data.containsKey('label_key')) {
       context.handle(
@@ -1801,10 +1994,13 @@ class $PlanDaysTable extends PlanDays
     } else if (isInserting) {
       context.missing(_labelKeyMeta);
     }
-    if (data.containsKey('is_run_day')) {
+    if (data.containsKey('precedes_run_day')) {
       context.handle(
-        _isRunDayMeta,
-        isRunDay.isAcceptableOrUnknown(data['is_run_day']!, _isRunDayMeta),
+        _precedesRunDayMeta,
+        precedesRunDay.isAcceptableOrUnknown(
+          data['precedes_run_day']!,
+          _precedesRunDayMeta,
+        ),
       );
     }
     return context;
@@ -1836,17 +2032,21 @@ class $PlanDaysTable extends PlanDays
         DriftSqlType.string,
         data['${effectivePrefix}plan_id'],
       )!,
-      dayIndex: attachedDatabase.typeMapping.read(
+      weekday: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}day_index'],
+        data['${effectivePrefix}weekday'],
+      )!,
+      dayType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day_type'],
       )!,
       labelKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}label_key'],
       )!,
-      isRunDay: attachedDatabase.typeMapping.read(
+      precedesRunDay: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
-        data['${effectivePrefix}is_run_day'],
+        data['${effectivePrefix}precedes_run_day'],
       )!,
     );
   }
@@ -1869,19 +2069,28 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
   final String id;
   final String planId;
 
-  /// Position in the week, 0-based. Not a weekday: the user can move days.
-  final int dayIndex;
+  /// ISO weekday, 1 = Monday. The weekday is the identity of a session: the
+  /// scheduler places days around run days, and moving a day changes this.
+  final int weekday;
+
+  /// `DayType` name, e.g. push. Needed to rebuild the day, since the label
+  /// alone does not say what kind of session it is.
+  final String dayType;
   final String labelKey;
-  final bool isRunDay;
+
+  /// Whether a run falls the day after this one. Leg volume is capped on
+  /// these days.
+  final bool precedesRunDay;
   const PlanDayRow({
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
     required this.id,
     required this.planId,
-    required this.dayIndex,
+    required this.weekday,
+    required this.dayType,
     required this.labelKey,
-    required this.isRunDay,
+    required this.precedesRunDay,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1893,9 +2102,10 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
     map['device_id'] = Variable<String>(deviceId);
     map['id'] = Variable<String>(id);
     map['plan_id'] = Variable<String>(planId);
-    map['day_index'] = Variable<int>(dayIndex);
+    map['weekday'] = Variable<int>(weekday);
+    map['day_type'] = Variable<String>(dayType);
     map['label_key'] = Variable<String>(labelKey);
-    map['is_run_day'] = Variable<bool>(isRunDay);
+    map['precedes_run_day'] = Variable<bool>(precedesRunDay);
     return map;
   }
 
@@ -1908,9 +2118,10 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       deviceId: Value(deviceId),
       id: Value(id),
       planId: Value(planId),
-      dayIndex: Value(dayIndex),
+      weekday: Value(weekday),
+      dayType: Value(dayType),
       labelKey: Value(labelKey),
-      isRunDay: Value(isRunDay),
+      precedesRunDay: Value(precedesRunDay),
     );
   }
 
@@ -1925,9 +2136,10 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       deviceId: serializer.fromJson<String>(json['deviceId']),
       id: serializer.fromJson<String>(json['id']),
       planId: serializer.fromJson<String>(json['planId']),
-      dayIndex: serializer.fromJson<int>(json['dayIndex']),
+      weekday: serializer.fromJson<int>(json['weekday']),
+      dayType: serializer.fromJson<String>(json['dayType']),
       labelKey: serializer.fromJson<String>(json['labelKey']),
-      isRunDay: serializer.fromJson<bool>(json['isRunDay']),
+      precedesRunDay: serializer.fromJson<bool>(json['precedesRunDay']),
     );
   }
   @override
@@ -1939,9 +2151,10 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       'deviceId': serializer.toJson<String>(deviceId),
       'id': serializer.toJson<String>(id),
       'planId': serializer.toJson<String>(planId),
-      'dayIndex': serializer.toJson<int>(dayIndex),
+      'weekday': serializer.toJson<int>(weekday),
+      'dayType': serializer.toJson<String>(dayType),
       'labelKey': serializer.toJson<String>(labelKey),
-      'isRunDay': serializer.toJson<bool>(isRunDay),
+      'precedesRunDay': serializer.toJson<bool>(precedesRunDay),
     };
   }
 
@@ -1951,18 +2164,20 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
     String? deviceId,
     String? id,
     String? planId,
-    int? dayIndex,
+    int? weekday,
+    String? dayType,
     String? labelKey,
-    bool? isRunDay,
+    bool? precedesRunDay,
   }) => PlanDayRow(
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
     id: id ?? this.id,
     planId: planId ?? this.planId,
-    dayIndex: dayIndex ?? this.dayIndex,
+    weekday: weekday ?? this.weekday,
+    dayType: dayType ?? this.dayType,
     labelKey: labelKey ?? this.labelKey,
-    isRunDay: isRunDay ?? this.isRunDay,
+    precedesRunDay: precedesRunDay ?? this.precedesRunDay,
   );
   PlanDayRow copyWithCompanion(PlanDaysCompanion data) {
     return PlanDayRow(
@@ -1971,9 +2186,12 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
       id: data.id.present ? data.id.value : this.id,
       planId: data.planId.present ? data.planId.value : this.planId,
-      dayIndex: data.dayIndex.present ? data.dayIndex.value : this.dayIndex,
+      weekday: data.weekday.present ? data.weekday.value : this.weekday,
+      dayType: data.dayType.present ? data.dayType.value : this.dayType,
       labelKey: data.labelKey.present ? data.labelKey.value : this.labelKey,
-      isRunDay: data.isRunDay.present ? data.isRunDay.value : this.isRunDay,
+      precedesRunDay: data.precedesRunDay.present
+          ? data.precedesRunDay.value
+          : this.precedesRunDay,
     );
   }
 
@@ -1985,9 +2203,10 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
           ..write('deviceId: $deviceId, ')
           ..write('id: $id, ')
           ..write('planId: $planId, ')
-          ..write('dayIndex: $dayIndex, ')
+          ..write('weekday: $weekday, ')
+          ..write('dayType: $dayType, ')
           ..write('labelKey: $labelKey, ')
-          ..write('isRunDay: $isRunDay')
+          ..write('precedesRunDay: $precedesRunDay')
           ..write(')'))
         .toString();
   }
@@ -1999,9 +2218,10 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
     deviceId,
     id,
     planId,
-    dayIndex,
+    weekday,
+    dayType,
     labelKey,
-    isRunDay,
+    precedesRunDay,
   );
   @override
   bool operator ==(Object other) =>
@@ -2012,9 +2232,10 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
           other.deviceId == this.deviceId &&
           other.id == this.id &&
           other.planId == this.planId &&
-          other.dayIndex == this.dayIndex &&
+          other.weekday == this.weekday &&
+          other.dayType == this.dayType &&
           other.labelKey == this.labelKey &&
-          other.isRunDay == this.isRunDay);
+          other.precedesRunDay == this.precedesRunDay);
 }
 
 class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
@@ -2023,9 +2244,10 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
   final Value<String> deviceId;
   final Value<String> id;
   final Value<String> planId;
-  final Value<int> dayIndex;
+  final Value<int> weekday;
+  final Value<String> dayType;
   final Value<String> labelKey;
-  final Value<bool> isRunDay;
+  final Value<bool> precedesRunDay;
   final Value<int> rowid;
   const PlanDaysCompanion({
     this.updatedAt = const Value.absent(),
@@ -2033,9 +2255,10 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     this.deviceId = const Value.absent(),
     this.id = const Value.absent(),
     this.planId = const Value.absent(),
-    this.dayIndex = const Value.absent(),
+    this.weekday = const Value.absent(),
+    this.dayType = const Value.absent(),
     this.labelKey = const Value.absent(),
-    this.isRunDay = const Value.absent(),
+    this.precedesRunDay = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PlanDaysCompanion.insert({
@@ -2044,14 +2267,16 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     required String deviceId,
     required String id,
     required String planId,
-    required int dayIndex,
+    required int weekday,
+    required String dayType,
     required String labelKey,
-    this.isRunDay = const Value.absent(),
+    this.precedesRunDay = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : deviceId = Value(deviceId),
        id = Value(id),
        planId = Value(planId),
-       dayIndex = Value(dayIndex),
+       weekday = Value(weekday),
+       dayType = Value(dayType),
        labelKey = Value(labelKey);
   static Insertable<PlanDayRow> custom({
     Expression<DateTime>? updatedAt,
@@ -2059,9 +2284,10 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     Expression<String>? deviceId,
     Expression<String>? id,
     Expression<String>? planId,
-    Expression<int>? dayIndex,
+    Expression<int>? weekday,
+    Expression<String>? dayType,
     Expression<String>? labelKey,
-    Expression<bool>? isRunDay,
+    Expression<bool>? precedesRunDay,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2070,9 +2296,10 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
       if (deviceId != null) 'device_id': deviceId,
       if (id != null) 'id': id,
       if (planId != null) 'plan_id': planId,
-      if (dayIndex != null) 'day_index': dayIndex,
+      if (weekday != null) 'weekday': weekday,
+      if (dayType != null) 'day_type': dayType,
       if (labelKey != null) 'label_key': labelKey,
-      if (isRunDay != null) 'is_run_day': isRunDay,
+      if (precedesRunDay != null) 'precedes_run_day': precedesRunDay,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2083,9 +2310,10 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     Value<String>? deviceId,
     Value<String>? id,
     Value<String>? planId,
-    Value<int>? dayIndex,
+    Value<int>? weekday,
+    Value<String>? dayType,
     Value<String>? labelKey,
-    Value<bool>? isRunDay,
+    Value<bool>? precedesRunDay,
     Value<int>? rowid,
   }) {
     return PlanDaysCompanion(
@@ -2094,9 +2322,10 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
       deviceId: deviceId ?? this.deviceId,
       id: id ?? this.id,
       planId: planId ?? this.planId,
-      dayIndex: dayIndex ?? this.dayIndex,
+      weekday: weekday ?? this.weekday,
+      dayType: dayType ?? this.dayType,
       labelKey: labelKey ?? this.labelKey,
-      isRunDay: isRunDay ?? this.isRunDay,
+      precedesRunDay: precedesRunDay ?? this.precedesRunDay,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2119,14 +2348,17 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     if (planId.present) {
       map['plan_id'] = Variable<String>(planId.value);
     }
-    if (dayIndex.present) {
-      map['day_index'] = Variable<int>(dayIndex.value);
+    if (weekday.present) {
+      map['weekday'] = Variable<int>(weekday.value);
+    }
+    if (dayType.present) {
+      map['day_type'] = Variable<String>(dayType.value);
     }
     if (labelKey.present) {
       map['label_key'] = Variable<String>(labelKey.value);
     }
-    if (isRunDay.present) {
-      map['is_run_day'] = Variable<bool>(isRunDay.value);
+    if (precedesRunDay.present) {
+      map['precedes_run_day'] = Variable<bool>(precedesRunDay.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -2142,9 +2374,10 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
           ..write('deviceId: $deviceId, ')
           ..write('id: $id, ')
           ..write('planId: $planId, ')
-          ..write('dayIndex: $dayIndex, ')
+          ..write('weekday: $weekday, ')
+          ..write('dayType: $dayType, ')
           ..write('labelKey: $labelKey, ')
-          ..write('isRunDay: $isRunDay, ')
+          ..write('precedesRunDay: $precedesRunDay, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2234,6 +2467,28 @@ class $PlanExercisesTable extends PlanExercises
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _slotPatternMeta = const VerificationMeta(
+    'slotPattern',
+  );
+  @override
+  late final GeneratedColumn<String> slotPattern = GeneratedColumn<String>(
+    'slot_pattern',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<String> priority = GeneratedColumn<String>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _targetSetsMeta = const VerificationMeta(
     'targetSets',
   );
@@ -2243,6 +2498,48 @@ class $PlanExercisesTable extends PlanExercises
     aliasedName,
     false,
     type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _templateSetsMeta = const VerificationMeta(
+    'templateSets',
+  );
+  @override
+  late final GeneratedColumn<int> templateSets = GeneratedColumn<int>(
+    'template_sets',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _metricMeta = const VerificationMeta('metric');
+  @override
+  late final GeneratedColumn<String> metric = GeneratedColumn<String>(
+    'metric',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _restSecondsMeta = const VerificationMeta(
+    'restSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> restSeconds = GeneratedColumn<int>(
+    'rest_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secondsPerRepMeta = const VerificationMeta(
+    'secondsPerRep',
+  );
+  @override
+  late final GeneratedColumn<double> secondsPerRep = GeneratedColumn<double>(
+    'seconds_per_rep',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _targetRepsMinMeta = const VerificationMeta(
@@ -2298,7 +2595,13 @@ class $PlanExercisesTable extends PlanExercises
     planDayId,
     orderIndex,
     exerciseId,
+    slotPattern,
+    priority,
     targetSets,
+    templateSets,
+    metric,
+    restSeconds,
+    secondsPerRep,
     targetRepsMin,
     targetRepsMax,
     targetHoldSeconds,
@@ -2365,6 +2668,25 @@ class $PlanExercisesTable extends PlanExercises
     } else if (isInserting) {
       context.missing(_exerciseIdMeta);
     }
+    if (data.containsKey('slot_pattern')) {
+      context.handle(
+        _slotPatternMeta,
+        slotPattern.isAcceptableOrUnknown(
+          data['slot_pattern']!,
+          _slotPatternMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_slotPatternMeta);
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priorityMeta);
+    }
     if (data.containsKey('target_sets')) {
       context.handle(
         _targetSetsMeta,
@@ -2372,6 +2694,47 @@ class $PlanExercisesTable extends PlanExercises
       );
     } else if (isInserting) {
       context.missing(_targetSetsMeta);
+    }
+    if (data.containsKey('template_sets')) {
+      context.handle(
+        _templateSetsMeta,
+        templateSets.isAcceptableOrUnknown(
+          data['template_sets']!,
+          _templateSetsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_templateSetsMeta);
+    }
+    if (data.containsKey('metric')) {
+      context.handle(
+        _metricMeta,
+        metric.isAcceptableOrUnknown(data['metric']!, _metricMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_metricMeta);
+    }
+    if (data.containsKey('rest_seconds')) {
+      context.handle(
+        _restSecondsMeta,
+        restSeconds.isAcceptableOrUnknown(
+          data['rest_seconds']!,
+          _restSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_restSecondsMeta);
+    }
+    if (data.containsKey('seconds_per_rep')) {
+      context.handle(
+        _secondsPerRepMeta,
+        secondsPerRep.isAcceptableOrUnknown(
+          data['seconds_per_rep']!,
+          _secondsPerRepMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_secondsPerRepMeta);
     }
     if (data.containsKey('target_reps_min')) {
       context.handle(
@@ -2446,9 +2809,33 @@ class $PlanExercisesTable extends PlanExercises
         DriftSqlType.string,
         data['${effectivePrefix}exercise_id'],
       )!,
+      slotPattern: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}slot_pattern'],
+      )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}priority'],
+      )!,
       targetSets: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}target_sets'],
+      )!,
+      templateSets: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}template_sets'],
+      )!,
+      metric: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}metric'],
+      )!,
+      restSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rest_seconds'],
+      )!,
+      secondsPerRep: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}seconds_per_rep'],
       )!,
       targetRepsMin: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -2490,7 +2877,25 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
 
   /// Catalog id from the exercise_library package, not a foreign key.
   final String exerciseId;
+
+  /// `MovementPattern` name of the slot this fills, which is not always the
+  /// exercise's own pattern: an isolation fallback can fill an accessory
+  /// slot. A swap has to keep the slot, so the slot is stored.
+  final String slotPattern;
+
+  /// `SlotPriority` name. Decides what the time budget trims first.
+  final String priority;
   final int targetSets;
+
+  /// Sets the template asked for, before the pre-run leg cap or any time
+  /// trimming. Without it an edit cannot tell a deliberately trimmed day
+  /// from a full one, and moving a day could not restore its volume.
+  final int templateSets;
+
+  /// `MetricType` name: reps or holdSeconds.
+  final String metric;
+  final int restSeconds;
+  final double secondsPerRep;
   final int? targetRepsMin;
   final int? targetRepsMax;
   final int? targetHoldSeconds;
@@ -2503,7 +2908,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     required this.planDayId,
     required this.orderIndex,
     required this.exerciseId,
+    required this.slotPattern,
+    required this.priority,
     required this.targetSets,
+    required this.templateSets,
+    required this.metric,
+    required this.restSeconds,
+    required this.secondsPerRep,
     this.targetRepsMin,
     this.targetRepsMax,
     this.targetHoldSeconds,
@@ -2521,7 +2932,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     map['plan_day_id'] = Variable<String>(planDayId);
     map['order_index'] = Variable<int>(orderIndex);
     map['exercise_id'] = Variable<String>(exerciseId);
+    map['slot_pattern'] = Variable<String>(slotPattern);
+    map['priority'] = Variable<String>(priority);
     map['target_sets'] = Variable<int>(targetSets);
+    map['template_sets'] = Variable<int>(templateSets);
+    map['metric'] = Variable<String>(metric);
+    map['rest_seconds'] = Variable<int>(restSeconds);
+    map['seconds_per_rep'] = Variable<double>(secondsPerRep);
     if (!nullToAbsent || targetRepsMin != null) {
       map['target_reps_min'] = Variable<int>(targetRepsMin);
     }
@@ -2548,7 +2965,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       planDayId: Value(planDayId),
       orderIndex: Value(orderIndex),
       exerciseId: Value(exerciseId),
+      slotPattern: Value(slotPattern),
+      priority: Value(priority),
       targetSets: Value(targetSets),
+      templateSets: Value(templateSets),
+      metric: Value(metric),
+      restSeconds: Value(restSeconds),
+      secondsPerRep: Value(secondsPerRep),
       targetRepsMin: targetRepsMin == null && nullToAbsent
           ? const Value.absent()
           : Value(targetRepsMin),
@@ -2577,7 +3000,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       planDayId: serializer.fromJson<String>(json['planDayId']),
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
       exerciseId: serializer.fromJson<String>(json['exerciseId']),
+      slotPattern: serializer.fromJson<String>(json['slotPattern']),
+      priority: serializer.fromJson<String>(json['priority']),
       targetSets: serializer.fromJson<int>(json['targetSets']),
+      templateSets: serializer.fromJson<int>(json['templateSets']),
+      metric: serializer.fromJson<String>(json['metric']),
+      restSeconds: serializer.fromJson<int>(json['restSeconds']),
+      secondsPerRep: serializer.fromJson<double>(json['secondsPerRep']),
       targetRepsMin: serializer.fromJson<int?>(json['targetRepsMin']),
       targetRepsMax: serializer.fromJson<int?>(json['targetRepsMax']),
       targetHoldSeconds: serializer.fromJson<int?>(json['targetHoldSeconds']),
@@ -2595,7 +3024,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       'planDayId': serializer.toJson<String>(planDayId),
       'orderIndex': serializer.toJson<int>(orderIndex),
       'exerciseId': serializer.toJson<String>(exerciseId),
+      'slotPattern': serializer.toJson<String>(slotPattern),
+      'priority': serializer.toJson<String>(priority),
       'targetSets': serializer.toJson<int>(targetSets),
+      'templateSets': serializer.toJson<int>(templateSets),
+      'metric': serializer.toJson<String>(metric),
+      'restSeconds': serializer.toJson<int>(restSeconds),
+      'secondsPerRep': serializer.toJson<double>(secondsPerRep),
       'targetRepsMin': serializer.toJson<int?>(targetRepsMin),
       'targetRepsMax': serializer.toJson<int?>(targetRepsMax),
       'targetHoldSeconds': serializer.toJson<int?>(targetHoldSeconds),
@@ -2611,7 +3046,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     String? planDayId,
     int? orderIndex,
     String? exerciseId,
+    String? slotPattern,
+    String? priority,
     int? targetSets,
+    int? templateSets,
+    String? metric,
+    int? restSeconds,
+    double? secondsPerRep,
     Value<int?> targetRepsMin = const Value.absent(),
     Value<int?> targetRepsMax = const Value.absent(),
     Value<int?> targetHoldSeconds = const Value.absent(),
@@ -2624,7 +3065,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     planDayId: planDayId ?? this.planDayId,
     orderIndex: orderIndex ?? this.orderIndex,
     exerciseId: exerciseId ?? this.exerciseId,
+    slotPattern: slotPattern ?? this.slotPattern,
+    priority: priority ?? this.priority,
     targetSets: targetSets ?? this.targetSets,
+    templateSets: templateSets ?? this.templateSets,
+    metric: metric ?? this.metric,
+    restSeconds: restSeconds ?? this.restSeconds,
+    secondsPerRep: secondsPerRep ?? this.secondsPerRep,
     targetRepsMin: targetRepsMin.present
         ? targetRepsMin.value
         : this.targetRepsMin,
@@ -2651,9 +3098,23 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       exerciseId: data.exerciseId.present
           ? data.exerciseId.value
           : this.exerciseId,
+      slotPattern: data.slotPattern.present
+          ? data.slotPattern.value
+          : this.slotPattern,
+      priority: data.priority.present ? data.priority.value : this.priority,
       targetSets: data.targetSets.present
           ? data.targetSets.value
           : this.targetSets,
+      templateSets: data.templateSets.present
+          ? data.templateSets.value
+          : this.templateSets,
+      metric: data.metric.present ? data.metric.value : this.metric,
+      restSeconds: data.restSeconds.present
+          ? data.restSeconds.value
+          : this.restSeconds,
+      secondsPerRep: data.secondsPerRep.present
+          ? data.secondsPerRep.value
+          : this.secondsPerRep,
       targetRepsMin: data.targetRepsMin.present
           ? data.targetRepsMin.value
           : this.targetRepsMin,
@@ -2679,7 +3140,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
           ..write('planDayId: $planDayId, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('exerciseId: $exerciseId, ')
+          ..write('slotPattern: $slotPattern, ')
+          ..write('priority: $priority, ')
           ..write('targetSets: $targetSets, ')
+          ..write('templateSets: $templateSets, ')
+          ..write('metric: $metric, ')
+          ..write('restSeconds: $restSeconds, ')
+          ..write('secondsPerRep: $secondsPerRep, ')
           ..write('targetRepsMin: $targetRepsMin, ')
           ..write('targetRepsMax: $targetRepsMax, ')
           ..write('targetHoldSeconds: $targetHoldSeconds, ')
@@ -2697,7 +3164,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     planDayId,
     orderIndex,
     exerciseId,
+    slotPattern,
+    priority,
     targetSets,
+    templateSets,
+    metric,
+    restSeconds,
+    secondsPerRep,
     targetRepsMin,
     targetRepsMax,
     targetHoldSeconds,
@@ -2714,7 +3187,13 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
           other.planDayId == this.planDayId &&
           other.orderIndex == this.orderIndex &&
           other.exerciseId == this.exerciseId &&
+          other.slotPattern == this.slotPattern &&
+          other.priority == this.priority &&
           other.targetSets == this.targetSets &&
+          other.templateSets == this.templateSets &&
+          other.metric == this.metric &&
+          other.restSeconds == this.restSeconds &&
+          other.secondsPerRep == this.secondsPerRep &&
           other.targetRepsMin == this.targetRepsMin &&
           other.targetRepsMax == this.targetRepsMax &&
           other.targetHoldSeconds == this.targetHoldSeconds &&
@@ -2729,7 +3208,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
   final Value<String> planDayId;
   final Value<int> orderIndex;
   final Value<String> exerciseId;
+  final Value<String> slotPattern;
+  final Value<String> priority;
   final Value<int> targetSets;
+  final Value<int> templateSets;
+  final Value<String> metric;
+  final Value<int> restSeconds;
+  final Value<double> secondsPerRep;
   final Value<int?> targetRepsMin;
   final Value<int?> targetRepsMax;
   final Value<int?> targetHoldSeconds;
@@ -2743,7 +3228,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     this.planDayId = const Value.absent(),
     this.orderIndex = const Value.absent(),
     this.exerciseId = const Value.absent(),
+    this.slotPattern = const Value.absent(),
+    this.priority = const Value.absent(),
     this.targetSets = const Value.absent(),
+    this.templateSets = const Value.absent(),
+    this.metric = const Value.absent(),
+    this.restSeconds = const Value.absent(),
+    this.secondsPerRep = const Value.absent(),
     this.targetRepsMin = const Value.absent(),
     this.targetRepsMax = const Value.absent(),
     this.targetHoldSeconds = const Value.absent(),
@@ -2758,7 +3249,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     required String planDayId,
     required int orderIndex,
     required String exerciseId,
+    required String slotPattern,
+    required String priority,
     required int targetSets,
+    required int templateSets,
+    required String metric,
+    required int restSeconds,
+    required double secondsPerRep,
     this.targetRepsMin = const Value.absent(),
     this.targetRepsMax = const Value.absent(),
     this.targetHoldSeconds = const Value.absent(),
@@ -2769,7 +3266,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
        planDayId = Value(planDayId),
        orderIndex = Value(orderIndex),
        exerciseId = Value(exerciseId),
-       targetSets = Value(targetSets);
+       slotPattern = Value(slotPattern),
+       priority = Value(priority),
+       targetSets = Value(targetSets),
+       templateSets = Value(templateSets),
+       metric = Value(metric),
+       restSeconds = Value(restSeconds),
+       secondsPerRep = Value(secondsPerRep);
   static Insertable<PlanExerciseRow> custom({
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -2778,7 +3281,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     Expression<String>? planDayId,
     Expression<int>? orderIndex,
     Expression<String>? exerciseId,
+    Expression<String>? slotPattern,
+    Expression<String>? priority,
     Expression<int>? targetSets,
+    Expression<int>? templateSets,
+    Expression<String>? metric,
+    Expression<int>? restSeconds,
+    Expression<double>? secondsPerRep,
     Expression<int>? targetRepsMin,
     Expression<int>? targetRepsMax,
     Expression<int>? targetHoldSeconds,
@@ -2793,7 +3302,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
       if (planDayId != null) 'plan_day_id': planDayId,
       if (orderIndex != null) 'order_index': orderIndex,
       if (exerciseId != null) 'exercise_id': exerciseId,
+      if (slotPattern != null) 'slot_pattern': slotPattern,
+      if (priority != null) 'priority': priority,
       if (targetSets != null) 'target_sets': targetSets,
+      if (templateSets != null) 'template_sets': templateSets,
+      if (metric != null) 'metric': metric,
+      if (restSeconds != null) 'rest_seconds': restSeconds,
+      if (secondsPerRep != null) 'seconds_per_rep': secondsPerRep,
       if (targetRepsMin != null) 'target_reps_min': targetRepsMin,
       if (targetRepsMax != null) 'target_reps_max': targetRepsMax,
       if (targetHoldSeconds != null) 'target_hold_seconds': targetHoldSeconds,
@@ -2810,7 +3325,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     Value<String>? planDayId,
     Value<int>? orderIndex,
     Value<String>? exerciseId,
+    Value<String>? slotPattern,
+    Value<String>? priority,
     Value<int>? targetSets,
+    Value<int>? templateSets,
+    Value<String>? metric,
+    Value<int>? restSeconds,
+    Value<double>? secondsPerRep,
     Value<int?>? targetRepsMin,
     Value<int?>? targetRepsMax,
     Value<int?>? targetHoldSeconds,
@@ -2825,7 +3346,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
       planDayId: planDayId ?? this.planDayId,
       orderIndex: orderIndex ?? this.orderIndex,
       exerciseId: exerciseId ?? this.exerciseId,
+      slotPattern: slotPattern ?? this.slotPattern,
+      priority: priority ?? this.priority,
       targetSets: targetSets ?? this.targetSets,
+      templateSets: templateSets ?? this.templateSets,
+      metric: metric ?? this.metric,
+      restSeconds: restSeconds ?? this.restSeconds,
+      secondsPerRep: secondsPerRep ?? this.secondsPerRep,
       targetRepsMin: targetRepsMin ?? this.targetRepsMin,
       targetRepsMax: targetRepsMax ?? this.targetRepsMax,
       targetHoldSeconds: targetHoldSeconds ?? this.targetHoldSeconds,
@@ -2858,8 +3385,26 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     if (exerciseId.present) {
       map['exercise_id'] = Variable<String>(exerciseId.value);
     }
+    if (slotPattern.present) {
+      map['slot_pattern'] = Variable<String>(slotPattern.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<String>(priority.value);
+    }
     if (targetSets.present) {
       map['target_sets'] = Variable<int>(targetSets.value);
+    }
+    if (templateSets.present) {
+      map['template_sets'] = Variable<int>(templateSets.value);
+    }
+    if (metric.present) {
+      map['metric'] = Variable<String>(metric.value);
+    }
+    if (restSeconds.present) {
+      map['rest_seconds'] = Variable<int>(restSeconds.value);
+    }
+    if (secondsPerRep.present) {
+      map['seconds_per_rep'] = Variable<double>(secondsPerRep.value);
     }
     if (targetRepsMin.present) {
       map['target_reps_min'] = Variable<int>(targetRepsMin.value);
@@ -2889,7 +3434,13 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
           ..write('planDayId: $planDayId, ')
           ..write('orderIndex: $orderIndex, ')
           ..write('exerciseId: $exerciseId, ')
+          ..write('slotPattern: $slotPattern, ')
+          ..write('priority: $priority, ')
           ..write('targetSets: $targetSets, ')
+          ..write('templateSets: $templateSets, ')
+          ..write('metric: $metric, ')
+          ..write('restSeconds: $restSeconds, ')
+          ..write('secondsPerRep: $secondsPerRep, ')
           ..write('targetRepsMin: $targetRepsMin, ')
           ..write('targetRepsMax: $targetRepsMax, ')
           ..write('targetHoldSeconds: $targetHoldSeconds, ')
@@ -6018,8 +6569,7 @@ typedef $$ProfilesTableCreateCompanionBuilder =
       Value<String> equipment,
       required String coachPersonality,
       Value<String> runDays,
-      Value<bool> disclaimerAccepted,
-      Value<String> units,
+      Value<DateTime?> disclaimerAcceptedAt,
       Value<int> rowid,
     });
 typedef $$ProfilesTableUpdateCompanionBuilder =
@@ -6042,8 +6592,7 @@ typedef $$ProfilesTableUpdateCompanionBuilder =
       Value<String> equipment,
       Value<String> coachPersonality,
       Value<String> runDays,
-      Value<bool> disclaimerAccepted,
-      Value<String> units,
+      Value<DateTime?> disclaimerAcceptedAt,
       Value<int> rowid,
     });
 
@@ -6146,13 +6695,8 @@ class $$ProfilesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get disclaimerAccepted => $composableBuilder(
-    column: $table.disclaimerAccepted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get units => $composableBuilder(
-    column: $table.units,
+  ColumnFilters<DateTime> get disclaimerAcceptedAt => $composableBuilder(
+    column: $table.disclaimerAcceptedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6256,13 +6800,8 @@ class $$ProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get disclaimerAccepted => $composableBuilder(
-    column: $table.disclaimerAccepted,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get units => $composableBuilder(
-    column: $table.units,
+  ColumnOrderings<DateTime> get disclaimerAcceptedAt => $composableBuilder(
+    column: $table.disclaimerAcceptedAt,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -6338,13 +6877,10 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<String> get runDays =>
       $composableBuilder(column: $table.runDays, builder: (column) => column);
 
-  GeneratedColumn<bool> get disclaimerAccepted => $composableBuilder(
-    column: $table.disclaimerAccepted,
+  GeneratedColumn<DateTime> get disclaimerAcceptedAt => $composableBuilder(
+    column: $table.disclaimerAcceptedAt,
     builder: (column) => column,
   );
-
-  GeneratedColumn<String> get units =>
-      $composableBuilder(column: $table.units, builder: (column) => column);
 }
 
 class $$ProfilesTableTableManager
@@ -6396,8 +6932,7 @@ class $$ProfilesTableTableManager
                 Value<String> equipment = const Value.absent(),
                 Value<String> coachPersonality = const Value.absent(),
                 Value<String> runDays = const Value.absent(),
-                Value<bool> disclaimerAccepted = const Value.absent(),
-                Value<String> units = const Value.absent(),
+                Value<DateTime?> disclaimerAcceptedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProfilesCompanion(
                 updatedAt: updatedAt,
@@ -6418,8 +6953,7 @@ class $$ProfilesTableTableManager
                 equipment: equipment,
                 coachPersonality: coachPersonality,
                 runDays: runDays,
-                disclaimerAccepted: disclaimerAccepted,
-                units: units,
+                disclaimerAcceptedAt: disclaimerAcceptedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6442,8 +6976,7 @@ class $$ProfilesTableTableManager
                 Value<String> equipment = const Value.absent(),
                 required String coachPersonality,
                 Value<String> runDays = const Value.absent(),
-                Value<bool> disclaimerAccepted = const Value.absent(),
-                Value<String> units = const Value.absent(),
+                Value<DateTime?> disclaimerAcceptedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProfilesCompanion.insert(
                 updatedAt: updatedAt,
@@ -6464,8 +6997,7 @@ class $$ProfilesTableTableManager
                 equipment: equipment,
                 coachPersonality: coachPersonality,
                 runDays: runDays,
-                disclaimerAccepted: disclaimerAccepted,
-                units: units,
+                disclaimerAcceptedAt: disclaimerAcceptedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6498,8 +7030,12 @@ typedef $$PlansTableCreateCompanionBuilder =
       required String id,
       required String profileId,
       required String templateId,
+      required String goal,
       required DateTime createdAt,
       Value<bool> isActive,
+      Value<String> runDays,
+      Value<String> runSuggestionKeys,
+      Value<String> notes,
       Value<int> rowid,
     });
 typedef $$PlansTableUpdateCompanionBuilder =
@@ -6510,8 +7046,12 @@ typedef $$PlansTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> profileId,
       Value<String> templateId,
+      Value<String> goal,
       Value<DateTime> createdAt,
       Value<bool> isActive,
+      Value<String> runDays,
+      Value<String> runSuggestionKeys,
+      Value<String> notes,
       Value<int> rowid,
     });
 
@@ -6553,6 +7093,11 @@ class $$PlansTableFilterComposer extends Composer<_$AppDatabase, $PlansTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get goal => $composableBuilder(
+    column: $table.goal,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -6560,6 +7105,21 @@ class $$PlansTableFilterComposer extends Composer<_$AppDatabase, $PlansTable> {
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get runDays => $composableBuilder(
+    column: $table.runDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get runSuggestionKeys => $composableBuilder(
+    column: $table.runSuggestionKeys,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6603,6 +7163,11 @@ class $$PlansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get goal => $composableBuilder(
+    column: $table.goal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6610,6 +7175,21 @@ class $$PlansTableOrderingComposer
 
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get runDays => $composableBuilder(
+    column: $table.runDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get runSuggestionKeys => $composableBuilder(
+    column: $table.runSuggestionKeys,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -6643,11 +7223,25 @@ class $$PlansTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get goal =>
+      $composableBuilder(column: $table.goal, builder: (column) => column);
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get runDays =>
+      $composableBuilder(column: $table.runDays, builder: (column) => column);
+
+  GeneratedColumn<String> get runSuggestionKeys => $composableBuilder(
+    column: $table.runSuggestionKeys,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
 }
 
 class $$PlansTableTableManager
@@ -6684,8 +7278,12 @@ class $$PlansTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> profileId = const Value.absent(),
                 Value<String> templateId = const Value.absent(),
+                Value<String> goal = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<String> runDays = const Value.absent(),
+                Value<String> runSuggestionKeys = const Value.absent(),
+                Value<String> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlansCompanion(
                 updatedAt: updatedAt,
@@ -6694,8 +7292,12 @@ class $$PlansTableTableManager
                 id: id,
                 profileId: profileId,
                 templateId: templateId,
+                goal: goal,
                 createdAt: createdAt,
                 isActive: isActive,
+                runDays: runDays,
+                runSuggestionKeys: runSuggestionKeys,
+                notes: notes,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6706,8 +7308,12 @@ class $$PlansTableTableManager
                 required String id,
                 required String profileId,
                 required String templateId,
+                required String goal,
                 required DateTime createdAt,
                 Value<bool> isActive = const Value.absent(),
+                Value<String> runDays = const Value.absent(),
+                Value<String> runSuggestionKeys = const Value.absent(),
+                Value<String> notes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlansCompanion.insert(
                 updatedAt: updatedAt,
@@ -6716,8 +7322,12 @@ class $$PlansTableTableManager
                 id: id,
                 profileId: profileId,
                 templateId: templateId,
+                goal: goal,
                 createdAt: createdAt,
                 isActive: isActive,
+                runDays: runDays,
+                runSuggestionKeys: runSuggestionKeys,
+                notes: notes,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6749,9 +7359,10 @@ typedef $$PlanDaysTableCreateCompanionBuilder =
       required String deviceId,
       required String id,
       required String planId,
-      required int dayIndex,
+      required int weekday,
+      required String dayType,
       required String labelKey,
-      Value<bool> isRunDay,
+      Value<bool> precedesRunDay,
       Value<int> rowid,
     });
 typedef $$PlanDaysTableUpdateCompanionBuilder =
@@ -6761,9 +7372,10 @@ typedef $$PlanDaysTableUpdateCompanionBuilder =
       Value<String> deviceId,
       Value<String> id,
       Value<String> planId,
-      Value<int> dayIndex,
+      Value<int> weekday,
+      Value<String> dayType,
       Value<String> labelKey,
-      Value<bool> isRunDay,
+      Value<bool> precedesRunDay,
       Value<int> rowid,
     });
 
@@ -6801,8 +7413,13 @@ class $$PlanDaysTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get dayIndex => $composableBuilder(
-    column: $table.dayIndex,
+  ColumnFilters<int> get weekday => $composableBuilder(
+    column: $table.weekday,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dayType => $composableBuilder(
+    column: $table.dayType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6811,8 +7428,8 @@ class $$PlanDaysTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isRunDay => $composableBuilder(
-    column: $table.isRunDay,
+  ColumnFilters<bool> get precedesRunDay => $composableBuilder(
+    column: $table.precedesRunDay,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6851,8 +7468,13 @@ class $$PlanDaysTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get dayIndex => $composableBuilder(
-    column: $table.dayIndex,
+  ColumnOrderings<int> get weekday => $composableBuilder(
+    column: $table.weekday,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dayType => $composableBuilder(
+    column: $table.dayType,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6861,8 +7483,8 @@ class $$PlanDaysTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isRunDay => $composableBuilder(
-    column: $table.isRunDay,
+  ColumnOrderings<bool> get precedesRunDay => $composableBuilder(
+    column: $table.precedesRunDay,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -6891,14 +7513,19 @@ class $$PlanDaysTableAnnotationComposer
   GeneratedColumn<String> get planId =>
       $composableBuilder(column: $table.planId, builder: (column) => column);
 
-  GeneratedColumn<int> get dayIndex =>
-      $composableBuilder(column: $table.dayIndex, builder: (column) => column);
+  GeneratedColumn<int> get weekday =>
+      $composableBuilder(column: $table.weekday, builder: (column) => column);
+
+  GeneratedColumn<String> get dayType =>
+      $composableBuilder(column: $table.dayType, builder: (column) => column);
 
   GeneratedColumn<String> get labelKey =>
       $composableBuilder(column: $table.labelKey, builder: (column) => column);
 
-  GeneratedColumn<bool> get isRunDay =>
-      $composableBuilder(column: $table.isRunDay, builder: (column) => column);
+  GeneratedColumn<bool> get precedesRunDay => $composableBuilder(
+    column: $table.precedesRunDay,
+    builder: (column) => column,
+  );
 }
 
 class $$PlanDaysTableTableManager
@@ -6937,9 +7564,10 @@ class $$PlanDaysTableTableManager
                 Value<String> deviceId = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> planId = const Value.absent(),
-                Value<int> dayIndex = const Value.absent(),
+                Value<int> weekday = const Value.absent(),
+                Value<String> dayType = const Value.absent(),
                 Value<String> labelKey = const Value.absent(),
-                Value<bool> isRunDay = const Value.absent(),
+                Value<bool> precedesRunDay = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlanDaysCompanion(
                 updatedAt: updatedAt,
@@ -6947,9 +7575,10 @@ class $$PlanDaysTableTableManager
                 deviceId: deviceId,
                 id: id,
                 planId: planId,
-                dayIndex: dayIndex,
+                weekday: weekday,
+                dayType: dayType,
                 labelKey: labelKey,
-                isRunDay: isRunDay,
+                precedesRunDay: precedesRunDay,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6959,9 +7588,10 @@ class $$PlanDaysTableTableManager
                 required String deviceId,
                 required String id,
                 required String planId,
-                required int dayIndex,
+                required int weekday,
+                required String dayType,
                 required String labelKey,
-                Value<bool> isRunDay = const Value.absent(),
+                Value<bool> precedesRunDay = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlanDaysCompanion.insert(
                 updatedAt: updatedAt,
@@ -6969,9 +7599,10 @@ class $$PlanDaysTableTableManager
                 deviceId: deviceId,
                 id: id,
                 planId: planId,
-                dayIndex: dayIndex,
+                weekday: weekday,
+                dayType: dayType,
                 labelKey: labelKey,
-                isRunDay: isRunDay,
+                precedesRunDay: precedesRunDay,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -7005,7 +7636,13 @@ typedef $$PlanExercisesTableCreateCompanionBuilder =
       required String planDayId,
       required int orderIndex,
       required String exerciseId,
+      required String slotPattern,
+      required String priority,
       required int targetSets,
+      required int templateSets,
+      required String metric,
+      required int restSeconds,
+      required double secondsPerRep,
       Value<int?> targetRepsMin,
       Value<int?> targetRepsMax,
       Value<int?> targetHoldSeconds,
@@ -7021,7 +7658,13 @@ typedef $$PlanExercisesTableUpdateCompanionBuilder =
       Value<String> planDayId,
       Value<int> orderIndex,
       Value<String> exerciseId,
+      Value<String> slotPattern,
+      Value<String> priority,
       Value<int> targetSets,
+      Value<int> templateSets,
+      Value<String> metric,
+      Value<int> restSeconds,
+      Value<double> secondsPerRep,
       Value<int?> targetRepsMin,
       Value<int?> targetRepsMax,
       Value<int?> targetHoldSeconds,
@@ -7073,8 +7716,38 @@ class $$PlanExercisesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get slotPattern => $composableBuilder(
+    column: $table.slotPattern,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get targetSets => $composableBuilder(
     column: $table.targetSets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get templateSets => $composableBuilder(
+    column: $table.templateSets,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get metric => $composableBuilder(
+    column: $table.metric,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get restSeconds => $composableBuilder(
+    column: $table.restSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get secondsPerRep => $composableBuilder(
+    column: $table.secondsPerRep,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7143,8 +7816,38 @@ class $$PlanExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get slotPattern => $composableBuilder(
+    column: $table.slotPattern,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get targetSets => $composableBuilder(
     column: $table.targetSets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get templateSets => $composableBuilder(
+    column: $table.templateSets,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get metric => $composableBuilder(
+    column: $table.metric,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get restSeconds => $composableBuilder(
+    column: $table.restSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get secondsPerRep => $composableBuilder(
+    column: $table.secondsPerRep,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7203,8 +7906,34 @@ class $$PlanExercisesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get slotPattern => $composableBuilder(
+    column: $table.slotPattern,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
   GeneratedColumn<int> get targetSets => $composableBuilder(
     column: $table.targetSets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get templateSets => $composableBuilder(
+    column: $table.templateSets,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get metric =>
+      $composableBuilder(column: $table.metric, builder: (column) => column);
+
+  GeneratedColumn<int> get restSeconds => $composableBuilder(
+    column: $table.restSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get secondsPerRep => $composableBuilder(
+    column: $table.secondsPerRep,
     builder: (column) => column,
   );
 
@@ -7267,7 +7996,13 @@ class $$PlanExercisesTableTableManager
                 Value<String> planDayId = const Value.absent(),
                 Value<int> orderIndex = const Value.absent(),
                 Value<String> exerciseId = const Value.absent(),
+                Value<String> slotPattern = const Value.absent(),
+                Value<String> priority = const Value.absent(),
                 Value<int> targetSets = const Value.absent(),
+                Value<int> templateSets = const Value.absent(),
+                Value<String> metric = const Value.absent(),
+                Value<int> restSeconds = const Value.absent(),
+                Value<double> secondsPerRep = const Value.absent(),
                 Value<int?> targetRepsMin = const Value.absent(),
                 Value<int?> targetRepsMax = const Value.absent(),
                 Value<int?> targetHoldSeconds = const Value.absent(),
@@ -7281,7 +8016,13 @@ class $$PlanExercisesTableTableManager
                 planDayId: planDayId,
                 orderIndex: orderIndex,
                 exerciseId: exerciseId,
+                slotPattern: slotPattern,
+                priority: priority,
                 targetSets: targetSets,
+                templateSets: templateSets,
+                metric: metric,
+                restSeconds: restSeconds,
+                secondsPerRep: secondsPerRep,
                 targetRepsMin: targetRepsMin,
                 targetRepsMax: targetRepsMax,
                 targetHoldSeconds: targetHoldSeconds,
@@ -7297,7 +8038,13 @@ class $$PlanExercisesTableTableManager
                 required String planDayId,
                 required int orderIndex,
                 required String exerciseId,
+                required String slotPattern,
+                required String priority,
                 required int targetSets,
+                required int templateSets,
+                required String metric,
+                required int restSeconds,
+                required double secondsPerRep,
                 Value<int?> targetRepsMin = const Value.absent(),
                 Value<int?> targetRepsMax = const Value.absent(),
                 Value<int?> targetHoldSeconds = const Value.absent(),
@@ -7311,7 +8058,13 @@ class $$PlanExercisesTableTableManager
                 planDayId: planDayId,
                 orderIndex: orderIndex,
                 exerciseId: exerciseId,
+                slotPattern: slotPattern,
+                priority: priority,
                 targetSets: targetSets,
+                templateSets: templateSets,
+                metric: metric,
+                restSeconds: restSeconds,
+                secondsPerRep: secondsPerRep,
                 targetRepsMin: targetRepsMin,
                 targetRepsMax: targetRepsMax,
                 targetHoldSeconds: targetHoldSeconds,

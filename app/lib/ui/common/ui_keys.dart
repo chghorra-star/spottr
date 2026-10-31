@@ -1,0 +1,67 @@
+import 'package:flutter/widgets.dart';
+
+/// Widget keys the tests depend on.
+///
+/// Collected in one place because the alternative — tests looking for
+/// user-facing text — makes every copy change break a test for no reason,
+/// and makes a test that asserts "an error is shown" indistinguishable from
+/// one that asserts a particular sentence.
+abstract final class UiKeys {
+  static const Key loading = Key('spottr.loading');
+  static const Key errorPanel = Key('spottr.error');
+  static const Key retry = Key('spottr.retry');
+
+  static const Key onboarding = Key('spottr.onboarding');
+  static const Key onboardingNext = Key('spottr.onboarding.next');
+  static const Key onboardingBack = Key('spottr.onboarding.back');
+  static const Key disclaimerAccept = Key('spottr.onboarding.disclaimer');
+
+  static const Key questionGoal = Key('spottr.question.goal');
+  static const Key questionSchedule = Key('spottr.question.schedule');
+  static const Key questionLevel = Key('spottr.question.level');
+  static const Key questionBody = Key('spottr.question.body');
+  static const Key questionInjuries = Key('spottr.question.injuries');
+  static const Key questionLocation = Key('spottr.question.location');
+  static const Key questionRunDays = Key('spottr.question.runDays');
+  static const Key questionCoach = Key('spottr.question.coach');
+
+  static const Key daysSlider = Key('spottr.question.schedule.days');
+  static const Key minutesSlider = Key('spottr.question.schedule.minutes');
+  static const Key ageField = Key('spottr.question.body.age');
+  static const Key heightField = Key('spottr.question.body.height');
+  static const Key weightField = Key('spottr.question.body.weight');
+  static const Key injuryNotesField = Key('spottr.question.injuries.notes');
+
+  static const Key planScreen = Key('spottr.plan');
+  static const Key planEmpty = Key('spottr.plan.empty');
+  static const Key planNotes = Key('spottr.plan.notes');
+  static const Key planRunSuggestions = Key('spottr.plan.runSuggestions');
+  static const Key planRebuild = Key('spottr.plan.rebuild');
+  static const Key planRebuildConfirm = Key('spottr.plan.rebuild.confirm');
+  static const Key planOpenProfile = Key('spottr.plan.profile');
+  static const Key planReorderDone = Key('spottr.plan.reorder.done');
+
+  static const Key swapSheet = Key('spottr.swap');
+  static const Key swapEmpty = Key('spottr.swap.empty');
+  static const Key moveDaySheet = Key('spottr.moveDay');
+
+  static const Key profileScreen = Key('spottr.profile');
+  static const Key profileSave = Key('spottr.profile.save');
+
+  /// A choice within a question, e.g. one goal or one injury site.
+  static Key choice(String question, String value) =>
+      Key('spottr.choice.$question.$value');
+
+  /// A day card on the plan screen, by ISO weekday.
+  static Key planDay(int weekday) => Key('spottr.plan.day.$weekday');
+
+  /// The menu button on one prescribed exercise.
+  static Key planExerciseMenu(int weekday, String exerciseId) =>
+      Key('spottr.plan.exercise.$weekday.$exerciseId');
+
+  /// One alternative offered in the swap sheet.
+  static Key swapOption(String exerciseId) => Key('spottr.swap.$exerciseId');
+
+  /// One target weekday offered in the move-day sheet.
+  static Key moveDayOption(int weekday) => Key('spottr.moveDay.$weekday');
+}

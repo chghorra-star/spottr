@@ -36,8 +36,11 @@ jobs:
 
       - name: Check generated code is current
         run: |
-          flutter gen-l10n --project-dir app
-          cd app && dart run build_runner build --delete-conflicting-outputs
+          # gen-l10n must run inside the app package: from the workspace root it
+          # reads the root pubspec, finds no `generate: true`, and does nothing.
+          cd app
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
           cd ..
           if ! git diff --exit-code -- '*.g.dart' 'app/lib/l10n'; then
             echo "::error::Generated code is stale. Run tool/generate.ps1 and commit the result."
