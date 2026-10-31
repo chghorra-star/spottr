@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:plan_engine/plan_engine.dart';
 import 'package:spottr/di/providers.dart';
 import 'package:spottr/domain/user_profile.dart';
+import 'package:spottr/domain/workout_session.dart';
 import 'package:spottr/l10n/app_localizations_en.dart';
 import 'package:spottr/l10n/plan_strings.dart';
 import 'package:spottr/ui/common/ui_keys.dart';
@@ -429,6 +430,89 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(controller.names, contains('regenerate'));
+    });
+  });
+
+  group('starting a session', () {
+    late RecordingSessionController sessions;
+
+    Future<void> startWith(
+      WidgetTester tester, {
+      WorkoutSession? session,
+    }) async {
+      final profile = onboardedProfile();
+      await pumpApp(
+        tester,
+        profile: profile,
+        plan: planFor(profile),
+        session: session,
+        overrides: [
+          planControllerProvider.overrideWithValue(RecordingPlanController()),
+          sessionControllerProvider.overrideWithValue(
+            sessions = RecordingSessionController(),
+          ),
+        ],
+      );
+    }
+
+    WorkoutSession openOn(int weekday) => WorkoutSession(
+          id: 'session_1',
+          weekday: weekday,
+          planDayId: 'plan_1_d$weekday',
+          startedAt: DateTime.utc(2026, 10, 31, 9),
+          sets: const [],
+        );
+
+    testWidgets('a day card offers to start its session', (tester) async {
+      await startWith(tester);
+      final profile = onboardedProfile();
+      final weekday = planFor(profile).days.first.weekday;
+
+      expect(find.text(AppLocalizationsEn().planActionStart), findsWidgets);
+      await scrollAndTap(tester, find.byKey(UiKeys.planDayStart(weekday)));
+
+      expect(sessions.lastCallTo('start')!.arguments['weekday'], weekday);
+    });
+
+    testWidgets('the day already running offers to resume, not to restart',
+        (tester) async {
+      final weekday = planFor(onboardedProfile()).days.first.weekday;
+      await startWith(tester, session: openOn(weekday));
+
+      final button = find.byKey(UiKeys.planDayStart(weekday));
+      expect(
+        find.descendant(
+          of: button,
+          matching: find.text(AppLocalizationsEn().planActionResume),
+        ),
+        findsOneWidget,
+      );
+
+      await scrollAndTap(tester, button);
+
+      // Resuming opens the screen without starting a second session.
+      expect(sessions.names, isNot(contains('start')));
+    });
+
+    testWidgets('another day cannot be started while one is open',
+        (tester) async {
+      // One workout at a time, and the card says why rather than failing
+      // when it is tapped.
+      final plan = planFor(onboardedProfile());
+      final other = plan.days.last.weekday;
+      await startWith(tester, session: openOn(plan.days.first.weekday));
+
+      await tester.scrollUntilVisible(
+        find.byKey(UiKeys.planDayStart(other)),
+        120,
+        maxScrolls: 40,
+      );
+      await tester.pumpAndSettle();
+
+      final button = tester.widget<FilledButton>(
+        find.byKey(UiKeys.planDayStart(other)),
+      );
+      expect(button.onPressed, isNull);
     });
   });
 }

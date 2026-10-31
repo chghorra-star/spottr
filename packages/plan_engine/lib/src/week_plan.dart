@@ -88,6 +88,7 @@ class PlannedExercise {
     this.repsMin,
     this.repsMax,
     this.holdSeconds,
+    this.targetWeightKg,
   });
 
   final String exerciseId;
@@ -118,6 +119,15 @@ class PlannedExercise {
   /// Target hold, for [MetricType.holdSeconds].
   final int? holdSeconds;
 
+  /// Load to aim for, or null when there is none to aim for yet.
+  ///
+  /// The generator never sets this: what somebody should squat is not
+  /// derivable from a questionnaire. It appears once they have logged a
+  /// session, when progression writes the next target from what they
+  /// actually lifted — so a null here means "first time, tell us what you
+  /// used" rather than "bodyweight".
+  final double? targetWeightKg;
+
   /// Flat allowance for getting set up on an exercise: walking to the rack,
   /// finding the dumbbells, changing the weight.
   ///
@@ -143,7 +153,15 @@ class PlannedExercise {
     return setupSeconds + sets * perSet;
   }
 
-  PlannedExercise copyWith({int? sets, int? templateSets}) => PlannedExercise(
+  PlannedExercise copyWith({
+    int? sets,
+    int? templateSets,
+    int? repsMin,
+    int? repsMax,
+    int? holdSeconds,
+    double? targetWeightKg,
+  }) =>
+      PlannedExercise(
         exerciseId: exerciseId,
         slotPattern: slotPattern,
         priority: priority,
@@ -152,9 +170,10 @@ class PlannedExercise {
         metric: metric,
         restSeconds: restSeconds,
         secondsPerRep: secondsPerRep,
-        repsMin: repsMin,
-        repsMax: repsMax,
-        holdSeconds: holdSeconds,
+        repsMin: repsMin ?? this.repsMin,
+        repsMax: repsMax ?? this.repsMax,
+        holdSeconds: holdSeconds ?? this.holdSeconds,
+        targetWeightKg: targetWeightKg ?? this.targetWeightKg,
       );
 
   @override
@@ -170,7 +189,8 @@ class PlannedExercise {
       other.secondsPerRep == secondsPerRep &&
       other.repsMin == repsMin &&
       other.repsMax == repsMax &&
-      other.holdSeconds == holdSeconds;
+      other.holdSeconds == holdSeconds &&
+      other.targetWeightKg == targetWeightKg;
 
   @override
   int get hashCode => Object.hash(
@@ -185,6 +205,7 @@ class PlannedExercise {
         repsMin,
         repsMax,
         holdSeconds,
+        targetWeightKg,
       );
 
   @override

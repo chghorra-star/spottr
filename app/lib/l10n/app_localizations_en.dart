@@ -529,6 +529,243 @@ class AppLocalizationsEn extends AppLocalizations {
       'Drag to reorder. Spottr keeps the sets and reps you already have.';
 
   @override
+  String get planActionStart => 'Start';
+
+  @override
+  String get planActionResume => 'Resume';
+
+  @override
+  String get planSessionElsewhere =>
+      'Finish the session you already have open first.';
+
+  @override
+  String sessionElapsed(int minutes) {
+    return '$minutes min in';
+  }
+
+  @override
+  String sessionTargetWeight(String weight) {
+    return 'Target $weight kg';
+  }
+
+  @override
+  String get sessionNoTarget => 'No target yet — log what you use';
+
+  @override
+  String sessionSetsDone(int done, int total) {
+    return '$done of $total sets';
+  }
+
+  @override
+  String get sessionExerciseDone => 'All sets done';
+
+  @override
+  String get sessionRepsLabel => 'Reps';
+
+  @override
+  String get sessionHoldLabel => 'Seconds';
+
+  @override
+  String get sessionWeightLabel => 'Weight (kg)';
+
+  @override
+  String sessionLogSet(int number) {
+    return 'Save set $number';
+  }
+
+  @override
+  String sessionLoggedSetReps(int reps) {
+    return '$reps reps';
+  }
+
+  @override
+  String sessionLoggedSetRepsWeighted(int reps, String weight) {
+    return '$reps × $weight kg';
+  }
+
+  @override
+  String sessionLoggedSetHold(int seconds) {
+    return '${seconds}s';
+  }
+
+  @override
+  String get sessionNumberRequired => 'A number, please';
+
+  @override
+  String get sessionPainButton => 'I feel pain';
+
+  @override
+  String get sessionPainTitle => 'Stop this set';
+
+  @override
+  String get sessionPainBody =>
+      'Spottr will end the set and log that it hurt, and nothing in your plan will go up. Do not train through pain — if it does not settle, see a professional.';
+
+  @override
+  String get sessionPainConfirm => 'Stop and log it';
+
+  @override
+  String get sessionPainBadge => 'Pain reported';
+
+  @override
+  String get sessionFinish => 'Finish';
+
+  @override
+  String get sessionDiscard => 'Discard session';
+
+  @override
+  String get sessionDiscardTitle => 'Throw this session away?';
+
+  @override
+  String get sessionDiscardBody =>
+      'Everything you logged goes with it, and your plan stays exactly as it is.';
+
+  @override
+  String get sessionDiscardConfirm => 'Discard it';
+
+  @override
+  String get sessionRatingTitle => 'How did that feel?';
+
+  @override
+  String get sessionRatingBody =>
+      'This is the one thing Spottr cannot see, and it decides what you lift next time.';
+
+  @override
+  String get sessionRatingSkip => 'Rather not say';
+
+  @override
+  String get ratingTooEasy => 'Too easy';
+
+  @override
+  String get ratingTooEasyDetail => 'I had plenty left in the tank';
+
+  @override
+  String get ratingRight => 'About right';
+
+  @override
+  String get ratingRightDetail => 'Hard, but I finished it';
+
+  @override
+  String get ratingTooHard => 'Too hard';
+
+  @override
+  String get ratingTooHardDetail => 'I could not finish it properly';
+
+  @override
+  String get sessionSummaryTitle => 'Next time';
+
+  @override
+  String get sessionSummaryEmpty => 'Your plan stays as it is next time.';
+
+  @override
+  String get sessionSummaryDone => 'Done';
+
+  @override
+  String sessionSummaryLine(String change, String reason) {
+    return '$change — $reason';
+  }
+
+  @override
+  String get sessionEmptyTitle => 'Nothing planned here';
+
+  @override
+  String get sessionEmptyBody =>
+      'This day has no session in your current plan.';
+
+  @override
+  String progressionWeightUp(String weight) {
+    return '$weight kg next time';
+  }
+
+  @override
+  String progressionWeightDown(String weight) {
+    return 'Down to $weight kg';
+  }
+
+  @override
+  String progressionRepsUp(int min, int max) {
+    return '$min–$max reps next time';
+  }
+
+  @override
+  String progressionHoldUp(int seconds) {
+    return '$seconds seconds next time';
+  }
+
+  @override
+  String progressionMovingUp(String exercise) {
+    return 'Moving up to $exercise';
+  }
+
+  @override
+  String progressionMovingDown(String exercise) {
+    return 'Easing back to $exercise';
+  }
+
+  @override
+  String get progressionUnchanged => 'Same again next time';
+
+  @override
+  String progressionFormSuffix(String change, int score) {
+    return '$change at $score% form';
+  }
+
+  @override
+  String get reasonPainReported =>
+      'you told us something hurt, so nothing goes up. If it does not settle, see a professional';
+
+  @override
+  String get reasonSessionIncomplete => 'you did not get through every set';
+
+  @override
+  String reasonEarnedLoad(int reps) {
+    return 'you hit all $reps on every set';
+  }
+
+  @override
+  String get reasonEarnedLoadPlain => 'you finished every set at the target';
+
+  @override
+  String get reasonEarnedReps =>
+      'you reached the top of the range on every set';
+
+  @override
+  String get reasonEarnedHold => 'you held every set to the target';
+
+  @override
+  String get reasonEarnedHarderVariant =>
+      'reps have gone as far as they usefully can';
+
+  @override
+  String get reasonRatedTooEasy => 'you said it was too easy';
+
+  @override
+  String get reasonFormBreakingDown =>
+      'your form has slipped two sessions running';
+
+  @override
+  String get reasonFormWatch =>
+      'your form slipped on this one, so Spottr is holding steady';
+
+  @override
+  String reasonMissedReps(int reps) {
+    return '$reps on your hardest set was short of the target';
+  }
+
+  @override
+  String get reasonMissedRepsPlain => 'you came up short of the target';
+
+  @override
+  String get reasonRatedTooHard => 'you said it was too hard';
+
+  @override
+  String get reasonAtCeiling =>
+      'there is nothing harder in the catalog you can do with the equipment you have';
+
+  @override
+  String get reasonHoldingSteady => 'a solid session at the weight you are on';
+
+  @override
   String swapTitle(String exercise) {
     return 'Swap $exercise';
   }

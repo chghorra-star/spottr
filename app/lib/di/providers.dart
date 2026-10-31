@@ -5,9 +5,12 @@ import 'package:plan_engine/plan_engine.dart';
 import '../data/local/database.dart';
 import '../data/plan_repository.dart';
 import '../data/profile_repository.dart';
+import '../data/session_repository.dart';
 import '../domain/user_profile.dart';
+import '../domain/workout_session.dart';
 import '../state/plan_controller.dart';
 import '../state/profile_controller.dart';
+import '../state/session_controller.dart';
 
 /// The app's single database handle.
 ///
@@ -33,6 +36,9 @@ final Provider<PlanGenerator> planGeneratorProvider =
 final Provider<PlanEdits> planEditsProvider =
     Provider<PlanEdits>((ref) => PlanEdits(ref.watch(catalogProvider)));
 
+final Provider<Progression> progressionProvider =
+    Provider<Progression>((ref) => Progression(ref.watch(catalogProvider)));
+
 final Provider<ProfileRepository> profileRepositoryProvider =
     Provider<ProfileRepository>(
   (ref) => ProfileRepository(ref.watch(databaseProvider)),
@@ -41,6 +47,11 @@ final Provider<ProfileRepository> profileRepositoryProvider =
 final Provider<PlanRepository> planRepositoryProvider =
     Provider<PlanRepository>(
   (ref) => PlanRepository(ref.watch(databaseProvider)),
+);
+
+final Provider<SessionRepository> sessionRepositoryProvider =
+    Provider<SessionRepository>(
+  (ref) => SessionRepository(ref.watch(databaseProvider)),
 );
 
 /// The stored profile, or null while there is none.
@@ -55,6 +66,15 @@ final StreamProvider<UserProfile?> profileProvider =
 /// The active plan revision, or null while there is none.
 final StreamProvider<WeekPlan?> activePlanProvider = StreamProvider<WeekPlan?>(
   (ref) => ref.watch(planRepositoryProvider).watchActive(),
+);
+
+/// The workout in progress, or null when the user is not mid-session.
+///
+/// Null is what the plan screen watches to decide between offering a start
+/// and offering to pick up where they left off.
+final StreamProvider<WorkoutSession?> activeSessionProvider =
+    StreamProvider<WorkoutSession?>(
+  (ref) => ref.watch(sessionRepositoryProvider).watchActive(),
 );
 
 final Provider<ProfileController> profileControllerProvider =
@@ -72,6 +92,17 @@ final Provider<PlanController> planControllerProvider =
     profiles: ref.watch(profileRepositoryProvider),
     plans: ref.watch(planRepositoryProvider),
     generator: ref.watch(planGeneratorProvider),
+    edits: ref.watch(planEditsProvider),
+  ),
+);
+
+final Provider<SessionController> sessionControllerProvider =
+    Provider<SessionController>(
+  (ref) => DatabaseSessionController(
+    profiles: ref.watch(profileRepositoryProvider),
+    plans: ref.watch(planRepositoryProvider),
+    sessions: ref.watch(sessionRepositoryProvider),
+    progression: ref.watch(progressionProvider),
     edits: ref.watch(planEditsProvider),
   ),
 );

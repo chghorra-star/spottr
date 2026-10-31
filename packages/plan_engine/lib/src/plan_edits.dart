@@ -3,6 +3,7 @@ import 'package:exercise_library/exercise_library.dart';
 
 import 'day_rules.dart';
 import 'plan_request.dart';
+import 'progression.dart';
 import 'week_plan.dart';
 
 /// User edits to a generated plan: swapping an exercise, reordering a day,
@@ -190,6 +191,78 @@ class PlanEdits {
       updated: moved,
       request: request,
       replacingWeekday: fromWeekday,
+    );
+  }
+
+  /// Writes the next prescription for a day that has just been trained.
+  ///
+  /// Decisions come from [Progression]; this only moves the numbers into the
+  /// plan. A decision whose exercise is no longer in the day is dropped
+  /// rather than treated as an error: the user is free to swap something out
+  /// between training it and finishing the session.
+  ///
+  /// The day rules are deliberately **not** re-applied. They own volume, and
+  /// re-running them here could trim away the very exercise progression just
+  /// advanced, or fill the freed time with something else. The cost is that a
+  /// variant with a different tempo can move the session estimate by a minute
+  /// or so; a progression that deleted work to stay on budget would be far
+  /// worse than a day that reads 61 minutes.
+  WeekPlan applyProgression({
+    required WeekPlan plan,
+    required int weekday,
+    required List<ProgressionDecision> decisions,
+    required PlanRequest request,
+  }) {
+    final day = _dayOn(plan, weekday);
+    if (decisions.isEmpty) return plan;
+
+    final byId = {
+      for (final decision in decisions) decision.exerciseId: decision,
+    };
+
+    final exercises = [
+      for (final exercise in day.exercises)
+        _progressed(exercise, byId[exercise.exerciseId], request),
+    ];
+
+    final days = [
+      for (final existing in plan.days)
+        if (existing.weekday == weekday)
+          day.copyWith(exercises: exercises)
+        else
+          existing,
+    ];
+    return plan.copyWith(days: days);
+  }
+
+  PlannedExercise _progressed(
+    PlannedExercise exercise,
+    ProgressionDecision? decision,
+    PlanRequest request,
+  ) {
+    if (decision == null) return exercise;
+
+    final nextId = decision.nextExerciseId;
+    if (nextId != null) {
+      final replacement = catalog[nextId];
+      // A ladder pointing at nothing is a catalog bug the validator should
+      // have caught. Here it means "leave the user where they are", which is
+      // the right answer mid-session either way.
+      if (replacement == null) return exercise;
+      return DayRules.prescribe(
+        exercise: replacement,
+        slotPattern: exercise.slotPattern,
+        priority: exercise.priority,
+        templateSets: exercise.templateSets,
+        request: request,
+      ).copyWith(sets: exercise.sets);
+    }
+
+    return exercise.copyWith(
+      targetWeightKg: decision.nextWeightKg,
+      repsMin: decision.nextRepsMin,
+      repsMax: decision.nextRepsMax,
+      holdSeconds: decision.nextHoldSeconds,
     );
   }
 

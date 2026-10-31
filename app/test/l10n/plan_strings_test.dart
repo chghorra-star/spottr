@@ -3,6 +3,7 @@ import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plan_engine/plan_engine.dart';
 import 'package:spottr/domain/user_profile.dart';
+import 'package:spottr/domain/workout_session.dart';
 import 'package:spottr/l10n/app_localizations_en.dart';
 import 'package:spottr/l10n/plan_strings.dart';
 
@@ -223,6 +224,246 @@ void main() {
       expect(notes, isNotEmpty);
       for (final note in notes) {
         expect(strings.note(note), isNotEmpty, reason: '$note');
+      }
+    });
+  });
+
+  group('progression', () {
+    /// A decision of every shape, keyed by the change it carries, so that
+    /// the enum check below can prove none was forgotten.
+    final byChange = <ProgressionChange, ProgressionDecision>{
+      ProgressionChange.loadUp: const ProgressionDecision(
+        exerciseId: 'barbell_back_squat',
+        change: ProgressionChange.loadUp,
+        reason: ProgressionReason.earnedLoad,
+        nextWeightKg: 62.5,
+        repsAchieved: 12,
+      ),
+      ProgressionChange.loadDown: const ProgressionDecision(
+        exerciseId: 'barbell_back_squat',
+        change: ProgressionChange.loadDown,
+        reason: ProgressionReason.missedReps,
+        nextWeightKg: 55,
+        repsAchieved: 6,
+      ),
+      ProgressionChange.repsUp: const ProgressionDecision(
+        exerciseId: 'push_up',
+        change: ProgressionChange.repsUp,
+        reason: ProgressionReason.earnedReps,
+        nextRepsMin: 10,
+        nextRepsMax: 14,
+      ),
+      ProgressionChange.holdUp: const ProgressionDecision(
+        exerciseId: 'plank',
+        change: ProgressionChange.holdUp,
+        reason: ProgressionReason.earnedHold,
+        nextHoldSeconds: 50,
+      ),
+      ProgressionChange.harderVariant: const ProgressionDecision(
+        exerciseId: 'knee_push_up',
+        change: ProgressionChange.harderVariant,
+        reason: ProgressionReason.earnedHarderVariant,
+        nextExerciseId: 'push_up',
+      ),
+      ProgressionChange.easierVariant: const ProgressionDecision(
+        exerciseId: 'push_up',
+        change: ProgressionChange.easierVariant,
+        reason: ProgressionReason.formBreakingDown,
+        nextExerciseId: 'knee_push_up',
+      ),
+      ProgressionChange.hold: const ProgressionDecision(
+        exerciseId: 'plank',
+        change: ProgressionChange.hold,
+        reason: ProgressionReason.holdingSteady,
+      ),
+    };
+
+    test('every kind of change reads as a sentence', () {
+      expect(
+        byChange.keys.toSet(),
+        ProgressionChange.values.toSet(),
+        reason: 'a change with no prose would render as nothing',
+      );
+      for (final entry in byChange.entries) {
+        expect(
+          strings.progression(entry.value),
+          isNotEmpty,
+          reason: entry.key.name,
+        );
+      }
+    });
+
+    test('every reason reads as a sentence', () {
+      for (final reason in ProgressionReason.values) {
+        final prose = strings.progression(
+          ProgressionDecision(
+            exerciseId: 'plank',
+            change: ProgressionChange.hold,
+            reason: reason,
+            repsAchieved: 8,
+          ),
+        );
+        expect(prose, isNotEmpty, reason: reason.name);
+      }
+    });
+
+    test('a reason that quotes a number works without one too', () {
+      // Holds have seconds rather than reps, so the rep count is absent and
+      // the sentence has to stand up without it.
+      for (final reason in [
+        ProgressionReason.earnedLoad,
+        ProgressionReason.missedReps,
+      ]) {
+        final prose = strings.progression(
+          ProgressionDecision(
+            exerciseId: 'plank',
+            change: ProgressionChange.hold,
+            reason: reason,
+          ),
+        );
+        expect(prose, isNotEmpty, reason: reason.name);
+        expect(prose, isNot(contains('null')));
+      }
+    });
+
+    test('a decision names the change and the reason, in that order', () {
+      final prose = strings.progression(byChange[ProgressionChange.loadUp]!);
+
+      expect(prose, contains('62.5'));
+      expect(prose, contains('12'));
+      expect(prose.indexOf('62.5'), lessThan(prose.indexOf('12')));
+    });
+
+    test('a variant change names the exercise it moves to, not from', () {
+      final prose =
+          strings.progression(byChange[ProgressionChange.harderVariant]!);
+
+      expect(prose, contains(strings.exercise('push_up')));
+      expect(prose, isNot(contains(strings.exercise('knee_push_up'))));
+    });
+
+    test('a form score joins the reason once there is one to report', () {
+      final without = strings.progression(
+        byChange[ProgressionChange.loadUp]!,
+      );
+      final with_ = strings.progression(
+        const ProgressionDecision(
+          exerciseId: 'barbell_back_squat',
+          change: ProgressionChange.loadUp,
+          reason: ProgressionReason.earnedLoad,
+          nextWeightKg: 62.5,
+          repsAchieved: 12,
+          meanFormScore: 91.6,
+        ),
+      );
+
+      expect(without, isNot(contains('%')));
+      expect(with_, contains('92'));
+    });
+
+    test('a weight reads the way a person writes it', () {
+      expect(strings.weight(60), '60');
+      expect(strings.weight(62.5), '62.5');
+    });
+
+    test('every rating has a label and an explanation', () {
+      for (final value in SessionRating.values) {
+        expect(strings.rating(value), isNotEmpty, reason: value.name);
+        expect(strings.ratingDetail(value), isNotEmpty, reason: value.name);
+      }
+    });
+
+    test('a logged set reads in whatever unit it was logged in', () {
+      final completedAt = DateTime.utc(2026, 10, 31);
+      expect(
+        strings.loggedSet(
+          LoggedSet(
+            id: 'a',
+            exerciseId: 'push_up',
+            setIndex: 0,
+            reps: 12,
+            completedAt: completedAt,
+          ),
+        ),
+        contains('12'),
+      );
+      expect(
+        strings.loggedSet(
+          LoggedSet(
+            id: 'b',
+            exerciseId: 'barbell_back_squat',
+            setIndex: 0,
+            reps: 8,
+            weightKg: 62.5,
+            completedAt: completedAt,
+          ),
+        ),
+        contains('62.5'),
+      );
+      final held = strings.loggedSet(
+        LoggedSet(
+          id: 'c',
+          exerciseId: 'plank',
+          setIndex: 0,
+          holdSeconds: 45,
+          completedAt: completedAt,
+        ),
+      );
+      expect(held, contains('45'));
+      expect(held, isNot(contains('reps')));
+    });
+
+    test('every decision a real session produces renders', () {
+      // The constructed cases pin the wording; this one proves the decisions
+      // the engine actually emits are the ones handled.
+      final plan = PlanGenerator(standardCatalog).generate(
+        const PlanRequest(
+          goal: Goal.muscleBuilding,
+          daysPerWeek: 3,
+          sessionMinutes: 60,
+          level: Level.beginner,
+          location: TrainingLocation.homeNone,
+        ),
+      );
+      final progression = Progression(standardCatalog);
+
+      for (final rating in [null, ...SessionRating.values]) {
+        for (final reps in [2, 12, 25]) {
+          for (final weightKg in [null, 40.0]) {
+            final decisions = progression.decide(
+              inputs: [
+                for (final exercise in plan.days.first.exercises)
+                  ProgressionInput(
+                    planned: exercise,
+                    completed: [
+                      for (var i = 0; i < exercise.sets; i++)
+                        CompletedSet(
+                          reps: exercise.metric == MetricType.reps ? reps : null,
+                          holdSeconds: exercise.metric == MetricType.reps
+                              ? null
+                              : reps * 4,
+                          weightKg: weightKg,
+                        ),
+                    ],
+                    rating: rating,
+                  ),
+              ],
+              request: const PlanRequest(
+                goal: Goal.muscleBuilding,
+                daysPerWeek: 3,
+                sessionMinutes: 60,
+                level: Level.beginner,
+                location: TrainingLocation.homeNone,
+              ),
+            );
+
+            for (final decision in decisions) {
+              final prose = strings.progression(decision);
+              expect(prose, isNotEmpty, reason: '$decision');
+              expect(prose, isNot(contains('null')), reason: '$decision');
+            }
+          }
+        }
       }
     });
   });

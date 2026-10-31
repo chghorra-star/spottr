@@ -48,9 +48,43 @@ abstract final class UiKeys {
   static const Key profileScreen = Key('spottr.profile');
   static const Key profileSave = Key('spottr.profile.save');
 
+  static const Key sessionScreen = Key('spottr.session');
+  static const Key sessionEmpty = Key('spottr.session.empty');
+  static const Key sessionOver = Key('spottr.session.over');
+  static const Key sessionPain = Key('spottr.session.pain');
+  static const Key sessionPainConfirm = Key('spottr.session.pain.confirm');
+  static const Key sessionPainBadge = Key('spottr.session.painBadge');
+  static const Key sessionFinish = Key('spottr.session.finish');
+  static const Key sessionDiscard = Key('spottr.session.discard');
+  static const Key sessionDiscardConfirm =
+      Key('spottr.session.discard.confirm');
+  static const Key sessionRatingSheet = Key('spottr.session.rating');
+  static const Key sessionRatingSkip = Key('spottr.session.rating.skip');
+  static const Key sessionSummary = Key('spottr.session.summary');
+  static const Key sessionSummaryDone = Key('spottr.session.summary.done');
+
   /// A choice within a question, e.g. one goal or one injury site.
+
   static Key choice(String question, String value) =>
       Key('spottr.choice.$question.$value');
+
+  /// Starting or resuming the session on one weekday.
+  static Key planDayStart(int weekday) =>
+      Key('spottr.plan.day.$weekday.start');
+
+  /// One exercise being logged, and the fields and button inside it.
+  static Key sessionExercise(String exerciseId) =>
+      Key('spottr.session.exercise.$exerciseId');
+  static Key sessionReps(String exerciseId) =>
+      Key('spottr.session.reps.$exerciseId');
+  static Key sessionWeight(String exerciseId) =>
+      Key('spottr.session.weight.$exerciseId');
+  static Key sessionSaveSet(String exerciseId) =>
+      Key('spottr.session.save.$exerciseId');
+
+  /// One answer to "how did that feel", by [SessionRating] name.
+  static Key sessionRating(String rating) =>
+      Key('spottr.session.rating.$rating');
 
   /// A day card on the plan screen, by ISO weekday.
   static Key planDay(int weekday) => Key('spottr.plan.day.$weekday');

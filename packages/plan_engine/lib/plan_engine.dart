@@ -12,6 +12,7 @@ export 'src/generator.dart';
 export 'src/goal.dart';
 export 'src/plan_edits.dart';
 export 'src/plan_request.dart';
+export 'src/progression.dart';
 export 'src/scheduler.dart';
 export 'src/templates.dart';
 export 'src/week_plan.dart';

@@ -319,6 +319,235 @@
   "planReorderDone": "Done",
   "planReorderHint": "Drag to reorder. Spottr keeps the sets and reps you already have.",
 
+  "@_session": {
+    "description": "Logging a workout, and what the session earned. The progression lines are assembled as '<change> — <reason>', which keeps one key per idea rather than one per combination."
+  },
+
+  "planActionStart": "Start",
+  "planActionResume": "Resume",
+  "planSessionElsewhere": "Finish the session you already have open first.",
+
+  "sessionElapsed": "{minutes} min in",
+  "@sessionElapsed": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+
+  "sessionTargetWeight": "Target {weight} kg",
+  "@sessionTargetWeight": {
+    "description": "The load progression picked from the last session on this exercise.",
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
+
+  "sessionNoTarget": "No target yet — log what you use",
+  "sessionSetsDone": "{done} of {total} sets",
+  "@sessionSetsDone": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+
+  "sessionExerciseDone": "All sets done",
+  "sessionRepsLabel": "Reps",
+  "sessionHoldLabel": "Seconds",
+  "sessionWeightLabel": "Weight (kg)",
+  "sessionLogSet": "Save set {number}",
+  "@sessionLogSet": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+
+  "sessionLoggedSetReps": "{reps} reps",
+  "@sessionLoggedSetReps": {
+    "placeholders": {
+      "reps": {
+        "type": "int"
+      }
+    }
+  },
+
+  "sessionLoggedSetRepsWeighted": "{reps} × {weight} kg",
+  "@sessionLoggedSetRepsWeighted": {
+    "placeholders": {
+      "reps": {
+        "type": "int"
+      },
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
+
+  "sessionLoggedSetHold": "{seconds}s",
+  "@sessionLoggedSetHold": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+
+  "sessionNumberRequired": "A number, please",
+
+  "sessionPainButton": "I feel pain",
+  "sessionPainTitle": "Stop this set",
+  "sessionPainBody": "Spottr will end the set and log that it hurt, and nothing in your plan will go up. Do not train through pain — if it does not settle, see a professional.",
+  "sessionPainConfirm": "Stop and log it",
+  "sessionPainBadge": "Pain reported",
+
+  "sessionFinish": "Finish",
+  "sessionDiscard": "Discard session",
+  "sessionDiscardTitle": "Throw this session away?",
+  "sessionDiscardBody": "Everything you logged goes with it, and your plan stays exactly as it is.",
+  "sessionDiscardConfirm": "Discard it",
+
+  "sessionRatingTitle": "How did that feel?",
+  "sessionRatingBody": "This is the one thing Spottr cannot see, and it decides what you lift next time.",
+  "sessionRatingSkip": "Rather not say",
+  "ratingTooEasy": "Too easy",
+  "ratingTooEasyDetail": "I had plenty left in the tank",
+  "ratingRight": "About right",
+  "ratingRightDetail": "Hard, but I finished it",
+  "ratingTooHard": "Too hard",
+  "ratingTooHardDetail": "I could not finish it properly",
+
+  "sessionSummaryTitle": "Next time",
+  "sessionSummaryEmpty": "Your plan stays as it is next time.",
+  "sessionSummaryDone": "Done",
+  "sessionSummaryLine": "{change} — {reason}",
+  "@sessionSummaryLine": {
+    "description": "One line per exercise: what changes, then why it changed.",
+    "placeholders": {
+      "change": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+
+  "sessionEmptyTitle": "Nothing planned here",
+  "sessionEmptyBody": "This day has no session in your current plan.",
+
+  "progressionWeightUp": "{weight} kg next time",
+  "@progressionWeightUp": {
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
+
+  "progressionWeightDown": "Down to {weight} kg",
+  "@progressionWeightDown": {
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
+
+  "progressionRepsUp": "{min}–{max} reps next time",
+  "@progressionRepsUp": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+
+  "progressionHoldUp": "{seconds} seconds next time",
+  "@progressionHoldUp": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+
+  "progressionMovingUp": "Moving up to {exercise}",
+  "@progressionMovingUp": {
+    "placeholders": {
+      "exercise": {
+        "type": "String"
+      }
+    }
+  },
+
+  "progressionMovingDown": "Easing back to {exercise}",
+  "@progressionMovingDown": {
+    "placeholders": {
+      "exercise": {
+        "type": "String"
+      }
+    }
+  },
+
+  "progressionUnchanged": "Same again next time",
+  "progressionFormSuffix": "{change} at {score}% form",
+  "@progressionFormSuffix": {
+    "description": "Wraps a progression line once the camera has a form score for it. Unused until the coach lands, and worded so it reads as part of the reason.",
+    "placeholders": {
+      "change": {
+        "type": "String"
+      },
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+
+  "reasonPainReported": "you told us something hurt, so nothing goes up. If it does not settle, see a professional",
+  "reasonSessionIncomplete": "you did not get through every set",
+  "reasonEarnedLoad": "you hit all {reps} on every set",
+  "@reasonEarnedLoad": {
+    "placeholders": {
+      "reps": {
+        "type": "int"
+      }
+    }
+  },
+
+  "reasonEarnedLoadPlain": "you finished every set at the target",
+  "reasonEarnedReps": "you reached the top of the range on every set",
+  "reasonEarnedHold": "you held every set to the target",
+  "reasonEarnedHarderVariant": "reps have gone as far as they usefully can",
+  "reasonRatedTooEasy": "you said it was too easy",
+  "reasonFormBreakingDown": "your form has slipped two sessions running",
+  "reasonFormWatch": "your form slipped on this one, so Spottr is holding steady",
+  "reasonMissedReps": "{reps} on your hardest set was short of the target",
+  "@reasonMissedReps": {
+    "placeholders": {
+      "reps": {
+        "type": "int"
+      }
+    }
+  },
+
+  "reasonMissedRepsPlain": "you came up short of the target",
+  "reasonRatedTooHard": "you said it was too hard",
+  "reasonAtCeiling": "there is nothing harder in the catalog you can do with the equipment you have",
+  "reasonHoldingSteady": "a solid session at the weight you are on",
+
   "swapTitle": "Swap {exercise}",
   "@swapTitle": {
     "placeholders": {

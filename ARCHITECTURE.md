@@ -334,17 +334,75 @@ row.
 ## Progression
 
 ```
-ProgressionInput{planned, completed(reps, weight, formScores), sessionRating}
-  -> ProgressionDecision{nextWeight, nextReps, nextSets, swapTo?, reason}
+ProgressionInput{planned, completed(reps|seconds, weight, formScore),
+                 sessionRating, painReported, priorLowFormSessions}
+  -> ProgressionDecision{change, reason, nextWeight|nextReps|nextHold|nextExercise}
 ```
 
-All reps at the top of range with mean form >= 85 and not rated too-hard raises
-load. Form below 70 across two sessions cuts load 10% or regresses via the
-catalog's easier variant. Missed reps or a too-hard rating holds or drops 5%.
+A decision table, read top to bottom, and the order of the branches is the
+whole design:
 
-Every decision carries its `reason` string, so the UI can say "Weight up — you
-hit all 10 at 92% form" instead of silently changing numbers. That string is
-also the assertion target in tests.
+| # | Condition | Decision |
+| --- | --- | --- |
+| 1 | pain reported | hold everything |
+| 2 | fewer sets logged than prescribed | hold |
+| 3 | mean form below 70, second session running | cut load 10%, or drop to the easier variant |
+| 4 | mean form below 70, first time | hold, and say it was noticed |
+| 5 | rated too hard | cut load 5% |
+| 6 | any set short of the rep floor | cut load 5% |
+| 7 | every set at the top of range, form 85+ or unjudged | add load, reps, or seconds |
+| 8 | anything else | hold |
+
+Safety outranks evidence, and evidence quality outranks ambition: a session
+that looked perfect earns nothing if the pain button was pressed, and a
+session that was not finished is not evidence about the weight at all.
+
+**Progression owns intensity; the time budget owns volume.** There is
+deliberately no `nextSets`. If progression could add a set it would quietly
+push a session past the length the user asked for, which is the thing the
+budget work in M2 existed to stop. So applying a decision does *not* re-run
+`DayRules` either — re-running them could trim away the very exercise
+progression just advanced, or spend the freed time on something else. The cost
+is that a variant with a different tempo can move a session estimate by a
+minute; a progression that deleted work to stay on budget would be far worse.
+
+**A logged weight is what makes load the dial, not the catalog.** A push-up in
+a weight vest progresses by load; the same exercise logged bare progresses by
+reps, and then by the catalog's harder variant once reps stop being useful
+around twenty. Asking the catalog whether an exercise is "weighted" would get
+one of those two wrong.
+
+**No form score is not a bad form score.** Every set logged by hand has a null
+`formScore`, and that is every set until the camera lands in M5. Progression
+treats absent form as no objection rather than as failure — a streak counter
+that read "no data" as "bad form" would deload the entire app on its first
+release. `priorLowFormSessions` is computed from finished sessions and is
+therefore zero for everybody today, which the repository has a test for.
+
+**A progression target the user cannot use is not a progression.** Variant
+candidates are filtered by equipment, injuries and — climbing only — level,
+so a home user who maxes out knee push-ups is offered push-ups rather than a
+barbell bench press. Crossing between reps and seconds is refused outright:
+a ladder that did would silently rewrite the prescription's units.
+
+Every decision carries a `reason`, which is a **value, not a string**: the
+plan engine holds no user-facing prose. `PlanStrings` turns change and reason
+into one line — "62.5 kg next time — you hit all 12 on every set" — assembled
+from two halves rather than written out per combination, because seven changes
+times twelve reasons is eighty-four sentences nobody would keep correct.
+
+### Finishing a session is a plan edit
+
+`finish` closes the session, asks the engine what each exercise earned, and
+writes the result through `PlanEdits.applyProgression` as a **new plan
+revision**. Progression is therefore not a special path: it is the same
+immutable-revision machinery a swap or a day move uses, which is what keeps a
+plan somebody has trained from being rewritten underneath its own history.
+A session that earned nothing writes no revision at all.
+
+Exercises the user skipped entirely are left out of the decision list rather
+than reported as incomplete. Telling somebody they did not do the thing they
+did not do is noise.
 
 ## Persistence
 
@@ -397,8 +455,9 @@ other, so a new table cannot be added without that decision being made.
 ## App layer
 
 Riverpod for wiring. Repositories and the catalog are providers so nothing in
-the UI reaches into a global, and the two controllers — `ProfileController` and
-`PlanController` — are **interfaces** with database-backed implementations.
+the UI reaches into a global, and the three controllers — `ProfileController`,
+`PlanController` and `SessionController` — are **interfaces** with
+database-backed implementations.
 That is not ceremony: it is what lets a widget test assert *what a screen asked
 for* without a database underneath it. A widget test that waits on a real
 SQLite read spends its life fighting the fake clock a widget test runs under,
@@ -441,6 +500,36 @@ place, tested.
 Reordering is the mirror image: it deliberately does not re-apply the day
 rules, because a session the user trimmed by hand should not spring back to
 full volume because they dragged a row.
+
+### A log has to name the prescription it was performed against
+
+A `WeekPlan` is a pure engine value and carries no row ids, but a set log
+points at the exact `plan_exercises` row it was trained against.
+`PlanRepository.dayRef` is the one place that translates between the two, and
+it reads the **active** revision, so a log can never attach itself to a plan
+the user has already replaced. The row id is resolved per set rather than
+cached for the session, because a plan edited mid-workout would otherwise
+leave later sets pointing at a revision that is no longer current.
+
+### One workout at a time
+
+`SessionRepository.start` refuses while a session is open rather than guessing.
+A workout is a thing you are in the middle of, and two open at once means two
+answers to "which set am I on". The plan screen reads the open session to
+decide whether a day card offers to start, to resume, or says that another
+session is still running.
+
+Logs are append-only, and `painReported` is one-way: there is no un-report.
+The pain button is in a persistent bar beside Finish, not in a menu — a safety
+control the user has to scroll an exercise list to reach is not one.
+
+The session stream has to watch `set_logs` as well as `sessions`, and that is
+the one place where the trick that makes the plan stream cheap does not
+transfer. A plan edit always inserts a plan row, so watching one table is
+enough; logging a set changes no column on the session row at all. A watch on
+`sessions` alone compiles, passes every test that stubs the data layer, and
+then silently drops every set the user logs. It took running the thing on a
+phone to see it.
 
 ### Defaults are the conservative ones
 
@@ -487,7 +576,11 @@ or landmark traces off the device.
   profiles, regenerated with `UPDATE_GOLDENS=1`. Property tests prove what must
   always be true; goldens show what the generator actually decides, so a
   ranking change arrives as a readable diff.
-- Progression is a decision table.
+- Progression is a decision table, so `progression_test.dart` is a truth table.
+  Every case is named for the user it is about — "every rep at the top of the
+  range raises the load", "pain stops progression dead, whatever else the
+  session says" — rather than for the branch it covers, which is what makes a
+  failure tell you which promise broke.
 - Repositories are tested against a real in-memory SQLite, and the plan
   round-trip is one `expect(loaded, plan)` because the plan value objects have
   value equality. A round-trip test that compared a handful of fields would

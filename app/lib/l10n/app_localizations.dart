@@ -994,6 +994,390 @@ abstract class AppLocalizations {
   /// **'Drag to reorder. Spottr keeps the sets and reps you already have.'**
   String get planReorderHint;
 
+  /// No description provided for @planActionStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get planActionStart;
+
+  /// No description provided for @planActionResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get planActionResume;
+
+  /// No description provided for @planSessionElsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the session you already have open first.'**
+  String get planSessionElsewhere;
+
+  /// No description provided for @sessionElapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min in'**
+  String sessionElapsed(int minutes);
+
+  /// The load progression picked from the last session on this exercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Target {weight} kg'**
+  String sessionTargetWeight(String weight);
+
+  /// No description provided for @sessionNoTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'No target yet — log what you use'**
+  String get sessionNoTarget;
+
+  /// No description provided for @sessionSetsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} sets'**
+  String sessionSetsDone(int done, int total);
+
+  /// No description provided for @sessionExerciseDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All sets done'**
+  String get sessionExerciseDone;
+
+  /// No description provided for @sessionRepsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reps'**
+  String get sessionRepsLabel;
+
+  /// No description provided for @sessionHoldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Seconds'**
+  String get sessionHoldLabel;
+
+  /// No description provided for @sessionWeightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight (kg)'**
+  String get sessionWeightLabel;
+
+  /// No description provided for @sessionLogSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Save set {number}'**
+  String sessionLogSet(int number);
+
+  /// No description provided for @sessionLoggedSetReps.
+  ///
+  /// In en, this message translates to:
+  /// **'{reps} reps'**
+  String sessionLoggedSetReps(int reps);
+
+  /// No description provided for @sessionLoggedSetRepsWeighted.
+  ///
+  /// In en, this message translates to:
+  /// **'{reps} × {weight} kg'**
+  String sessionLoggedSetRepsWeighted(int reps, String weight);
+
+  /// No description provided for @sessionLoggedSetHold.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String sessionLoggedSetHold(int seconds);
+
+  /// No description provided for @sessionNumberRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A number, please'**
+  String get sessionNumberRequired;
+
+  /// No description provided for @sessionPainButton.
+  ///
+  /// In en, this message translates to:
+  /// **'I feel pain'**
+  String get sessionPainButton;
+
+  /// No description provided for @sessionPainTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop this set'**
+  String get sessionPainTitle;
+
+  /// No description provided for @sessionPainBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr will end the set and log that it hurt, and nothing in your plan will go up. Do not train through pain — if it does not settle, see a professional.'**
+  String get sessionPainBody;
+
+  /// No description provided for @sessionPainConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop and log it'**
+  String get sessionPainConfirm;
+
+  /// No description provided for @sessionPainBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Pain reported'**
+  String get sessionPainBadge;
+
+  /// No description provided for @sessionFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get sessionFinish;
+
+  /// No description provided for @sessionDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard session'**
+  String get sessionDiscard;
+
+  /// No description provided for @sessionDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Throw this session away?'**
+  String get sessionDiscardTitle;
+
+  /// No description provided for @sessionDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything you logged goes with it, and your plan stays exactly as it is.'**
+  String get sessionDiscardBody;
+
+  /// No description provided for @sessionDiscardConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard it'**
+  String get sessionDiscardConfirm;
+
+  /// No description provided for @sessionRatingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How did that feel?'**
+  String get sessionRatingTitle;
+
+  /// No description provided for @sessionRatingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the one thing Spottr cannot see, and it decides what you lift next time.'**
+  String get sessionRatingBody;
+
+  /// No description provided for @sessionRatingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Rather not say'**
+  String get sessionRatingSkip;
+
+  /// No description provided for @ratingTooEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Too easy'**
+  String get ratingTooEasy;
+
+  /// No description provided for @ratingTooEasyDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'I had plenty left in the tank'**
+  String get ratingTooEasyDetail;
+
+  /// No description provided for @ratingRight.
+  ///
+  /// In en, this message translates to:
+  /// **'About right'**
+  String get ratingRight;
+
+  /// No description provided for @ratingRightDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Hard, but I finished it'**
+  String get ratingRightDetail;
+
+  /// No description provided for @ratingTooHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Too hard'**
+  String get ratingTooHard;
+
+  /// No description provided for @ratingTooHardDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'I could not finish it properly'**
+  String get ratingTooHardDetail;
+
+  /// No description provided for @sessionSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Next time'**
+  String get sessionSummaryTitle;
+
+  /// No description provided for @sessionSummaryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Your plan stays as it is next time.'**
+  String get sessionSummaryEmpty;
+
+  /// No description provided for @sessionSummaryDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get sessionSummaryDone;
+
+  /// One line per exercise: what changes, then why it changed.
+  ///
+  /// In en, this message translates to:
+  /// **'{change} — {reason}'**
+  String sessionSummaryLine(String change, String reason);
+
+  /// No description provided for @sessionEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing planned here'**
+  String get sessionEmptyTitle;
+
+  /// No description provided for @sessionEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This day has no session in your current plan.'**
+  String get sessionEmptyBody;
+
+  /// No description provided for @progressionWeightUp.
+  ///
+  /// In en, this message translates to:
+  /// **'{weight} kg next time'**
+  String progressionWeightUp(String weight);
+
+  /// No description provided for @progressionWeightDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Down to {weight} kg'**
+  String progressionWeightDown(String weight);
+
+  /// No description provided for @progressionRepsUp.
+  ///
+  /// In en, this message translates to:
+  /// **'{min}–{max} reps next time'**
+  String progressionRepsUp(int min, int max);
+
+  /// No description provided for @progressionHoldUp.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} seconds next time'**
+  String progressionHoldUp(int seconds);
+
+  /// No description provided for @progressionMovingUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Moving up to {exercise}'**
+  String progressionMovingUp(String exercise);
+
+  /// No description provided for @progressionMovingDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Easing back to {exercise}'**
+  String progressionMovingDown(String exercise);
+
+  /// No description provided for @progressionUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Same again next time'**
+  String get progressionUnchanged;
+
+  /// Wraps a progression line once the camera has a form score for it. Unused until the coach lands, and worded so it reads as part of the reason.
+  ///
+  /// In en, this message translates to:
+  /// **'{change} at {score}% form'**
+  String progressionFormSuffix(String change, int score);
+
+  /// No description provided for @reasonPainReported.
+  ///
+  /// In en, this message translates to:
+  /// **'you told us something hurt, so nothing goes up. If it does not settle, see a professional'**
+  String get reasonPainReported;
+
+  /// No description provided for @reasonSessionIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'you did not get through every set'**
+  String get reasonSessionIncomplete;
+
+  /// No description provided for @reasonEarnedLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'you hit all {reps} on every set'**
+  String reasonEarnedLoad(int reps);
+
+  /// No description provided for @reasonEarnedLoadPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'you finished every set at the target'**
+  String get reasonEarnedLoadPlain;
+
+  /// No description provided for @reasonEarnedReps.
+  ///
+  /// In en, this message translates to:
+  /// **'you reached the top of the range on every set'**
+  String get reasonEarnedReps;
+
+  /// No description provided for @reasonEarnedHold.
+  ///
+  /// In en, this message translates to:
+  /// **'you held every set to the target'**
+  String get reasonEarnedHold;
+
+  /// No description provided for @reasonEarnedHarderVariant.
+  ///
+  /// In en, this message translates to:
+  /// **'reps have gone as far as they usefully can'**
+  String get reasonEarnedHarderVariant;
+
+  /// No description provided for @reasonRatedTooEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'you said it was too easy'**
+  String get reasonRatedTooEasy;
+
+  /// No description provided for @reasonFormBreakingDown.
+  ///
+  /// In en, this message translates to:
+  /// **'your form has slipped two sessions running'**
+  String get reasonFormBreakingDown;
+
+  /// No description provided for @reasonFormWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'your form slipped on this one, so Spottr is holding steady'**
+  String get reasonFormWatch;
+
+  /// No description provided for @reasonMissedReps.
+  ///
+  /// In en, this message translates to:
+  /// **'{reps} on your hardest set was short of the target'**
+  String reasonMissedReps(int reps);
+
+  /// No description provided for @reasonMissedRepsPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'you came up short of the target'**
+  String get reasonMissedRepsPlain;
+
+  /// No description provided for @reasonRatedTooHard.
+  ///
+  /// In en, this message translates to:
+  /// **'you said it was too hard'**
+  String get reasonRatedTooHard;
+
+  /// No description provided for @reasonAtCeiling.
+  ///
+  /// In en, this message translates to:
+  /// **'there is nothing harder in the catalog you can do with the equipment you have'**
+  String get reasonAtCeiling;
+
+  /// No description provided for @reasonHoldingSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'a solid session at the weight you are on'**
+  String get reasonHoldingSteady;
+
   /// No description provided for @swapTitle.
   ///
   /// In en, this message translates to:

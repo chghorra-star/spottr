@@ -524,4 +524,236 @@ void main() {
       }
     });
   });
+
+  group('applying progression', () {
+    /// The plan and the first exercise of its first day, which every case
+    /// below progresses one way or another.
+    ({WeekPlan plan, PlannedExercise first, int weekday}) start() {
+      final plan = generator.generate(request());
+      final day = plan.days.first;
+      return (plan: plan, first: day.exercises.first, weekday: day.weekday);
+    }
+
+    WeekPlan apply(
+      ({WeekPlan plan, PlannedExercise first, int weekday}) from,
+      ProgressionDecision decision,
+    ) =>
+        edits.applyProgression(
+          plan: from.plan,
+          weekday: from.weekday,
+          decisions: [decision],
+          request: request(),
+        );
+
+    test('a load increase lands on the target weight and nothing else', () {
+      final from = start();
+      final after = apply(
+        from,
+        ProgressionDecision(
+          exerciseId: from.first.exerciseId,
+          change: ProgressionChange.loadUp,
+          reason: ProgressionReason.earnedLoad,
+          nextWeightKg: 62.5,
+        ),
+      );
+
+      final updated = after.days.first.exercises.first;
+      expect(updated.targetWeightKg, 62.5);
+      expect(updated.exerciseId, from.first.exerciseId);
+      expect(updated.sets, from.first.sets);
+      expect(updated.repsMin, from.first.repsMin);
+      expect(updated.repsMax, from.first.repsMax);
+    });
+
+    test('a rep increase rewrites the range', () {
+      final from = start();
+      final after = apply(
+        from,
+        ProgressionDecision(
+          exerciseId: from.first.exerciseId,
+          change: ProgressionChange.repsUp,
+          reason: ProgressionReason.earnedReps,
+          nextRepsMin: 10,
+          nextRepsMax: 14,
+        ),
+      );
+
+      final updated = after.days.first.exercises.first;
+      expect(updated.repsMin, 10);
+      expect(updated.repsMax, 14);
+    });
+
+    test('a hold increase rewrites the seconds', () {
+      final plan = generator.generate(request());
+      final day = plan.days.firstWhere(
+        (d) => d.exercises.any((e) => e.metric == MetricType.holdSeconds),
+      );
+      final held = day.exercises
+          .firstWhere((e) => e.metric == MetricType.holdSeconds);
+
+      final after = edits.applyProgression(
+        plan: plan,
+        weekday: day.weekday,
+        decisions: [
+          ProgressionDecision(
+            exerciseId: held.exerciseId,
+            change: ProgressionChange.holdUp,
+            reason: ProgressionReason.earnedHold,
+            nextHoldSeconds: (held.holdSeconds ?? 0) + 5,
+          ),
+        ],
+        request: request(),
+      );
+
+      final updated = after.days
+          .firstWhere((d) => d.weekday == day.weekday)
+          .exercises
+          .firstWhere((e) => e.exerciseId == held.exerciseId);
+      expect(updated.holdSeconds, (held.holdSeconds ?? 0) + 5);
+    });
+
+    test('a variant change keeps the slot and re-prescribes the exercise', () {
+      final from = start();
+      final harder =
+          standardCatalog.require(from.first.exerciseId).harderId ??
+              standardCatalog.require(from.first.exerciseId).easierId;
+      expect(harder, isNotNull, reason: 'premise: the squat has a ladder');
+
+      final after = apply(
+        from,
+        ProgressionDecision(
+          exerciseId: from.first.exerciseId,
+          change: ProgressionChange.harderVariant,
+          reason: ProgressionReason.earnedHarderVariant,
+          nextExerciseId: harder,
+        ),
+      );
+
+      final updated = after.days.first.exercises.first;
+      expect(updated.exerciseId, harder);
+      expect(updated.slotPattern, from.first.slotPattern);
+      expect(updated.priority, from.first.priority);
+      expect(updated.sets, from.first.sets);
+      // A new exercise starts at its own prescription, not the old one's
+      // accumulated load.
+      expect(updated.targetWeightKg, isNull);
+    });
+
+    test('a variant the catalog does not know is ignored', () {
+      final from = start();
+      final after = apply(
+        from,
+        ProgressionDecision(
+          exerciseId: from.first.exerciseId,
+          change: ProgressionChange.harderVariant,
+          reason: ProgressionReason.earnedHarderVariant,
+          nextExerciseId: 'levitating_squat',
+        ),
+      );
+
+      expect(after.days.first.exercises.first, from.first);
+    });
+
+    test('a hold leaves the plan exactly as it was', () {
+      final from = start();
+      final after = apply(
+        from,
+        ProgressionDecision(
+          exerciseId: from.first.exerciseId,
+          change: ProgressionChange.hold,
+          reason: ProgressionReason.holdingSteady,
+        ),
+      );
+
+      expect(after, from.plan);
+    });
+
+    test('a decision about an exercise no longer there is ignored', () {
+      // The user can swap an exercise out between training it and finishing
+      // the session. That is not an error, it is just nothing to apply.
+      final from = start();
+      final after = apply(
+        from,
+        const ProgressionDecision(
+          exerciseId: 'seated_calf_raise',
+          change: ProgressionChange.loadUp,
+          reason: ProgressionReason.earnedLoad,
+          nextWeightKg: 40,
+        ),
+      );
+
+      expect(after, from.plan);
+    });
+
+    test('progression never changes how much work a day holds', () {
+      final from = start();
+      final after = edits.applyProgression(
+        plan: from.plan,
+        weekday: from.weekday,
+        decisions: [
+          for (final exercise in from.plan.days.first.exercises)
+            ProgressionDecision(
+              exerciseId: exercise.exerciseId,
+              change: ProgressionChange.loadUp,
+              reason: ProgressionReason.earnedLoad,
+              nextWeightKg: 100,
+            ),
+        ],
+        request: request(),
+      );
+
+      final before = from.plan.days.first;
+      final day = after.days.first;
+      expect(day.exercises.map((e) => e.exerciseId),
+          before.exercises.map((e) => e.exerciseId));
+      expect(day.exercises.map((e) => e.sets), before.exercises.map((e) => e.sets));
+    });
+
+    test('other days are left alone', () {
+      final from = start();
+      final after = apply(
+        from,
+        ProgressionDecision(
+          exerciseId: from.first.exerciseId,
+          change: ProgressionChange.loadUp,
+          reason: ProgressionReason.earnedLoad,
+          nextWeightKg: 62.5,
+        ),
+      );
+
+      expect(after.days.skip(1).toList(), from.plan.days.skip(1).toList());
+    });
+
+    test('applying the same decisions twice changes nothing more', () {
+      final from = start();
+      final decision = ProgressionDecision(
+        exerciseId: from.first.exerciseId,
+        change: ProgressionChange.loadUp,
+        reason: ProgressionReason.earnedLoad,
+        nextWeightKg: 62.5,
+      );
+      final once = apply(from, decision);
+      final twice = edits.applyProgression(
+        plan: once,
+        weekday: from.weekday,
+        decisions: [decision],
+        request: request(),
+      );
+
+      expect(twice, once);
+    });
+
+    test('an unknown weekday is a mistake, not a silent no-op', () {
+      final from = start();
+      expect(
+        () => edits.applyProgression(
+          plan: from.plan,
+          weekday: 99,
+          decisions: const [],
+          request: request(),
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
 }

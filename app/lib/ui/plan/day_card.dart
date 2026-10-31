@@ -6,6 +6,7 @@ import '../../di/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/plan_strings.dart';
 import '../common/ui_keys.dart';
+import '../session/session_screen.dart';
 import 'move_day_sheet.dart';
 import 'reorder_day_screen.dart';
 import 'swap_sheet.dart';
@@ -21,6 +22,12 @@ class DayCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+
+    // One workout at a time: a day card either offers to start this session,
+    // offers to pick it back up, or says that another one is still open.
+    final active = ref.watch(activeSessionProvider).value;
+    final isThisDay = active?.weekday == day.weekday;
+    final blocked = active != null && !isThisDay;
 
     return Card(
       key: UiKeys.planDay(day.weekday),
@@ -95,8 +102,49 @@ class DayCard extends ConsumerWidget {
                     .require(exercise.exerciseId)
                     .isCameraSupported,
               ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Tooltip(
+                  message: blocked ? l10n.planSessionElsewhere : '',
+                  child: FilledButton.tonalIcon(
+                    key: UiKeys.planDayStart(day.weekday),
+                    onPressed:
+                        blocked ? null : () => _open(context, ref, isThisDay),
+                    icon: Icon(
+                      isThisDay
+                          ? Icons.play_circle_outline
+                          : Icons.fitness_center,
+                      size: 18,
+                    ),
+                    label: Text(
+                      isThisDay ? l10n.planActionResume : l10n.planActionStart,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Opens the logging screen, starting a session first unless this day's
+  /// session is the one already running.
+  Future<void> _open(
+    BuildContext context,
+    WidgetRef ref,
+    bool alreadyRunning,
+  ) async {
+    final navigator = Navigator.of(context);
+    if (!alreadyRunning) {
+      await ref.read(sessionControllerProvider).start(day.weekday);
+    }
+    await navigator.push(
+      MaterialPageRoute<void>(
+        builder: (context) => SessionScreen(weekday: day.weekday),
       ),
     );
   }

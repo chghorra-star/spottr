@@ -198,6 +198,87 @@ void main() {
     expect(seen.last, plan);
   });
 
+  group('the target weight', () {
+    test('survives a round trip once progression has set one', () async {
+      final plan = generate(onboardedProfile());
+      final day = plan.days.first;
+      final progressed = plan.copyWith(
+        days: [
+          day.copyWith(
+            exercises: [
+              day.exercises.first.copyWith(targetWeightKg: 62.5),
+              ...day.exercises.skip(1),
+            ],
+          ),
+          ...plan.days.skip(1),
+        ],
+      );
+
+      await repository.saveRevision(progressed);
+
+      final loaded = await repository.loadActive();
+      expect(loaded!.days.first.exercises.first.targetWeightKg, 62.5);
+    });
+
+    test('is null on a freshly generated plan', () async {
+      // What somebody should squat is not derivable from a questionnaire.
+      await repository.saveRevision(generate(onboardedProfile()));
+
+      final loaded = await repository.loadActive();
+      expect(
+        loaded!.allExercises.map((e) => e.targetWeightKg),
+        everyElement(isNull),
+      );
+    });
+  });
+
+  group('the storage identity of a day', () {
+    test('names the day row and every exercise row in it', () async {
+      final plan = generate(onboardedProfile());
+      await repository.saveRevision(plan);
+      final day = plan.days.first;
+
+      final ref = await repository.dayRef(weekday: day.weekday);
+
+      expect(ref, isNotNull);
+      expect(ref!.weekday, day.weekday);
+      expect(ref.planId, 'rev1');
+      expect(
+        ref.exerciseRowIds.keys,
+        containsAll(day.exercises.map((e) => e.exerciseId)),
+      );
+      for (final rowId in ref.exerciseRowIds.values) {
+        expect(rowId, startsWith('rev1_d${day.weekday}'));
+      }
+    });
+
+    test('follows the active revision, never a replaced one', () async {
+      // A session log that attached itself to a superseded revision would
+      // point at a prescription the user is no longer being given.
+      final profile = onboardedProfile();
+      await repository.saveRevision(generate(profile));
+      final weekday = (await repository.loadActive())!.days.first.weekday;
+      await repository.saveRevision(generate(profile));
+
+      final ref = await repository.dayRef(weekday: weekday);
+      expect(ref!.planId, 'rev2');
+    });
+
+    test('a weekday with no session has no reference', () async {
+      final plan = generate(onboardedProfile());
+      await repository.saveRevision(plan);
+      final free = [1, 2, 3, 4, 5, 6, 7].firstWhere(
+        (day) => !plan.days.map((d) => d.weekday).contains(day),
+      );
+
+      expect(await repository.dayRef(weekday: free), isNull);
+    });
+
+    test('there is no reference before there is a plan', () async {
+      expect(await repository.dayRef(weekday: 1), isNull);
+    });
+  });
+
   test('a save stamps every row for sync', () async {
     final repository = PlanRepository(
       db,

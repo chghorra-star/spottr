@@ -6,6 +6,7 @@ import 'package:plan_engine/plan_engine.dart';
 import 'package:spottr/app.dart';
 import 'package:spottr/di/providers.dart';
 import 'package:spottr/domain/user_profile.dart';
+import 'package:spottr/domain/workout_session.dart';
 import 'package:spottr/l10n/app_localizations.dart';
 import 'package:spottr/theme/app_theme.dart';
 
@@ -20,8 +21,10 @@ Future<void> pumpApp(
   WidgetTester tester, {
   UserProfile? profile,
   WeekPlan? plan,
+  WorkoutSession? session,
   Stream<UserProfile?> Function()? profileStream,
   Stream<WeekPlan?> Function()? planStream,
+  Stream<WorkoutSession?> Function()? sessionStream,
   List<Override> overrides = const [],
   bool settled = true,
 }) async {
@@ -40,9 +43,53 @@ Future<void> pumpApp(
         activePlanProvider.overrideWith(
           (ref) => (planStream ?? () => Stream.value(plan))(),
         ),
+        activeSessionProvider.overrideWith(
+          (ref) => (sessionStream ?? () => Stream.value(session))(),
+        ),
         ...overrides,
       ],
       child: const SpottrApp(),
+    ),
+  );
+  if (settled) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
+}
+
+/// Mounts one screen as the whole app, with the data layer stubbed out.
+///
+/// For screens the app reaches by pushing a route: mounting them directly
+/// keeps the test about that screen instead of about the taps that lead to
+/// it, which are covered where those taps live.
+Future<void> pumpScreen(
+  WidgetTester tester,
+  Widget screen, {
+  WeekPlan? plan,
+  WorkoutSession? session,
+  Stream<WeekPlan?> Function()? planStream,
+  Stream<WorkoutSession?> Function()? sessionStream,
+  List<Override> overrides = const [],
+  bool settled = true,
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        activePlanProvider.overrideWith(
+          (ref) => (planStream ?? () => Stream.value(plan))(),
+        ),
+        activeSessionProvider.overrideWith(
+          (ref) => (sessionStream ?? () => Stream.value(session))(),
+        ),
+        ...overrides,
+      ],
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: AppTheme.dark,
+        home: screen,
+      ),
     ),
   );
   if (settled) {

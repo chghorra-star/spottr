@@ -2,12 +2,37 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:exercise_library/exercise_library.dart';
+import 'package:meta/meta.dart';
 import 'package:plan_engine/plan_engine.dart';
 
 import '../domain/user_profile.dart';
 import 'local/codecs.dart';
 import 'local/database.dart';
 import 'profile_repository.dart';
+
+/// Where one day of the active plan revision lives in storage.
+///
+/// Row ids, not plan content: this exists so a session log can name the
+/// prescription it was performed against.
+@immutable
+class PlanDayRef {
+  const PlanDayRef({
+    required this.planId,
+    required this.dayId,
+    required this.weekday,
+    required this.exerciseRowIds,
+  });
+
+  final String planId;
+  final String dayId;
+  final int weekday;
+
+  /// Catalog id to `plan_exercises.id`, for this day of this revision.
+  final Map<String, String> exerciseRowIds;
+
+  @override
+  String toString() => 'PlanDayRef($dayId, weekday $weekday)';
+}
 
 /// Stores generated and edited week plans.
 ///
@@ -120,6 +145,7 @@ class PlanRepository {
                     targetRepsMin: Value(exercise.repsMin),
                     targetRepsMax: Value(exercise.repsMax),
                     targetHoldSeconds: Value(exercise.holdSeconds),
+                    targetWeightKg: Value(exercise.targetWeightKg),
                     updatedAt: Value(timestamp),
                   ),
                 );
@@ -128,6 +154,48 @@ class PlanRepository {
 
         return planId;
       });
+
+  /// The storage identity of one day of the active revision.
+  ///
+  /// A [WeekPlan] is a pure engine value and deliberately carries no row
+  /// ids, but a session log has to point at the exact prescription it was
+  /// performed against. This is the one place that translates between the
+  /// two, and it reads the active revision so a log can never attach itself
+  /// to a plan the user has already replaced.
+  Future<PlanDayRef?> dayRef({
+    required int weekday,
+    String profileId = UserProfile.localId,
+  }) async {
+    final plan = await _activeQuery(profileId).getSingleOrNull();
+    if (plan == null) return null;
+
+    final day = await (_db.select(_db.planDays)
+          ..where(
+            (row) =>
+                row.planId.equals(plan.id) &
+                row.weekday.equals(weekday) &
+                row.deletedAt.isNull(),
+          )
+          ..limit(1))
+        .getSingleOrNull();
+    if (day == null) return null;
+
+    final exercises = await (_db.select(_db.planExercises)
+          ..where(
+            (row) => row.planDayId.equals(day.id) & row.deletedAt.isNull(),
+          )
+          ..orderBy([(row) => OrderingTerm.asc(row.orderIndex)]))
+        .get();
+
+    return PlanDayRef(
+      planId: plan.id,
+      dayId: day.id,
+      weekday: weekday,
+      exerciseRowIds: {
+        for (final row in exercises) row.exerciseId: row.id,
+      },
+    );
+  }
 
   SingleOrNullSelectable<PlanRow> _activeQuery(String profileId) =>
       _db.select(_db.plans)
@@ -192,6 +260,7 @@ class PlanRepository {
                 repsMin: row.targetRepsMin,
                 repsMax: row.targetRepsMax,
                 holdSeconds: row.targetHoldSeconds,
+                targetWeightKg: row.targetWeightKg,
               ),
           ],
         ),

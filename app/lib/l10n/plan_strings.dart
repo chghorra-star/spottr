@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:plan_engine/plan_engine.dart';
 
 import '../domain/user_profile.dart';
+import '../domain/workout_session.dart';
 import 'app_localizations.dart';
 
 /// Turns the identifiers the catalog and the plan engine deal in into text
@@ -279,6 +280,91 @@ class PlanStrings {
   String _dayName(PlanNote note) => note.weekday == null
       ? dayType(_dayTypeNamed(note.detail))
       : weekday(note.weekday!);
+
+  /// How a session felt, as the user is offered it.
+  String rating(SessionRating value) => switch (value) {
+        SessionRating.tooEasy => l10n.ratingTooEasy,
+        SessionRating.right => l10n.ratingRight,
+        SessionRating.tooHard => l10n.ratingTooHard,
+      };
+
+  String ratingDetail(SessionRating value) => switch (value) {
+        SessionRating.tooEasy => l10n.ratingTooEasyDetail,
+        SessionRating.right => l10n.ratingRightDetail,
+        SessionRating.tooHard => l10n.ratingTooHardDetail,
+      };
+
+  /// One line for a progression decision: what changes, then why.
+  ///
+  /// Assembled from two halves rather than written out per combination.
+  /// Seven changes times twelve reasons is eighty-four sentences nobody
+  /// would keep correct; this way each idea is worded once.
+  String progression(ProgressionDecision value) =>
+      l10n.sessionSummaryLine(_change(value), _reason(value));
+
+  /// A weight as a human writes it: 60 rather than 60.0, 62.5 as it is.
+  String weight(double value) =>
+      value == value.roundToDouble() ? '${value.round()}' : '$value';
+
+  String _change(ProgressionDecision value) => switch (value.change) {
+        ProgressionChange.loadUp =>
+          l10n.progressionWeightUp(weight(value.nextWeightKg!)),
+        ProgressionChange.loadDown =>
+          l10n.progressionWeightDown(weight(value.nextWeightKg!)),
+        ProgressionChange.repsUp =>
+          l10n.progressionRepsUp(value.nextRepsMin!, value.nextRepsMax!),
+        ProgressionChange.holdUp =>
+          l10n.progressionHoldUp(value.nextHoldSeconds!),
+        ProgressionChange.harderVariant =>
+          l10n.progressionMovingUp(exercise(value.nextExerciseId!)),
+        ProgressionChange.easierVariant =>
+          l10n.progressionMovingDown(exercise(value.nextExerciseId!)),
+        ProgressionChange.hold => l10n.progressionUnchanged,
+      };
+
+  /// The why, with the form score folded in when there is one.
+  ///
+  /// There never is one before the camera lands, which is why the score is a
+  /// suffix rather than part of every sentence.
+  String _reason(ProgressionDecision value) {
+    final reps = value.repsAchieved;
+    final base = switch (value.reason) {
+      ProgressionReason.painReported => l10n.reasonPainReported,
+      ProgressionReason.sessionIncomplete => l10n.reasonSessionIncomplete,
+      ProgressionReason.earnedLoad => reps == null
+          ? l10n.reasonEarnedLoadPlain
+          : l10n.reasonEarnedLoad(reps),
+      ProgressionReason.earnedReps => l10n.reasonEarnedReps,
+      ProgressionReason.earnedHold => l10n.reasonEarnedHold,
+      ProgressionReason.earnedHarderVariant =>
+        l10n.reasonEarnedHarderVariant,
+      ProgressionReason.ratedTooEasy => l10n.reasonRatedTooEasy,
+      ProgressionReason.formBreakingDown => l10n.reasonFormBreakingDown,
+      ProgressionReason.formWatch => l10n.reasonFormWatch,
+      ProgressionReason.missedReps => reps == null
+          ? l10n.reasonMissedRepsPlain
+          : l10n.reasonMissedReps(reps),
+      ProgressionReason.ratedTooHard => l10n.reasonRatedTooHard,
+      ProgressionReason.atCeiling => l10n.reasonAtCeiling,
+      ProgressionReason.holdingSteady => l10n.reasonHoldingSteady,
+    };
+
+    final score = value.meanFormScore;
+    return score == null
+        ? base
+        : l10n.progressionFormSuffix(base, score.round());
+  }
+
+  /// One set as it was logged, for the list of what is already done.
+  String loggedSet(LoggedSet value) {
+    final seconds = value.holdSeconds;
+    if (seconds != null) return l10n.sessionLoggedSetHold(seconds);
+    final reps = value.reps ?? 0;
+    final load = value.weightKg;
+    return load == null
+        ? l10n.sessionLoggedSetReps(reps)
+        : l10n.sessionLoggedSetRepsWeighted(reps, weight(load));
+  }
 
   /// Sets and reps, or sets and a hold.
   String prescription(PlannedExercise value) =>
