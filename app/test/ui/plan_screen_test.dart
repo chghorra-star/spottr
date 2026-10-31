@@ -190,10 +190,14 @@ void main() {
       expect(find.byKey(UiKeys.planNotes), findsNothing);
     });
 
-    testWidgets('shows running suggestions for a hybrid week',
+    testWidgets('shows a running suggestion against each run day',
         (tester) async {
-      final profile = onboardedProfile(goal: Goal.hybrid, runWeekdays: {6});
+      // The generator emits the same suggestion once per run day, so the
+      // day has to be on the line: otherwise the section is one sentence
+      // printed twice, which is what it looked like on a device.
+      final profile = onboardedProfile(goal: Goal.hybrid, runWeekdays: {3, 6});
       final plan = planFor(profile);
+      expect(plan.runSuggestionKeys, hasLength(2));
 
       await start(tester, profile: profile, plan: plan);
       await tester.scrollUntilVisible(
@@ -203,10 +207,16 @@ void main() {
       );
 
       expect(find.byKey(UiKeys.planRunSuggestions), findsOneWidget);
-      expect(
-        find.text(strings.runSuggestion(plan.runSuggestionKeys.first)),
-        findsWidgets,
-      );
+      for (final weekday in [3, 6]) {
+        expect(
+          find.text(
+            '${strings.weekday(weekday)} · '
+            '${strings.runSuggestion(plan.runSuggestionKeys.first)}',
+          ),
+          findsOneWidget,
+          reason: 'no suggestion against weekday $weekday',
+        );
+      }
     });
 
     testWidgets('shows no running section for a gym-only week',

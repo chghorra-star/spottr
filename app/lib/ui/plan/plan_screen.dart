@@ -87,10 +87,7 @@ class _PlanBody extends ConsumerWidget {
             child: _Section(
               key: UiKeys.planRunSuggestions,
               title: l10n.planRunSuggestionsTitle,
-              lines: [
-                for (final key in plan.runSuggestionKeys)
-                  strings.runSuggestion(key),
-              ],
+              lines: _runLines(strings),
             ),
           ),
         if (plan.notes.isNotEmpty)
@@ -104,6 +101,23 @@ class _PlanBody extends ConsumerWidget {
         const SliverToBoxAdapter(child: SizedBox(height: 32)),
       ],
     );
+  }
+
+  /// One line per run day, each naming its day.
+  ///
+  /// The generator emits one suggestion per run day and, at a given
+  /// experience level, they are the same suggestion — so without the day in
+  /// front of it the section reads as the same sentence printed twice.
+  List<String> _runLines(PlanStrings strings) {
+    final days = plan.runWeekdays.toList()..sort();
+    return [
+      for (var index = 0; index < plan.runSuggestionKeys.length; index++)
+        if (index < days.length)
+          '${strings.weekday(days[index])} · '
+              '${strings.runSuggestion(plan.runSuggestionKeys[index])}'
+        else
+          strings.runSuggestion(plan.runSuggestionKeys[index]),
+    ];
   }
 
   /// Rebuilding discards every swap and reorder, so it asks first.
