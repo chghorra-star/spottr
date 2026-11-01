@@ -120,6 +120,12 @@ String renderReport(HarnessReport report) {
     ];
     lines.add('  fired       ${parts.join(', ')}');
   }
+  if (report.cues > 0) {
+    lines.add(
+      '  said        ${report.cues} times across the run, one every '
+      '${report.secondsPerCue.toStringAsFixed(0)}s of movement',
+    );
+  }
   final unexpected = {
     for (final result in report.results) ...result.unexpectedFaults,
   };

@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 import 'package:pose_core/pose_core.dart';
 
 import 'counter_catalog.dart';
+import 'cue_engine.dart';
 import 'counter_config.dart';
 import 'form_catalog.dart';
 import 'form_rule.dart';
@@ -32,12 +33,22 @@ const Duration defaultTopDwell = Duration(seconds: 1);
 @immutable
 class CoachTick {
   const CoachTick({
+    required this.t,
     required this.counter,
     required this.live,
     required this.review,
     this.completed,
     this.last,
+    this.cue,
   });
+
+  /// Elapsed time since the set started, from the frame this was made of.
+  ///
+  /// Carried because everything downstream of the analyzer needs a clock and
+  /// none of them may use a real one: the cue engine has to behave the same
+  /// replaying a fixture as it does in a gym, and a wall clock would make
+  /// those two runs differ.
+  final Duration t;
 
   /// What the rep or hold counter made of this frame.
   final CounterTick counter;
@@ -57,6 +68,12 @@ class CoachTick {
 
   /// The set so far, including the number the progression table reads.
   final SetReview review;
+
+  /// The one thing worth saying out loud about this frame, or nothing.
+  ///
+  /// Nothing, on almost every frame. Deciding what **not** to say is the
+  /// whole of [CueEngine]'s job.
+  final Cue? cue;
 }
 
 /// Runs the counter and the form rules over one set.
@@ -78,12 +95,21 @@ class FormAnalyzer {
     Map<String, CounterConfig> counters = counterCatalog,
     this.liveWindow = defaultLiveWindow,
     this.topDwell = defaultTopDwell,
-  })  : angle = angle ?? exercise.camera?.recommendedAngle ?? CameraAngle.side,
+    int? targetReps,
+    Duration? targetHold,
+    CueBudget budget = const CueBudget(),
+  })  : cues = CueEngine(
+          targetReps: targetReps,
+          targetHold: targetHold,
+          budget: budget,
+        ),
+        angle = angle ?? exercise.camera?.recommendedAngle ?? CameraAngle.side,
         selection = rulesFor(exercise, angle: angle, rules: rules),
         config = _configFor(exercise, counters) {
     _counter = SetCounter.of(config);
     _review = SetReview(exerciseId: exercise.id, reps: const []);
     _tick = CoachTick(
+      t: Duration.zero,
       counter: _counter.tick,
       live: FormVerdict.nothing,
       review: _review,
@@ -101,6 +127,13 @@ class FormAnalyzer {
   final CounterConfig config;
   final Duration liveWindow;
   final Duration topDwell;
+
+  /// What the coach is allowed to say about this set.
+  ///
+  /// Owned here rather than beside the analyzer for the reason the counter
+  /// is: it is stateful, it is per set, and a second object deciding
+  /// separately when a rep ended is a second object that can disagree.
+  final CueEngine cues;
 
   late final SetCounter _counter;
 
@@ -157,18 +190,32 @@ class FormAnalyzer {
 
     if (completed != null) _last = completed;
 
-    return _tick = CoachTick(
+    final tick = CoachTick(
+      t: frame.t,
       counter: counterTick,
       live: live,
       completed: completed,
       last: _last,
       review: _review,
     );
+    // The cue engine reads the finished tick rather than the half-built
+    // state behind it, so that what it decides from is exactly what the
+    // screen is showing.
+    return _tick = CoachTick(
+      t: tick.t,
+      counter: tick.counter,
+      live: tick.live,
+      completed: tick.completed,
+      last: tick.last,
+      review: tick.review,
+      cue: cues.update(tick),
+    );
   }
 
   /// Back to the start of a set.
   void reset() {
     _counter.reset();
+    cues.reset();
     _rep.clear();
     _live.clear();
     _reps.clear();
@@ -176,6 +223,7 @@ class FormAnalyzer {
     _last = null;
     _review = SetReview(exerciseId: exercise.id, reps: const []);
     _tick = CoachTick(
+      t: Duration.zero,
       counter: _counter.tick,
       live: FormVerdict.nothing,
       review: _review,
@@ -425,11 +473,17 @@ class CoachStream extends StreamTransformerBase<PoseFrame, CoachTick> {
     required this.exercise,
     this.angle,
     this.liveWindow = defaultLiveWindow,
+    this.targetReps,
+    this.targetHold,
   });
 
   final Exercise exercise;
   final CameraAngle? angle;
   final Duration liveWindow;
+
+  /// What the set was prescribed, so the coach can call it when it lands.
+  final int? targetReps;
+  final Duration? targetHold;
 
   @override
   Stream<CoachTick> bind(Stream<PoseFrame> stream) {
@@ -437,6 +491,8 @@ class CoachStream extends StreamTransformerBase<PoseFrame, CoachTick> {
       exercise: exercise,
       angle: angle,
       liveWindow: liveWindow,
+      targetReps: targetReps,
+      targetHold: targetHold,
     );
     return stream.map(analyzer.update);
   }

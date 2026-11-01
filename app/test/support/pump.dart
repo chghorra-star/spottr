@@ -67,6 +67,7 @@ Future<void> pumpApp(
 Future<void> pumpScreen(
   WidgetTester tester,
   Widget screen, {
+  UserProfile? profile,
   WeekPlan? plan,
   WorkoutSession? session,
   Stream<WeekPlan?> Function()? planStream,
@@ -78,6 +79,11 @@ Future<void> pumpScreen(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        // Stubbed even when a screen does not obviously read it: the coach
+        // reads the user's coach style, and a widget test that resolved
+        // this for real would open SQLite — which this file exists to
+        // avoid.
+        profileProvider.overrideWith((ref) => Stream.value(profile)),
         activePlanProvider.overrideWith(
           (ref) => (planStream ?? () => Stream.value(plan))(),
         ),

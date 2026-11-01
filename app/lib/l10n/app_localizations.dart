@@ -1489,7 +1489,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachOpen.
   ///
   /// In en, this message translates to:
-  /// **'Camera check'**
+  /// **'Coach this set'**
   String get coachOpen;
 
   /// No description provided for @coachDone.
@@ -1761,6 +1761,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spottr has no rep counter for this movement.'**
   String get coachCounterUnavailable;
+
+  /// No description provided for @coachReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready when you are.'**
+  String get coachReady;
+
+  /// No description provided for @coachStartSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Start set'**
+  String get coachStartSet;
+
+  /// No description provided for @coachStopSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop set'**
+  String get coachStopSet;
+
+  /// No description provided for @coachSetOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Set {number} of {total}'**
+  String coachSetOf(int number, int total);
+
+  /// No description provided for @coachSaveSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this set'**
+  String get coachSaveSet;
+
+  /// No description provided for @coachDiscardSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get coachDiscardSet;
+
+  /// No description provided for @coachSetSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to your session.'**
+  String get coachSetSaved;
+
+  /// No description provided for @coachSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'That set could not be saved.'**
+  String get coachSaveFailed;
+
+  /// No description provided for @coachNothingCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing counted, so there is nothing to save.'**
+  String get coachNothingCounted;
+
+  /// No description provided for @coachSummaryReps.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rep} other{{count} reps}}'**
+  String coachSummaryReps(int count);
+
+  /// No description provided for @coachSummaryHold.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} seconds'**
+  String coachSummaryHold(int seconds);
+
+  /// No description provided for @coachSummaryAt.
+  ///
+  /// In en, this message translates to:
+  /// **'at {weight}'**
+  String coachSummaryAt(String weight);
+
+  /// No description provided for @coachSummaryScore.
+  ///
+  /// In en, this message translates to:
+  /// **'form {score}'**
+  String coachSummaryScore(int score);
+
+  /// No description provided for @coachSummaryNoScore.
+  ///
+  /// In en, this message translates to:
+  /// **'no form score'**
+  String get coachSummaryNoScore;
+
+  /// No description provided for @coachMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute the coach'**
+  String get coachMute;
+
+  /// No description provided for @coachUnmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the coach speak'**
+  String get coachUnmute;
+
+  /// No description provided for @coachSpeaking.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach is speaking'**
+  String get coachSpeaking;
+
+  /// No description provided for @coachTargetHype.
+  ///
+  /// In en, this message translates to:
+  /// **'That is the set. Great work.'**
+  String get coachTargetHype;
+
+  /// No description provided for @coachTargetCalm.
+  ///
+  /// In en, this message translates to:
+  /// **'That is your target. Nicely done.'**
+  String get coachTargetCalm;
+
+  /// No description provided for @coachTargetTough.
+  ///
+  /// In en, this message translates to:
+  /// **'Target hit.'**
+  String get coachTargetTough;
 
   /// No description provided for @coachFormUntested.
   ///

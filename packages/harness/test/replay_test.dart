@@ -340,4 +340,37 @@ void main() {
       expect(report.faultFailures, isEmpty);
     });
   });
+
+  group('what the coach would have said', () {
+    test('a clean set is coached in silence', () {
+      expect(replay(_named('squat_clean_8')).cues, isEmpty);
+      expect(replay(_named('plank_30s')).cues, isEmpty);
+    });
+
+    test('a repeated fault is said out loud, and not on every rep', () {
+      final result = replay(_named('squat_shallow_6'));
+
+      expect(result.cues, isNotEmpty);
+      expect(result.cues.length, lessThan(result.countedReps!));
+    });
+
+    test('the one thing that stops a set is said more than once', () {
+      final rounding = replay(_named('hinge_rounded_6'));
+
+      expect(
+        rounding.cues.whereType<RuleCue>().map((cue) => cue.ruleId).toSet(),
+        {'back_rounding'},
+      );
+      expect(rounding.cues.length, greaterThan(1));
+    });
+
+    test('the run reports how much talking it did', () {
+      final report = runFixtures(syntheticSuite());
+
+      expect(report.cues, greaterThan(0));
+      // Seconds of movement per thing said. Not gated on: what counts as
+      // too much talking is a judgement about a person.
+      expect(report.secondsPerCue, greaterThan(5));
+    });
+  });
 }

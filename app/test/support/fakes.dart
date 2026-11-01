@@ -1,5 +1,7 @@
+import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_core/pose_core.dart';
 import 'package:spottr/domain/user_profile.dart';
 import 'package:spottr/state/plan_controller.dart';
 import 'package:spottr/state/profile_controller.dart';
@@ -31,6 +33,7 @@ class RecordingSessionController implements SessionController {
     this.decisions = const [],
     this.onStart,
     this.onFinish,
+    this.onLogSet,
   });
 
   /// What [finish] reports back, so a test can check the summary renders it.
@@ -42,6 +45,10 @@ class RecordingSessionController implements SessionController {
   /// Lets a test end the session the screen is watching, which is what the
   /// real one does — and what the screen has to survive.
   final Future<void> Function()? onFinish;
+
+  /// Lets a test make saving fail, which the coach screen has to show
+  /// rather than swallow.
+  final Future<void> Function()? onLogSet;
 
   final List<PlanEditCall> calls = [];
 
@@ -59,7 +66,10 @@ class RecordingSessionController implements SessionController {
     int? reps,
     int? holdSeconds,
     double? weightKg,
+    SetReview? review,
+    CameraAngle? cameraAngle,
   }) async {
+    if (onLogSet != null) await onLogSet!();
     calls.add(
       PlanEditCall('logSet', {
         'exerciseId': exerciseId,
@@ -67,6 +77,9 @@ class RecordingSessionController implements SessionController {
         'reps': reps,
         'holdSeconds': holdSeconds,
         'weightKg': weightKg,
+        'formScore': review?.formScore,
+        'ledger': review?.reps.length,
+        'cameraAngle': cameraAngle?.name,
       }),
     );
   }

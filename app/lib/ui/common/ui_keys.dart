@@ -77,6 +77,16 @@ abstract final class UiKeys {
   static const Key coachForm = Key('spottr.coach.form');
   static const Key coachFormScore = Key('spottr.coach.form.score');
   static const Key coachFormUnchecked = Key('spottr.coach.form.unchecked');
+  static const Key coachHeading = Key('spottr.coach.heading');
+  static const Key coachMute = Key('spottr.coach.mute');
+  static const Key coachStart = Key('spottr.coach.start');
+  static const Key coachStop = Key('spottr.coach.stop');
+  static const Key coachPain = Key('spottr.coach.pain');
+  static const Key coachPainConfirm = Key('spottr.coach.pain.confirm');
+  static const Key coachSave = Key('spottr.coach.save');
+  static const Key coachSaved = Key('spottr.coach.saved');
+  static const Key coachSaveError = Key('spottr.coach.save.error');
+  static const Key coachSummary = Key('spottr.coach.summary');
 
   /// A choice within a question, e.g. one goal or one injury site.
 

@@ -443,13 +443,35 @@ class PlanStrings {
   /// Every outcome has a sentence, including the ones that counted. A rep
   /// the user felt and the counter rejected has to come back with the
   /// reason, or the only available conclusion is that the app is broken.
-  String repVerdict(RepEvent event) => switch (event.fault) {
-        null => l10n.coachRepGood,
+  String repVerdict(RepEvent event) {
+    final fault = event.fault;
+    return fault == null ? l10n.coachRepGood : repFault(fault);
+  }
+
+  /// Why an attempt was flagged or refused.
+  String repFault(RepFault fault) => switch (fault) {
         RepFault.shallow => l10n.coachRepShallow,
         RepFault.partialRange => l10n.coachRepPartial,
         RepFault.tooFast => l10n.coachRepTooFast,
         RepFault.timedOut => l10n.coachRepTimedOut,
         RepFault.lostTracking => l10n.coachRepLostTracking,
+      };
+
+  /// What the coach says out loud about one cue.
+  ///
+  /// The style selects wording only for the cues that are encouragement
+  /// rather than instruction. A rule's advice is the same sentence in every
+  /// style, because "your hips are dropping" has no hype version that is
+  /// still true, and three wordings of seventeen rules would be fifty-one
+  /// sentences nobody could keep accurate.
+  String cue(Cue value, CoachStyle style) => switch (value) {
+        RuleCue(:final ruleId) => ruleAdvice(ruleId),
+        RepCue(:final fault) => repFault(fault),
+        TargetCue() => switch (style) {
+            CoachStyle.hype => l10n.coachTargetHype,
+            CoachStyle.calm => l10n.coachTargetCalm,
+            CoachStyle.tough => l10n.coachTargetTough,
+          },
       };
 
   /// Whether a hold's clock is running, and why not.

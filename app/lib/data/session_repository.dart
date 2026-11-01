@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:coach_engine/coach_engine.dart';
 import 'package:drift/drift.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_core/pose_core.dart';
 
 import '../domain/workout_session.dart';
 import 'local/codecs.dart';
@@ -134,6 +136,8 @@ class SessionRepository {
     int? holdSeconds,
     double? weightKg,
     double? formScore,
+    CameraAngle? cameraAngle,
+    List<RepReview> ledger = const [],
   }) async {
     if (reps == null && holdSeconds == null) {
       throw ArgumentError('A logged set is either reps or a hold');
@@ -153,10 +157,41 @@ class SessionRepository {
             weightKg: Value(weightKg),
             holdSeconds: Value(holdSeconds),
             formScore: Value(formScore),
+            cameraAngle: Value(cameraAngle?.name),
             updatedAt: Value(_now()),
           ),
         );
+    if (ledger.isNotEmpty) await _logLedger(id, ledger);
     return id;
+  }
+
+  /// Every attempt the counter saw, counted or not.
+  ///
+  /// The rejected ones are the point. They are the only record of what the
+  /// user did that the app declined to count, which is what a later pass
+  /// would need to find out whether declining was right.
+  ///
+  /// Form rule firings are **not** written. The table for them wants a
+  /// magnitude — how far outside its bound a rule was — and no rule
+  /// computes one yet, so a row would have to invent the one column that
+  /// makes it worth keeping.
+  Future<void> _logLedger(String setLogId, List<RepReview> ledger) async {
+    await _db.batch((batch) {
+      batch.insertAll(_db.repLogs, [
+        for (final rep in ledger)
+          RepLogsCompanion.insert(
+            id: _newId(),
+            setLogId: setLogId,
+            repIndex: rep.event.index,
+            counted: rep.event.counted,
+            durationMs: rep.event.duration.inMilliseconds,
+            rejectionReason: Value(rep.event.fault?.name),
+            peakAngle: Value(rep.event.peakAngle),
+            rangeOfMotion: Value(rep.event.rangeOfMotion),
+            formScore: Value(rep.score),
+          ),
+      ]);
+    });
   }
 
   /// Records that something hurt.

@@ -309,9 +309,9 @@ forever instead of as the version skew it is, so the decoder throws.
 ## The coach screen claims exactly what it does
 
 The screen is still a setup screen first: where to put the phone, and
-whether it can see you. From M5 it counts and from M6 it judges, and it says
-both — and says what it is still not doing. Three claims, all pinned by
-test.
+whether it can see you. From M5 it counts, from M6 it judges, and from M7 it
+talks and logs — and it still says what it is not doing. Three claims, all
+pinned by test.
 
 The standing one: Spottr flags risky movement, cannot see everything, and
 cannot guarantee you will not get hurt.
@@ -737,22 +737,123 @@ every unit test either way. It is worth noticing that this shape has now come
 up twice, and that both times the thing that caught it was replaying the same
 movement under two conditions rather than asserting a property of one.
 
+## Running a set
+
+From M7 the coach screen is a set runner, and the set is a thing with a
+beginning: nothing counts until the user taps start. A counter that ran from
+the moment the camera opened would hand a rep to anybody who walked past the
+phone while it was being propped against a water bottle.
+
+Stopping it produces a summary — what counted, at what weight, with what form
+score — and, when the screen was opened from a session, an offer to write it
+into the log. The screen owns **when** a set runs. It does not own what counts
+as a rep, which stays in the analyzer behind a provider.
+
+Starting again is a different provider key rather than the same one
+invalidated. A refreshed stream keeps its previous value until the next frame
+arrives, so an invalidated analyzer would show the last set's count for the
+first fraction of a second of the new one — which is exactly the moment
+somebody is looking at it.
+
+### The pain button is on the set runner too
+
+The brief asks for a visible pain button that ends the set and logs it, and
+the session screen has had one since M3. The coach screen is now where people
+will be while they train, so it has the same one, with the same sentence
+behind it: Spottr ends the set, records that it hurt, stops anything in the
+plan going up, and says not to train through pain. Pressing it stops the set
+and saves what was counted, because a set that ended in pain is still evidence
+about the weight.
+
+### What the camera writes down
+
+A set logged from the coach carries three things a hand-logged set does not:
+the form score, the camera angle it was asked for, and the rep ledger —
+**every attempt, including the ones that were refused, with the reason**.
+
+The rejected reps are the point of keeping the ledger. They are the only
+record of what somebody did that the app declined to count, and the only way a
+later pass could find out whether declining was right. The angle is recorded as
+the angle the screen asked for rather than one it detected, because nothing in
+the app can tell where the phone actually ended up.
+
+Form rule firings are not written. The table for them wants a magnitude — how
+far outside its bound a rule was — and no rule computes one yet, so a row
+would have to invent the one column that makes it worth keeping.
+
 ## Coach voice
 
-```dart
-abstract class CoachVoice { CoachLine? lineFor(CoachEvent e, CoachPersonality p); }
-```
+Cues are raised at up to thirty a second. Speech runs at roughly one short
+phrase every second and a half. Without a budget the coach queues up and
+drifts seconds behind the set, which users read as broken rather than as
+thorough — so the hard part of a talking coach is not choosing the most
+important thing to say. It is refusing to say the other things.
 
-`RulesCoachVoice` selects from a cue library keyed by event, personality and
-severity. `LlmCoachVoice` exists as a feature-flagged stub; the MVP is
-rule-based so it stays offline, free, deterministic and testable.
+That refusal happens in two places, because it is two problems.
 
-**Cue arbitration is the hard part.** Events fire at up to 30 Hz while TTS
-speaks roughly one short phrase per 1.5 s. Without a budget the coach queues up
-and drifts seconds behind the set, which users read as broken. Cues therefore
-pass through a priority queue with cooldowns — safety preempts correction,
-correction preempts motivation — and anything stale at dequeue time is dropped
-rather than spoken late.
+### The engine decides the rate
+
+`CueEngine` sees every tick and produces at most one cue, and on almost every
+tick it produces none. A cue is a value — `RuleCue`, `RepCue`, `TargetCue` —
+never a sentence: which words come out depends on the user's coach style, and
+an engine that knew what language they speak would be an engine that could not
+be tested without one.
+
+Three priorities: safety pre-empts correction, correction pre-empts progress.
+Within a priority, the more serious rule wins.
+
+**A rule has to happen twice before it is said out loud**, with one exception:
+a coaching point may be made on the strength of one rep, because the cost of
+being wrong about it is a sentence nobody needed. Anything that interrupts a
+set — and the only `unsafe` rule in the catalog is a proxy with known
+artefacts — has to have fired on two consecutive reps. A rep the rule could
+not be checked on does not break the run: tracking coming and going is not
+evidence that a fault stopped, and treating it as such would make the coach
+quietest on exactly the sets where the camera is struggling.
+
+A hold has no reps, so the corroboration a rep count would give comes from the
+clock instead: a fault has to persist for a second and a half.
+
+Then quotas and cooldowns. A coaching point is made once per set — twelve
+times is what a coach that repeats itself sounds like. A correction repeats at
+most every fifteen seconds and something risky every eight. And nothing at all
+is said within two and a half seconds of the last thing, except a safety cue,
+which waits half a second so that it does not talk over the end of the
+previous phrase.
+
+A cue that loses to the gap is **dropped, not queued**. Whatever raised it will
+raise it again on the next rep if it still matters.
+
+### The voice decides what survives the wait
+
+`CoachVoice` holds at most one pending cue while the speaker is busy, because
+a queue of two is already a coach discussing the rep before last. The newer
+one wins unless the one already waiting is more urgent.
+
+And anything still waiting when the voice frees up is spoken only if it is
+still recent: a correction delivered four seconds after the rep it was about
+is worse than silence, because the user applies it to the rep they are in the
+middle of. The cue carries the time it was raised and the voice drops it on
+age.
+
+Both of them take their clock from the frames. Neither reads a real one, so a
+set replayed from a fixture and a set performed in a gym behave identically —
+which is what lets the accuracy harness report how much the coach would have
+talked over each fixture in the suite.
+
+### Style changes the encouragement, not the instruction
+
+The three coach styles select wording for the cues that are encouragement and
+nothing else. A rule's advice is the same sentence in every style, because
+"your hips are dropping" has no hype version that is still true, and three
+wordings of seventeen rules would be fifty-one sentences nobody could keep
+accurate.
+
+Text-to-speech is a platform channel behind an interface, so a widget test
+gets silence instead of an audio session, and muting is a property of the set
+rather than of the device. `LlmCoachVoice` is still a stub behind a feature
+flag; the MVP is rule-based so it stays offline, free, deterministic and
+testable.
 
 All user-facing strings live in ARB files from day one.
 

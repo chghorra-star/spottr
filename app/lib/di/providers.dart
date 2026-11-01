@@ -2,6 +2,7 @@ import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:meta/meta.dart';
 import 'package:plan_engine/plan_engine.dart';
 import 'package:pose_camera/pose_camera.dart';
 import 'package:pose_core/pose_core.dart';
@@ -14,6 +15,7 @@ import '../domain/user_profile.dart';
 import '../domain/workout_session.dart';
 import '../state/plan_controller.dart';
 import '../state/profile_controller.dart';
+import '../services/coach_voice.dart';
 import '../state/session_controller.dart';
 
 /// The app's single database handle.
@@ -162,17 +164,79 @@ final StreamProvider<PoseFrame> poseFrameProvider = StreamProvider<PoseFrame>(
 /// window is defined by the rep boundaries the counter found, and two
 /// components deciding separately where a rep began are two components that
 /// can disagree.
-final StreamProviderFamily<CoachTick, String> coachTickProvider =
-    StreamProvider.family<CoachTick, String>((ref, exerciseId) {
-  final exercise = ref.watch(catalogProvider).require(exerciseId);
+final StreamProviderFamily<CoachTick, CoachRequest> coachTickProvider =
+    StreamProvider.family<CoachTick, CoachRequest>((ref, request) {
+  final exercise = ref.watch(catalogProvider).require(request.exerciseId);
   if (counterFor(exercise) == null) {
     throw ArgumentError.value(
-      exerciseId,
+      request.exerciseId,
       'exerciseId',
       'no rep counter for this exercise',
     );
   }
-  return ref
-      .watch(poseFramesProvider)
-      .transform(CoachStream(exercise: exercise));
+  return ref.watch(poseFramesProvider).transform(
+        CoachStream(
+          exercise: exercise,
+          targetReps: request.targetReps,
+          targetHold: request.targetHold,
+        ),
+      );
 });
+
+/// The coach's voice.
+///
+/// A provider so that a widget test gets silence rather than an audio
+/// channel, and so that muting is a property of the session rather than of
+/// the device. Text-to-speech is lazy inside the speaker: nothing opens an
+/// audio session until something is actually said.
+final Provider<CoachSpeaker> coachSpeakerProvider = Provider<CoachSpeaker>(
+  (ref) {
+    final speaker = TtsCoachSpeaker();
+    ref.onDispose(speaker.dispose);
+    return speaker;
+  },
+);
+
+/// One set to coach: which movement, and what it was prescribed.
+///
+/// A value rather than a bare id because it is a provider family key, and
+/// because the target is what lets the coach say "that's your set" at the
+/// right moment. Two sets of the same exercise with the same target share
+/// an analyzer, which is correct: they are the same set until the screen
+/// invalidates it.
+@immutable
+class CoachRequest {
+  const CoachRequest({
+    required this.exerciseId,
+    this.targetReps,
+    this.targetHold,
+    this.run = 0,
+  });
+
+  final String exerciseId;
+  final int? targetReps;
+  final Duration? targetHold;
+
+  /// Which attempt at this set is being watched.
+  ///
+  /// Part of the key so that starting a set again is a different provider
+  /// rather than the same one invalidated. Invalidating is not enough: a
+  /// refreshed stream keeps its previous value until the next frame
+  /// arrives, so for a moment the new set would show the old set's count.
+  final int run;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CoachRequest &&
+      other.exerciseId == exerciseId &&
+      other.targetReps == targetReps &&
+      other.targetHold == targetHold &&
+      other.run == run;
+
+  @override
+  int get hashCode => Object.hash(exerciseId, targetReps, targetHold, run);
+
+  @override
+  String toString() => 'CoachRequest($exerciseId, '
+      'reps=$targetReps, hold=$targetHold, run=$run)';
+}

@@ -422,4 +422,79 @@ void main() {
       }
     });
   });
+
+  group('what the coach says', () {
+    List<Cue> cuesFrom(FormAnalyzer analyzer, List<PoseFrame> frames) => [
+          for (final frame in frames)
+            if (analyzer.update(frame).cue case final Cue cue) cue,
+        ];
+
+    test('a clean set is coached in silence', () {
+      final cues = cuesFrom(squatAnalyzer(), squats(reps: 6));
+
+      expect(cues, isEmpty);
+    });
+
+    test('a repeated fault is eventually said out loud', () {
+      final cues = cuesFrom(squatAnalyzer(), squats(reps: 6, bottom: 125));
+
+      expect(cues, isNotEmpty);
+      expect(
+        cues.whereType<RuleCue>().map((cue) => cue.ruleId),
+        contains('squat_depth'),
+      );
+    });
+
+    test('one rep is not enough to interrupt a set', () {
+      // A coaching point may be made on the strength of one rep. Anything
+      // that stops a set has to have happened twice running, and this is
+      // the analyzer end of that guarantee: the same rule, promoted to
+      // unsafe, goes quiet on a single rep.
+      FormAnalyzer withDepthAsUnsafe() => FormAnalyzer(
+            exercise: catalog.require('bodyweight_squat'),
+            rules: const {
+              'squat_depth': SignalBoundRule(
+                id: 'squat_depth',
+                severity: RuleSeverity.unsafe,
+                signal: kneeAngle,
+                at: RepSample.peak,
+                max: 100,
+              ),
+            },
+          );
+
+      expect(
+        cuesFrom(withDepthAsUnsafe(), squats(reps: 1, bottom: 125))
+            .whereType<RuleCue>(),
+        isEmpty,
+      );
+      expect(
+        cuesFrom(withDepthAsUnsafe(), squats(reps: 2, bottom: 125))
+            .whereType<RuleCue>(),
+        isNotEmpty,
+      );
+    });
+
+    test('calls the target when the set reaches it', () {
+      final analyzer = FormAnalyzer(
+        exercise: catalog.require('bodyweight_squat'),
+        targetReps: 3,
+      );
+      final cues = cuesFrom(analyzer, squats(reps: 5));
+
+      expect(cues.whereType<TargetCue>(), hasLength(1));
+    });
+
+    test('forgets what it has already said on reset', () {
+      final analyzer = FormAnalyzer(
+        exercise: catalog.require('bodyweight_squat'),
+        targetReps: 2,
+      );
+      cuesFrom(analyzer, squats(reps: 3));
+      analyzer.reset();
+
+      expect(analyzer.cues.last, isNull);
+      expect(cuesFrom(analyzer, squats(reps: 3)), isNotEmpty);
+    });
+  });
 }

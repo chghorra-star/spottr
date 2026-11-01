@@ -842,7 +842,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTitle => 'Camera check';
 
   @override
-  String get coachOpen => 'Camera check';
+  String get coachOpen => 'Coach this set';
 
   @override
   String get coachDone => 'Done';
@@ -1016,6 +1016,83 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachCounterUnavailable =>
       'Spottr has no rep counter for this movement.';
+
+  @override
+  String get coachReady => 'Ready when you are.';
+
+  @override
+  String get coachStartSet => 'Start set';
+
+  @override
+  String get coachStopSet => 'Stop set';
+
+  @override
+  String coachSetOf(int number, int total) {
+    return 'Set $number of $total';
+  }
+
+  @override
+  String get coachSaveSet => 'Save this set';
+
+  @override
+  String get coachDiscardSet => 'Discard';
+
+  @override
+  String get coachSetSaved => 'Saved to your session.';
+
+  @override
+  String get coachSaveFailed => 'That set could not be saved.';
+
+  @override
+  String get coachNothingCounted =>
+      'Nothing counted, so there is nothing to save.';
+
+  @override
+  String coachSummaryReps(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reps',
+      one: '1 rep',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String coachSummaryHold(int seconds) {
+    return '$seconds seconds';
+  }
+
+  @override
+  String coachSummaryAt(String weight) {
+    return 'at $weight';
+  }
+
+  @override
+  String coachSummaryScore(int score) {
+    return 'form $score';
+  }
+
+  @override
+  String get coachSummaryNoScore => 'no form score';
+
+  @override
+  String get coachMute => 'Mute the coach';
+
+  @override
+  String get coachUnmute => 'Let the coach speak';
+
+  @override
+  String get coachSpeaking => 'Coach is speaking';
+
+  @override
+  String get coachTargetHype => 'That is the set. Great work.';
+
+  @override
+  String get coachTargetCalm => 'That is your target. Nicely done.';
+
+  @override
+  String get coachTargetTough => 'Target hit.';
 
   @override
   String get coachFormUntested =>

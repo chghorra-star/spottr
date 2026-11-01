@@ -1,36 +1,58 @@
+import 'dart:async';
+
 import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:plan_engine/plan_engine.dart';
 import 'package:pose_camera/pose_camera.dart';
 import 'package:pose_core/pose_core.dart';
 
 import '../../di/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/plan_strings.dart';
+import '../../services/coach_voice.dart';
 import '../../theme/app_theme.dart';
 import '../common/async_view.dart';
 import '../common/ui_keys.dart';
 import 'skeleton_overlay.dart';
 
-/// Setting the phone up so the coach can see the user.
+/// The coach: set up the phone, run a set, and log what it saw.
 ///
-/// M4's whole visible surface, and useful on its own: knowing where to put
-/// the phone is a prerequisite for every later milestone, and getting it
-/// wrong is the most likely reason the coach would appear not to work.
-/// Rep counting lands in M5 and form rules in M6; this screen deliberately
-/// claims nothing beyond "I can see you".
-class CameraCheckScreen extends ConsumerStatefulWidget {
-  const CameraCheckScreen({required this.exerciseId, super.key});
+/// Grew out of M4's camera check, which is still the first thing it does —
+/// knowing where to put the phone is a prerequisite for everything else,
+/// and getting it wrong is the most likely reason the coach would appear
+/// not to work at all. From M7 it also runs the set: it counts, it judges,
+/// it talks, and it offers to write what it watched into the log.
+///
+/// It can be opened without a set to run, which is the camera check it used
+/// to be. [planned] and [setIndex] are what turn it into a set runner.
+class CoachScreen extends ConsumerStatefulWidget {
+  const CoachScreen({
+    required this.exerciseId,
+    this.planned,
+    this.setIndex,
+    super.key,
+  });
 
   final String exerciseId;
 
+  /// The prescription this set is being performed against, when there is
+  /// one. Without it the screen is a camera check and logs nothing.
+  final PlannedExercise? planned;
+
+  /// Which set of that prescription this is, from zero.
+  final int? setIndex;
+
+  /// Whether this screen can write what it watched into the log.
+  bool get canLog => planned != null && setIndex != null;
+
   @override
-  ConsumerState<CameraCheckScreen> createState() => _CameraCheckState();
+  ConsumerState<CoachScreen> createState() => _CoachScreenState();
 }
 
-class _CameraCheckState extends ConsumerState<CameraCheckScreen> {
+class _CoachScreenState extends ConsumerState<CoachScreen> {
   /// Read once, in [initState], and never through [ref] again.
   ///
   /// [dispose] has to stop the camera, and by then reading a provider
@@ -175,6 +197,8 @@ class _CameraCheckState extends ConsumerState<CameraCheckScreen> {
         info: info,
         camera: camera,
         exerciseId: widget.exerciseId,
+        planned: widget.planned,
+        setIndex: widget.setIndex,
       ),
     );
   }
@@ -240,21 +264,181 @@ class _Permission extends StatelessWidget {
   }
 }
 
+/// Where the set is.
+enum _Phase {
+  /// Camera running, counter not. Nothing is counted until the user says
+  /// so: a set that started itself would hand a rep to anybody who walked
+  /// past the phone.
+  ready,
+  running,
+
+  /// Stopped, with something to show and — when there is a session to put
+  /// it in — something to save.
+  finished,
+}
+
 /// The running camera: where to stand, what it can see, what it counted,
-/// and what it does not promise.
-class _Live extends ConsumerWidget {
+/// what it made of it, and what it does not promise.
+///
+/// Stateful because a set is: it starts when the user says so, it ends when
+/// they say so, and what the camera saw in between is the thing being
+/// offered to the log. The analyzer itself lives in a provider — the screen
+/// owns when a set runs, not what counts as a rep.
+class _Live extends ConsumerStatefulWidget {
   const _Live({
     required this.info,
     required this.camera,
     required this.exerciseId,
+    required this.planned,
+    required this.setIndex,
   });
 
   final PoseSourceInfo info;
   final CameraSupport camera;
   final String exerciseId;
+  final PlannedExercise? planned;
+  final int? setIndex;
+
+  bool get canLog => planned != null && setIndex != null;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Live> createState() => _LiveState();
+}
+
+class _LiveState extends ConsumerState<_Live> {
+  _Phase _phase = _Phase.ready;
+
+  /// Which attempt at this set is being watched. Part of the analyzer's
+  /// key, so that starting again is a new analyzer rather than an old one
+  /// asked nicely.
+  int _run = 0;
+
+  /// The last thing the analyzer said, kept so that stopping the set has
+  /// something to show and to save.
+  CoachTick? _tick;
+
+  CoachVoice? _voice;
+  bool _muted = false;
+  bool _saved = false;
+  String? _saveError;
+
+  bool get _isHold =>
+      widget.planned?.metric == MetricType.holdSeconds ||
+      ref.read(catalogProvider).require(widget.exerciseId).metric ==
+          MetricType.holdSeconds;
+
+  /// The prescription this set is being judged against, for the one cue
+  /// that is about progress rather than about position.
+  ///
+  /// The bottom of the rep range rather than the top: that is the number
+  /// the set was committed to, and anything above it is a bonus nobody
+  /// needs to be told about.
+  CoachRequest get _request => CoachRequest(
+        exerciseId: widget.exerciseId,
+        run: _run,
+        targetReps: _isHold ? null : widget.planned?.repsMin,
+        targetHold: _isHold && widget.planned?.holdSeconds != null
+            ? Duration(seconds: widget.planned!.holdSeconds!)
+            : null,
+      );
+
+  @override
+  void dispose() {
+    unawaited(_voice?.dispose());
+    super.dispose();
+  }
+
+  /// Built late and once, because it needs the user's coach style and the
+  /// localizations, and neither is available in [initState].
+  CoachVoice _voiceFor(BuildContext context) {
+    final profile = ref.read(profileProvider).value;
+    return _voice ??= CoachVoice(
+      speaker: ref.read(coachSpeakerProvider),
+      strings: PlanStrings.of(context, ref.read(catalogProvider)),
+      style: profile?.coachStyle ?? CoachStyle.fallback,
+    )..enabled = !_muted;
+  }
+
+  void _start() {
+    // A fresh analyzer, so the next set starts from zero however the last
+    // one ended. The old one is dropped rather than reset: a refreshed
+    // stream keeps its previous value until the next frame arrives, and
+    // for that moment the new set would be showing the old set's count.
+    ref.invalidate(coachTickProvider(_request));
+    setState(() {
+      _run++;
+      _phase = _Phase.running;
+      _tick = null;
+      _saved = false;
+      _saveError = null;
+    });
+  }
+
+  Future<void> _stop() async {
+    await _voice?.stop();
+    setState(() => _phase = _Phase.finished);
+  }
+
+  /// Logs that something hurt, ends the set, and says so.
+  ///
+  /// The same sentence as the session screen's pain button, deliberately:
+  /// there is one thing this product says about pain and it is that you do
+  /// not train through it.
+  Future<void> _pain() async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.sessionPainTitle),
+        content: Text(l10n.sessionPainBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.planCancel),
+          ),
+          FilledButton(
+            key: UiKeys.coachPainConfirm,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.sessionPainConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await _stop();
+    await ref.read(sessionControllerProvider).reportPain();
+    if (mounted) await _save();
+  }
+
+  Future<void> _save() async {
+    final review = _tick?.review;
+    if (!widget.canLog || review == null) return;
+
+    final counter = _tick?.counter;
+    final held = counter is HoldTick ? counter.held : null;
+    try {
+      await ref.read(sessionControllerProvider).logSet(
+            exerciseId: widget.exerciseId,
+            setIndex: widget.setIndex!,
+            reps: _isHold ? null : review.counted,
+            holdSeconds: _isHold ? (held?.inSeconds ?? 0) : null,
+            weightKg: widget.planned?.targetWeightKg,
+            review: review,
+            // The angle the screen asked for, not one it detected: nothing
+            // here can tell where the phone actually ended up.
+            cameraAngle: widget.camera.recommendedAngle,
+          );
+      if (mounted) setState(() => _saved = true);
+    } on Object {
+      if (mounted) {
+        setState(() => _saveError = AppLocalizations.of(context).coachSaveFailed);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final strings = PlanStrings.of(context, ref.watch(catalogProvider));
@@ -264,6 +448,18 @@ class _Live extends ConsumerWidget {
     final failure = frames.error;
     final verdict = frame == null ? null : Framing.assess(frame);
     final severity = verdict?.severity ?? FramingSeverity.blocked;
+
+    if (_phase == _Phase.running) {
+      // Keeping the newest tick, and feeding the voice, without doing
+      // either from inside a build. A widget that spoke from `build` would
+      // say everything again every time the framing bar changed colour.
+      ref.listen(coachTickProvider(_request), (previous, next) {
+        final tick = next.value;
+        if (tick == null) return;
+        _tick = tick;
+        _voiceFor(context).onTick(tick);
+      });
+    }
 
     // A failure part way through has to say so. Without this the model
     // failing to load looks exactly like an empty room: a preview that
@@ -285,10 +481,31 @@ class _Live extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.coachSetupTitle, style: theme.textTheme.titleSmall),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _heading(l10n),
+                      key: UiKeys.coachHeading,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                  ),
+                  IconButton(
+                    key: UiKeys.coachMute,
+                    tooltip: _muted ? l10n.coachUnmute : l10n.coachMute,
+                    icon: Icon(
+                      _muted ? Icons.volume_off_outlined : Icons.volume_up_outlined,
+                    ),
+                    onPressed: () {
+                      setState(() => _muted = !_muted);
+                      _voice?.enabled = !_muted;
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
-                '${strings.cameraAngle(camera.recommendedAngle)} '
+                '${strings.cameraAngle(widget.camera.recommendedAngle)} '
                 '${l10n.coachDistance}',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -298,14 +515,23 @@ class _Live extends ConsumerWidget {
           ),
         ),
         Expanded(
-          child: _Preview(info: info, frame: frame, severity: severity),
+          child: _Preview(info: widget.info, frame: frame, severity: severity),
         ),
         _FramingBar(
           key: UiKeys.coachFraming,
           message: message,
           severity: failure == null ? severity : FramingSeverity.blocked,
         ),
-        _Coach(exerciseId: exerciseId),
+        if (_phase == _Phase.running) _Coach(request: _request),
+        if (_phase == _Phase.finished)
+          _Summary(
+            tick: _tick,
+            isHold: _isHold,
+            weightKg: widget.planned?.targetWeightKg,
+            saved: _saved,
+            error: _saveError,
+            strings: strings,
+          ),
         SafeArea(
           top: false,
           child: Padding(
@@ -328,19 +554,175 @@ class _Live extends ConsumerWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    key: UiKeys.coachDone,
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    child: Text(l10n.coachDone),
-                  ),
-                ),
+                ..._actions(l10n),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  String _heading(AppLocalizations l10n) {
+    final planned = widget.planned;
+    final index = widget.setIndex;
+    if (planned == null || index == null) return l10n.coachSetupTitle;
+    return l10n.coachSetOf(index + 1, planned.sets);
+  }
+
+  List<Widget> _actions(AppLocalizations l10n) => switch (_phase) {
+        _Phase.ready => [
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                key: UiKeys.coachStart,
+                onPressed: _start,
+                child: Text(l10n.coachStartSet),
+              ),
+            ),
+            TextButton(
+              key: UiKeys.coachDone,
+              onPressed: () => Navigator.of(context).maybePop(),
+              child: Text(l10n.coachDone),
+            ),
+          ],
+        _Phase.running => [
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                key: UiKeys.coachStop,
+                onPressed: _stop,
+                child: Text(l10n.coachStopSet),
+              ),
+            ),
+            // On screen for the whole set, never behind a scroll: a pain
+            // button somebody has to go looking for is a pain button that
+            // gets used after the injury.
+            if (widget.canLog)
+              TextButton(
+                key: UiKeys.coachPain,
+                onPressed: _pain,
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                child: Text(l10n.sessionPainButton),
+              ),
+          ],
+        _Phase.finished => [
+            if (widget.canLog && !_saved)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  key: UiKeys.coachSave,
+                  onPressed: (_tick?.review.counted ?? 0) > 0 || _isHold
+                      ? _save
+                      : null,
+                  child: Text(l10n.coachSaveSet),
+                ),
+              ),
+            // Running it again is the other thing somebody wants here: a
+            // set that went wrong is repeated, not saved. Leaving is the
+            // back arrow, which is always there.
+            TextButton(
+              key: UiKeys.coachStart,
+              onPressed: _start,
+              child: Text(
+                widget.canLog && !_saved
+                    ? l10n.coachDiscardSet
+                    : l10n.coachStartSet,
+              ),
+            ),
+            if (_saved)
+              TextButton(
+                key: UiKeys.coachDone,
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: Text(l10n.coachDone),
+              ),
+          ],
+      };
+}
+
+/// What the set came to, once it has stopped.
+class _Summary extends StatelessWidget {
+  const _Summary({
+    required this.tick,
+    required this.isHold,
+    required this.weightKg,
+    required this.saved,
+    required this.error,
+    required this.strings,
+  });
+
+  final CoachTick? tick;
+  final bool isHold;
+  final double? weightKg;
+  final bool saved;
+  final String? error;
+  final PlanStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final review = tick?.review;
+    final counter = tick?.counter;
+    final score = review?.formScore;
+    final counted = review?.counted ?? 0;
+
+    final parts = <String>[
+      if (isHold)
+        l10n.coachSummaryHold(
+          counter is HoldTick ? counter.held.inSeconds : 0,
+        )
+      else
+        l10n.coachSummaryReps(counted),
+      if (weightKg != null) l10n.coachSummaryAt(strings.weight(weightKg!)),
+      if (score != null)
+        l10n.coachSummaryScore(score.round())
+      else
+        l10n.coachSummaryNoScore,
+    ];
+
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            parts.join(' · '),
+            key: UiKeys.coachSummary,
+            style: theme.textTheme.titleMedium,
+          ),
+          if (!isHold && counted == 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.coachNothingCounted,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (saved) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.coachSetSaved,
+              key: UiKeys.coachSaved,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.extension<FormSeverityColors>()!.good,
+              ),
+            ),
+          ],
+          if (error != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              error!,
+              key: UiKeys.coachSaveError,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -426,16 +808,16 @@ class _FramingBar extends StatelessWidget {
 /// stateful, and a widget that fed frames to one from `build` would count
 /// every rebuild as movement.
 class _Coach extends ConsumerWidget {
-  const _Coach({required this.exerciseId});
+  const _Coach({required this.request});
 
-  final String exerciseId;
+  final CoachRequest request;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final catalog = ref.watch(catalogProvider);
     final strings = PlanStrings.of(context, catalog);
-    final tick = ref.watch(coachTickProvider(exerciseId));
+    final tick = ref.watch(coachTickProvider(request));
     final value = tick.value;
 
     // An error with no value behind it is a coach that could not be built at
@@ -462,7 +844,7 @@ class _Coach extends ConsumerWidget {
           // The rules the exercise has at the angle the set is being
           // coached from, which is what decides the list of things the
           // panel admits it is not watching.
-          selection: rulesFor(catalog.require(exerciseId)),
+          selection: rulesFor(catalog.require(request.exerciseId)),
           strings: strings,
         ),
       ],

@@ -1,5 +1,7 @@
+import 'package:coach_engine/coach_engine.dart';
 import 'package:collection/collection.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_core/pose_core.dart';
 
 import '../data/plan_repository.dart';
 import '../data/profile_repository.dart';
@@ -18,12 +20,18 @@ abstract interface class SessionController {
   Future<String> start(int weekday);
 
   /// Appends one completed set to the open session.
+  ///
+  /// [review] is what the camera made of it, when a camera watched: the
+  /// form score progression reads, and the ledger of every attempt
+  /// including the ones that were not counted.
   Future<void> logSet({
     required String exerciseId,
     required int setIndex,
     int? reps,
     int? holdSeconds,
     double? weightKg,
+    SetReview? review,
+    CameraAngle? cameraAngle,
   });
 
   /// Records that something hurt. Ends nothing by itself — the UI decides
@@ -78,6 +86,8 @@ class DatabaseSessionController implements SessionController {
     int? reps,
     int? holdSeconds,
     double? weightKg,
+    SetReview? review,
+    CameraAngle? cameraAngle,
   }) async {
     final session = await _requireActive();
 
@@ -99,6 +109,9 @@ class DatabaseSessionController implements SessionController {
       reps: reps,
       holdSeconds: holdSeconds,
       weightKg: weightKg,
+      formScore: review?.formScore,
+      cameraAngle: cameraAngle,
+      ledger: review?.reps ?? const [],
     );
   }
 

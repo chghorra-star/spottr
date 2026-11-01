@@ -1,6 +1,8 @@
+import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_core/pose_core.dart';
 import 'package:spottr/data/local/database.dart';
 import 'package:spottr/data/plan_repository.dart';
 import 'package:spottr/data/profile_repository.dart';
@@ -404,6 +406,121 @@ void main() {
         ),
         1,
       );
+    });
+  });
+
+  group('what the camera saw', () {
+    RepReview review(
+      int index, {
+      bool counted = true,
+      RepFault? fault,
+      List<FormViolation> violations = const [],
+    }) =>
+        RepReview(
+          event: RepEvent(
+            index: index,
+            outcome: counted ? RepOutcome.counted : RepOutcome.notCounted,
+            fault: fault,
+            duration: const Duration(milliseconds: 1800),
+            descent: const Duration(milliseconds: 900),
+            ascent: const Duration(milliseconds: 900),
+            peakAngle: 95,
+            rangeOfMotion: 85,
+          ),
+          verdict: FormVerdict(passed: 4, violations: violations),
+        );
+
+    test('a set keeps its form score and the angle it was watched from',
+        () async {
+      final id = await sessions.start();
+      await sessions.logSet(
+        sessionId: id,
+        exerciseId: 'push_up',
+        setIndex: 0,
+        reps: 2,
+        formScore: 82,
+        cameraAngle: CameraAngle.side,
+      );
+
+      final row = await (db.select(db.setLogs)
+            ..where((r) => r.sessionId.equals(id)))
+          .getSingle();
+
+      expect(row.formScore, 82);
+      expect(row.cameraAngle, 'side');
+      final session = await sessions.watchActive().first;
+      expect(session!.sets.single.formScore, 82);
+    });
+
+    test('every attempt is kept, including the ones that did not count',
+        () async {
+      // The rejected reps are the point. They are the only record of what
+      // the user did that the app declined to count, and the only way a
+      // later pass could find out whether declining was right.
+      final id = await sessions.start();
+      final setLogId = await sessions.logSet(
+        sessionId: id,
+        exerciseId: 'push_up',
+        setIndex: 0,
+        reps: 2,
+        ledger: [
+          review(1),
+          review(2, counted: false, fault: RepFault.tooFast),
+          review(3),
+        ],
+      );
+
+      final reps = await (db.select(db.repLogs)
+            ..where((r) => r.setLogId.equals(setLogId)))
+          .get();
+
+      expect(reps, hasLength(3));
+      expect(reps.map((r) => r.repIndex), [1, 2, 3]);
+      expect(reps.map((r) => r.counted), [true, false, true]);
+      expect(reps[1].rejectionReason, 'tooFast');
+      expect(reps[0].rangeOfMotion, 85);
+    });
+
+    test('a rep carries the score it contributed', () async {
+      final id = await sessions.start();
+      final setLogId = await sessions.logSet(
+        sessionId: id,
+        exerciseId: 'push_up',
+        setIndex: 0,
+        reps: 2,
+        ledger: [
+          review(1),
+          review(
+            2,
+            violations: const [
+              FormViolation(ruleId: 'hip_sag', severity: RuleSeverity.major),
+            ],
+          ),
+        ],
+      );
+
+      final reps = await (db.select(db.repLogs)
+            ..where((r) => r.setLogId.equals(setLogId)))
+          .get();
+
+      expect(reps[0].formScore, 100);
+      expect(reps[1].formScore, 100 - FormScore.perMajor);
+    });
+
+    test('a set logged by hand writes no ledger at all', () async {
+      final id = await sessions.start();
+      final setLogId = await sessions.logSet(
+        sessionId: id,
+        exerciseId: 'push_up',
+        setIndex: 0,
+        reps: 10,
+      );
+
+      final reps = await (db.select(db.repLogs)
+            ..where((r) => r.setLogId.equals(setLogId)))
+          .get();
+
+      expect(reps, isEmpty);
     });
   });
 }

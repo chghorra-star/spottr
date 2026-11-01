@@ -9,7 +9,7 @@ import '../../di/providers.dart';
 import '../../domain/workout_session.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/plan_strings.dart';
-import '../coach/camera_check_screen.dart';
+import '../coach/coach_screen.dart';
 import '../common/async_view.dart';
 import '../common/ui_keys.dart';
 import 'finish_flow.dart';
@@ -350,8 +350,13 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
                     tooltip: l10n.coachOpen,
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (context) => CameraCheckScreen(
+                        builder: (context) => CoachScreen(
                           exerciseId: exercise.exerciseId,
+                          // What turns the camera check into a set runner:
+                          // with a prescription and a set number it can
+                          // write what it watched into the session.
+                          planned: exercise,
+                          setIndex: widget.logged.length,
                         ),
                       ),
                     ),

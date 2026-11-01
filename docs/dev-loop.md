@@ -12,7 +12,9 @@ sequence through the real pipeline, so rep counters, form rules, scoring and
 cue arbitration all run under `dart test` in milliseconds.
 
 **Proves:** state machine correctness, hysteresis, partial-rep handling,
-rule thresholds, cue ordering, form scores.
+rule thresholds, cue ordering, form scores — and, from M7, how often the
+coach would have spoken, because nothing in the cue engine or the voice
+reads a real clock.
 **Cannot prove:** anything about the camera, the model, or performance.
 
 This layer covers M1 through M3 entirely, the pose domain in M4 — the wire
@@ -34,6 +36,11 @@ dart run bin/harness.dart --json       # for a machine
 dart run bin/harness.dart --no-smooth  # what the smoothing filter buys
 dart run bin/harness.dart -f recorded/ # landmarks extracted from video
 ```
+
+The report also says how much the coach would have talked over the suite,
+which is the only way to find out whether it is chatty before somebody has
+to train with it. That number is printed and not gated: what counts as too
+much talking is a judgement about a person rather than about a threshold.
 
 `tool/check.ps1` runs it, and a miscounted rep fails the build. The gate on
 generated fixtures is 100 per cent: generated movement has one right answer,
@@ -262,7 +269,7 @@ unproven for the rest. M8 publishes a per-exercise accuracy table that states
 plainly which exercises lack real footage rather than quoting one aggregate
 number.
 
-**Where this stands after M6.** The harness exists, it gates CI on counting
+**Where this stands after M7.** The harness exists, it gates CI on counting
 and on form, and it prints three coverage lines every time it runs.
 
 - **Exercises:** seven of the nine camera-coached movements have a generated
@@ -276,6 +283,10 @@ and on form, and it prints three coverage lines every time it runs.
   not evaluated at all are named on screen and in the report, with a sentence
   each saying what would have to change.
 - **Footage: still none.** Every number above comes from generated movement.
+- **The voice has never been heard.** Text-to-speech works in a build and is
+  exercised by tests through a fake speaker, but no audio has come out of a
+  device in this project yet — the emulator has no working GPU to render the
+  screen that would trigger it.
 
 So the honest claim today is that the engine is self-consistent on movement
 of a known shape, including on movement built to contain a fault, and that is

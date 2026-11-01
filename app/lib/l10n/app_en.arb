@@ -649,7 +649,7 @@
   },
 
   "coachTitle": "Camera check",
-  "coachOpen": "Camera check",
+  "coachOpen": "Coach this set",
   "coachDone": "Done",
   "coachClaim": "Spottr flags movement that looks risky. It cannot see everything, and it cannot guarantee you will not get hurt.",
   "coachSetupTitle": "Where to put your phone",
@@ -709,6 +709,49 @@
   "coachHoldOutOfPosition": "Paused — get back into position.",
   "coachHoldUntracked": "Paused — I cannot see you.",
   "coachCounterUnavailable": "Spottr has no rep counter for this movement.",
+
+  "@_coach_set": {
+    "description": "Running a set in front of the camera, M7. The coach counts, judges, talks and offers to log what it watched. The pain copy is deliberately shared with the session screen: there is one sentence about pain in this product and it says not to train through it."
+  },
+
+  "coachReady": "Ready when you are.",
+  "coachStartSet": "Start set",
+  "coachStopSet": "Stop set",
+  "coachSetOf": "Set {number} of {total}",
+  "@coachSetOf": {
+    "placeholders": {
+      "number": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "coachSaveSet": "Save this set",
+  "coachDiscardSet": "Discard",
+  "coachSetSaved": "Saved to your session.",
+  "coachSaveFailed": "That set could not be saved.",
+  "coachNothingCounted": "Nothing counted, so there is nothing to save.",
+  "coachSummaryReps": "{count, plural, =1{1 rep} other{{count} reps}}",
+  "@coachSummaryReps": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "coachSummaryHold": "{seconds} seconds",
+  "@coachSummaryHold": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "coachSummaryAt": "at {weight}",
+  "@coachSummaryAt": {
+    "placeholders": { "weight": { "type": "String" } }
+  },
+  "coachSummaryScore": "form {score}",
+  "@coachSummaryScore": {
+    "placeholders": { "score": { "type": "int" } }
+  },
+  "coachSummaryNoScore": "no form score",
+  "coachMute": "Mute the coach",
+  "coachUnmute": "Let the coach speak",
+  "coachSpeaking": "Coach is speaking",
+  "coachTargetHype": "That is the set. Great work.",
+  "coachTargetCalm": "That is your target. Nicely done.",
+  "coachTargetTough": "Target hit.",
 
   "@_coach_form": {
     "description": "Form rules, M6. One advice sentence per rule the engine evaluates, and one short name per rule in the catalog for the line that says what is not being watched. Nothing here is a diagnosis: a rule fires when the movement looked like a described shape, and the shapes have not been measured against real footage yet."

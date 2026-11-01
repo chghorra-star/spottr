@@ -11,10 +11,26 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M6 complete — it judges form. Seventeen rules, each an id, a severity, a
-signal and a number, run against every rep the counter accepts: the coach
-screen says what to fix, scores the set, and names the checks it is **not**
-running. 925 tests green, analyzer clean.
+M7 complete — it coaches a set. The camera screen now runs the set: it
+counts, judges, talks, and writes what it watched into the log, with a pain
+button on screen for the whole of it. 986 tests green, analyzer clean.
+
+**The hard part of a talking coach is refusing to say things.** A rule has to
+fire on two consecutive reps before it is spoken, a coaching point is made
+once a set, nothing is said within two and a half seconds of the last thing,
+and anything still waiting when the voice frees up is dropped rather than
+spoken late. The accuracy harness reports how much the coach would have
+talked over every fixture in the suite: currently one thing said every
+twenty-two seconds of deliberately faulty movement.
+
+A set logged from the coach carries the form score, the camera angle, and
+the ledger of **every** attempt including the refused ones — the only record
+of what somebody did that the app declined to count.
+
+Before that, M6 taught it to judge form. Seventeen rules, each an id, a
+severity, a signal and a number, run against every rep the counter accepts:
+the coach screen says what to fix, scores the set, and names the checks it
+is **not** running.
 
 **Nothing a rule says cancels a rep.** A minor is worth saying once, a major
 every time, and an unsafe means stop the set and take weight off — but every
@@ -84,8 +100,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M4 | Pose plumbing, native bridge, overlay | done |
 | M5 | Rep counting + accuracy harness | done |
 | M6 | Form rules + scoring | done |
-| M7 | Live coach UX, voice, safety | next |
-| M8 | Dataset validation and tuning | |
+| M7 | Live coach UX, voice, safety | done |
+| M8 | Dataset validation and tuning | next |
 | M9 | iOS parity, cloud CI, TestFlight | |
 | M10 | Supabase sync | |
 

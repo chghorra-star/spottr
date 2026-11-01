@@ -22,11 +22,20 @@ class FixtureResult {
     required this.review,
     required this.framesSeen,
     required this.framesTracked,
+    this.cues = const [],
     this.countedReps,
     this.held,
   });
 
   final PoseFixture fixture;
+
+  /// Everything the coach would have said out loud, in order.
+  ///
+  /// Not gated on, because what counts as too much talking is a judgement
+  /// about a person and not about a number. Reported, because it is the
+  /// only way to find out whether the coach is chatty before somebody has
+  /// to train with it.
+  final List<Cue> cues;
 
   /// Everything the engine concluded: every attempt, what fired on it, and
   /// the form score the progression table would read.
@@ -109,6 +118,7 @@ class FixtureResult {
         'missedFaults': missedFaults.toList()..sort(),
         'unexpectedFaults': unexpectedFaults.toList()..sort(),
         'neverChecked': review.neverChecked.toList()..sort(),
+        'cues': [for (final cue in cues) cue.key],
         'repFaults': <String, int>{
           for (final event in ledger)
             if (event.fault != null)
@@ -166,13 +176,19 @@ FixtureResult replay(
   // The fixture's own angle, not the recommended one: a fixture recorded
   // from the front is not a counter-example for a rule that needs the side,
   // and the analyzer is what knows the difference.
+  // No target: a fixture's label is what should have been counted, not
+  // what somebody was prescribed, and feeding one in as the other would
+  // fill the report with cues congratulating a set nobody planned. What
+  // the coach says here is corrections only.
   final analyzer = FormAnalyzer(exercise: exercise, angle: fixture.angle);
+  final cues = <Cue>[];
   var tracked = 0;
 
   for (final raw in fixture.frames) {
     final frame = smooth ? smoother.apply(raw) : raw;
     final tick = analyzer.update(frame);
     if (tick.counter.tracking) tracked++;
+    if (tick.cue case final Cue cue) cues.add(cue);
   }
 
   final counter = analyzer.tick.counter;
@@ -180,6 +196,7 @@ FixtureResult replay(
   return FixtureResult(
     fixture: fixture,
     review: analyzer.tick.review,
+    cues: cues,
     framesSeen: fixture.frames.length,
     framesTracked: tracked,
     countedReps: counter is RepTick ? counter.counted : null,
@@ -311,6 +328,22 @@ class HarnessReport {
     return (1 - missed / labelled).clamp(0.0, 1.0);
   }
 
+  /// Everything the coach would have said, across the whole run.
+  int get cues => results.fold(0, (sum, r) => sum + r.cues.length);
+
+  /// Seconds of movement per thing said.
+  ///
+  /// A set the coach talks over constantly is one nobody can train with,
+  /// and this is the only number in the report that is about the coach
+  /// rather than about the engine behind it.
+  double get secondsPerCue {
+    final seconds = results.fold<double>(
+      0,
+      (sum, r) => sum + r.fixture.span.inMilliseconds / 1000,
+    );
+    return cues == 0 ? seconds : seconds / cues;
+  }
+
   /// Every rule that fired anywhere in the run, and how often.
   Map<String, int> get firings {
     final counts = <String, int>{};
@@ -330,6 +363,8 @@ class HarnessReport {
         'countedReps': countedReps,
         'repError': repError,
         'faultDetection': faultDetection,
+        'cues': cues,
+        'secondsPerCue': secondsPerCue,
         'firings': firings,
         'coverage': <String, Object?>{
           'cameraExercises': cameraExercises.length,
