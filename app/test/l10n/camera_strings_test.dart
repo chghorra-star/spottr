@@ -212,7 +212,9 @@ void main() {
       // does not exist until M6.
       final line = AppLocalizationsEn().coachCountingOnly.toLowerCase();
 
-      expect(line, contains('reps'));
+      // Not "reps only": a plank is counted in seconds, and the same line
+      // sits under the hold timer.
+      expect(line, contains('counting'));
       expect(line, contains('not judging'));
     });
   });

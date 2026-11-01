@@ -961,7 +961,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachCountingOnly =>
-      'Reps only for now. Spottr is not judging your technique yet.';
+      'Counting only for now. Spottr is not judging your technique yet.';
 
   @override
   String coachRepsLabel(int count) {

@@ -1687,7 +1687,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachCountingOnly.
   ///
   /// In en, this message translates to:
-  /// **'Reps only for now. Spottr is not judging your technique yet.'**
+  /// **'Counting only for now. Spottr is not judging your technique yet.'**
   String get coachCountingOnly;
 
   /// No description provided for @coachRepsLabel.

@@ -690,7 +690,7 @@
     "description": "Rep counting, M5. Every attempt the user makes is accounted for: counted, counted with a warning, or not counted with a reason. A counter that silently drops a rep reads as broken."
   },
 
-  "coachCountingOnly": "Reps only for now. Spottr is not judging your technique yet.",
+  "coachCountingOnly": "Counting only for now. Spottr is not judging your technique yet.",
   "coachRepsLabel": "{count, plural, =1{rep} other{reps}}",
   "@coachRepsLabel": {
     "placeholders": { "count": { "type": "int" } }
