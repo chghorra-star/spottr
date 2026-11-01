@@ -115,6 +115,51 @@ void main() {
 
       expect(filter.filter(1.0, _ms(66)), 1.0);
     });
+
+    test('keeps up with a fast movement as well as a slow one', () {
+      // The whole reason this filter is adaptive rather than a plain
+      // low-pass. A fixed cutoff lags in proportion to speed, so a squat
+      // descent would read several degrees shallower than it was and a fast
+      // rep much shallower than that — the harness is what found it, with
+      // `beta` three orders of magnitude too small for a signal measured in
+      // normalized image units rather than in pixels.
+      double lag(Duration step) {
+        final filter = OneEuroFilter();
+        var t = Duration.zero;
+        var value = 0.0;
+        var filtered = 0.0;
+        // The same 0.3 units of travel either way, timed differently.
+        for (var i = 1; i <= 10; i++) {
+          value = i * 0.03;
+          t += step;
+          filtered = filter.filter(value, t);
+        }
+        return value - filtered;
+      }
+
+      final slow = lag(_ms(100));
+      final fast = lag(_ms(25));
+
+      expect(slow, greaterThan(0));
+      expect(fast, lessThan(slow * 2));
+    });
+
+    test('still smooths a signal that is barely moving', () {
+      // The other half of the trade: the cutoff may rise with speed, but
+      // landmark noise on a planted ankle must not count as speed.
+      final filter = OneEuroFilter();
+      final input = <double>[];
+      final output = <double>[];
+      var seed = 1;
+      for (var i = 0; i < 40; i++) {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        final value = 0.5 + ((seed % 1000) / 1000 - 0.5) * 0.008;
+        input.add(value);
+        output.add(filter.filter(value, _ms(i * 33)));
+      }
+
+      expect(_spread(output), lessThan(_spread(input) / 2));
+    });
   });
 
   group('PoseSmoother', () {

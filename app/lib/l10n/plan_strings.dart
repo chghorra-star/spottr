@@ -437,6 +437,28 @@ class PlanStrings {
         _ => null,
       };
 
+
+  /// What to say about one finished attempt.
+  ///
+  /// Every outcome has a sentence, including the ones that counted. A rep
+  /// the user felt and the counter rejected has to come back with the
+  /// reason, or the only available conclusion is that the app is broken.
+  String repVerdict(RepEvent event) => switch (event.fault) {
+        null => l10n.coachRepGood,
+        RepFault.shallow => l10n.coachRepShallow,
+        RepFault.partialRange => l10n.coachRepPartial,
+        RepFault.tooFast => l10n.coachRepTooFast,
+        RepFault.timedOut => l10n.coachRepTimedOut,
+        RepFault.lostTracking => l10n.coachRepLostTracking,
+      };
+
+  /// Whether a hold's clock is running, and why not.
+  String holdState(HoldTick tick) => switch (tick.pause) {
+        null => l10n.coachHoldRunning,
+        HoldPause.outOfPosition => l10n.coachHoldOutOfPosition,
+        HoldPause.untracked => l10n.coachHoldUntracked,
+      };
+
   /// Sets and reps, or sets and a hold.
   String prescription(PlannedExercise value) =>
       value.metric == MetricType.holdSeconds

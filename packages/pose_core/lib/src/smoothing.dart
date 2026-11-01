@@ -12,13 +12,23 @@ import 'pose_frame.dart';
 /// reading that shimmer as movement is worse.
 const double defaultMinCutoff = 1.2;
 
-/// How hard the cutoff rises with speed.
+/// How hard the cutoff rises with speed, in Hz per unit of speed.
 ///
-/// This is the one-euro filter's whole trick and the number that decides
-/// whether a squat descent lags. Tuned against recorded fixtures; the
-/// published default for hand tracking is far lower, but a barbell squat
-/// moves a hip through most of the frame in under a second.
-const double defaultSpeedCoefficient = 0.05;
+/// This is the one-euro filter's whole trick, and the number is only
+/// meaningful next to the units of the signal. Landmarks are **normalized
+/// image coordinates**, so a hip dropping through a squat moves at a few
+/// tenths of a unit per second — where the filter's published defaults are
+/// written for pixels, which move a thousand times faster for the same
+/// gesture.
+///
+/// At 0.05 the adaptive term contributed about one per cent of the cutoff
+/// and the filter was a fixed 1.2Hz low-pass wearing a costume: it lagged a
+/// squat descent by four degrees of knee angle and a fast rep by thirty. The
+/// accuracy harness is what found that, by replaying the same movement at
+/// two tempos. At 4.5 a brisk descent roughly doubles the cutoff and a
+/// bounce lifts it to around 7Hz, while landmark noise on a planted ankle —
+/// hundredths of a unit per second — still leaves it where it was.
+const double defaultSpeedCoefficient = 4.5;
 
 /// Fixed smoothing weight for landmark visibility.
 const double defaultVisibilityAlpha = 0.3;

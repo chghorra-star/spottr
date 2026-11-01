@@ -11,26 +11,40 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M4 complete — the camera is wired up end to end. Native CameraX and ML Kit
-own capture and inference, and the only thing that crosses the bridge is a
-flat buffer of 33 landmarks. A camera check on every coached movement shows
-the live preview with the tracked skeleton drawn over it and tells you where
-to stand. 611 tests green, analyzer clean.
+M5 complete — it counts. One state machine, configured per exercise from a
+table of thresholds, turns the landmark stream into reps: the coach screen
+shows a live count, what became of the last attempt, and a tally of the ones
+it did not count. A plank gets a clock instead, which stops when the hips
+drop and keeps what it had. 764 tests green, analyzer clean.
 
-It counts nothing and judges nothing yet — rep counting is M5 and form rules
-are M6 — and the screen says so rather than implying a coach that is not
-there.
+It still judges no technique — that is M6 — and the screen says so rather
+than implying a coach that is not there.
 
-The parts worth knowing about: landmarks are smoothed by a one-euro filter,
-whose cutoff rises with speed, so a planted ankle stops shimmering without a
-dropping hip falling behind. The framing check is pure arithmetic over one
+**Every attempt is accounted for.** A rep can be counted, counted with a
+warning, or not counted, and each one carries the reason: too shallow to be
+a rep, past the bar but short of depth, faster than the movement allows,
+abandoned half way, or lost to tracking. A counter that silently ignores
+what you just did reads as broken.
+
+Alongside it, `packages/harness` replays labelled landmark fixtures through
+the real pipeline and reports what was counted. It gates CI, and it found
+two defects in its first run — one in how range of motion was measured, one
+in a smoothing coefficient that was three orders of magnitude off for its
+signal. What it cannot do is tell you the engine is accurate: every fixture
+so far is generated, and the report says so every time it prints.
+
+Before M5, M4 wired up the camera end to end: native CameraX and ML Kit own
+capture and inference, the only thing crossing the bridge is a flat buffer
+of 33 landmarks, and the camera check shows the live preview with the
+tracked skeleton over it. Landmarks are smoothed once, by a one-euro filter
+whose cutoff rises with speed. The framing check is pure arithmetic over one
 frame and names **one** thing to fix, because a setup screen listing four
-complaints gets read as none of them. And mirroring the front lens happens
-once, in Flutter, where the preview and the skeleton are flipped together —
-a second flip on the native side would cancel it out and nothing would look
+complaints gets read as none of them. Mirroring the front lens happens once,
+in Flutter, where the preview and the skeleton are flipped together — a
+second flip on the native side would cancel it out and nothing would look
 wrong until a form rule read a left knee on the right.
 
-Before M4, M3 made the plan trainable: a day card starts a session, sets are
+Before that, M3 made the plan trainable: a day card starts a session, sets are
 logged against the exact prescription they were performed against, and
 finishing asks how it felt and writes what the session earned into the plan
 as a new revision. Progression is a decision table with safety at the top of
@@ -54,8 +68,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M2 | Onboarding, profile, plan UI | done |
 | M3 | Workout logging + progression | done |
 | M4 | Pose plumbing, native bridge, overlay | done |
-| M5 | Rep counting + accuracy harness | next |
-| M6 | Form rules + scoring | |
+| M5 | Rep counting + accuracy harness | done |
+| M6 | Form rules + scoring | next |
 | M7 | Live coach UX, voice, safety | |
 | M8 | Dataset validation and tuning | |
 | M9 | iOS parity, cloud CI, TestFlight | |
@@ -76,9 +90,14 @@ packages/pose_camera/   native camera + pose inference    [Flutter plugin]
 This is a Dart pub workspace: one lockfile, and `flutter pub get` runs from the
 repo root, never inside a package.
 
-The four pure-Dart engine packages must never import Flutter. That constraint
-is what lets the entire rep-counting and form-analysis stack be tested from
-recorded fixtures with no device attached.
+The five pure-Dart packages must never import Flutter. That constraint is
+what lets the entire rep-counting and form-analysis stack be measured from
+recorded fixtures with no device attached:
+
+```bash
+cd packages/harness
+dart run bin/harness.dart
+```
 
 ## Getting started
 

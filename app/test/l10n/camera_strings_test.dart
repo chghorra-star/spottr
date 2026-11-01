@@ -1,3 +1,4 @@
+import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pose_camera/pose_camera.dart';
@@ -126,6 +127,93 @@ void main() {
       expect(claim, contains('risky'));
       expect(claim, contains('cannot guarantee'));
       expect(claim, contains('cannot see everything'));
+    });
+  });
+
+  group('PlanStrings.repVerdict', () {
+    RepEvent event(RepOutcome outcome, RepFault? fault) => RepEvent(
+          index: 1,
+          outcome: outcome,
+          fault: fault,
+          duration: const Duration(milliseconds: 1500),
+          descent: const Duration(milliseconds: 800),
+          ascent: const Duration(milliseconds: 700),
+          peakAngle: 95,
+          rangeOfMotion: 80,
+        );
+
+    test('says something about every outcome a rep can have', () {
+      final faults = <RepFault?>[null, ...RepFault.values];
+
+      for (final fault in faults) {
+        final message = _strings.repVerdict(
+          event(
+            fault == null ? RepOutcome.counted : RepOutcome.notCounted,
+            fault,
+          ),
+        );
+        expect(message, isNotEmpty, reason: '${fault?.name}');
+        expect(message, isNot(contains(fault?.name ?? 'counted')));
+      }
+    });
+
+    test('says a rejected rep was not counted, in those words', () {
+      // The user felt themselves do a rep. If the screen does not say it was
+      // not counted and why, the only conclusion available to them is that
+      // the app is broken.
+      for (final fault in [
+        RepFault.partialRange,
+        RepFault.tooFast,
+        RepFault.timedOut,
+        RepFault.lostTracking,
+      ]) {
+        expect(
+          _strings.repVerdict(event(RepOutcome.notCounted, fault)),
+          contains('Not counted'),
+          reason: fault.name,
+        );
+      }
+    });
+
+    test('says a shallow rep did count', () {
+      final message = _strings.repVerdict(
+        event(RepOutcome.countedWithWarning, RepFault.shallow),
+      );
+
+      expect(message, contains('Counted'));
+      expect(message, isNot(contains('Not counted')));
+    });
+  });
+
+  group('PlanStrings.holdState', () {
+    HoldTick tick(HoldPause? pause) =>
+        HoldTick(held: const Duration(seconds: 12), pause: pause, tracking: true);
+
+    test('says why the clock is not running, for every reason', () {
+      for (final pause in <HoldPause?>[null, ...HoldPause.values]) {
+        final message = _strings.holdState(tick(pause));
+        expect(message, isNotEmpty, reason: '${pause?.name}');
+        expect(message, isNot(contains(pause?.name ?? 'running')));
+      }
+    });
+
+    test('distinguishes losing the position from losing sight of them', () {
+      expect(
+        _strings.holdState(tick(HoldPause.outOfPosition)),
+        isNot(_strings.holdState(tick(HoldPause.untracked))),
+      );
+    });
+  });
+
+  group('what the coach admits it is not doing yet', () {
+    test('says it is counting reps and not judging technique', () {
+      // M5 counts and does not judge. The claim above is the standing one;
+      // this is the line that stops the screen implying a form coach that
+      // does not exist until M6.
+      final line = AppLocalizationsEn().coachCountingOnly.toLowerCase();
+
+      expect(line, contains('reps'));
+      expect(line, contains('not judging'));
     });
   });
 }

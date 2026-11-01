@@ -1,3 +1,4 @@
+import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -170,7 +171,11 @@ class _CameraCheckState extends ConsumerState<CameraCheckScreen> {
         actionLabel: l10n.coachErrorRetry,
         onAction: _start,
       ),
-      data: (info) => _Live(info: info, camera: camera),
+      data: (info) => _Live(
+        info: info,
+        camera: camera,
+        exerciseId: widget.exerciseId,
+      ),
     );
   }
 }
@@ -235,13 +240,18 @@ class _Permission extends StatelessWidget {
   }
 }
 
-/// The running camera: where to stand, what it can see, and what it does
-/// not promise.
+/// The running camera: where to stand, what it can see, what it counted,
+/// and what it does not promise.
 class _Live extends ConsumerWidget {
-  const _Live({required this.info, required this.camera});
+  const _Live({
+    required this.info,
+    required this.camera,
+    required this.exerciseId,
+  });
 
   final PoseSourceInfo info;
   final CameraSupport camera;
+  final String exerciseId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -295,12 +305,21 @@ class _Live extends ConsumerWidget {
           message: message,
           severity: failure == null ? severity : FramingSeverity.blocked,
         ),
+        _Counter(exerciseId: exerciseId),
         SafeArea(
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Column(
               children: [
+                Text(
+                  l10n.coachCountingOnly,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
                 Text(
                   l10n.coachClaim,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -393,6 +412,182 @@ class _FramingBar extends StatelessWidget {
             child: Text(
               message,
               style: theme.textTheme.bodyMedium?.copyWith(color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What the counter has made of the set so far.
+///
+/// Reads the counter through a provider rather than owning one: a counter is
+/// stateful, and a widget that fed frames to one from `build` would count
+/// every rebuild as movement.
+class _Counter extends ConsumerWidget {
+  const _Counter({required this.exerciseId});
+
+  final String exerciseId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final strings = PlanStrings.of(context, ref.watch(catalogProvider));
+    final tick = ref.watch(counterTickProvider(exerciseId));
+    final value = tick.value;
+
+    // An error with no value behind it is a counter that could not be built
+    // at all. An error with a value is one frame the stream could not read,
+    // which the framing bar above has already said out loud.
+    if (value == null) {
+      return _Panel(
+        child: Text(
+          tick.hasError ? l10n.coachCounterUnavailable : l10n.coachStarting,
+          key: UiKeys.coachVerdict,
+        ),
+      );
+    }
+
+    return switch (value) {
+      RepTick() => _RepPanel(tick: value, strings: strings),
+      HoldTick() => _HoldPanel(tick: value, strings: strings),
+    };
+  }
+}
+
+class _Panel extends StatelessWidget {
+  const _Panel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: child,
+      );
+}
+
+/// The rep count, and what became of the last attempt.
+///
+/// Reads `tick.last` rather than `tick.completed`. The camera produces
+/// frames faster than this rebuilds, so the single frame an attempt landed
+/// on may never reach a widget at all — which is why the counter carries
+/// the standing value and the screen holds no state of its own.
+class _RepPanel extends StatelessWidget {
+  const _RepPanel({required this.tick, required this.strings});
+
+  final RepTick tick;
+  final PlanStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.extension<FormSeverityColors>()!;
+    final last = tick.last;
+    final rejected = tick.attempts - tick.counted;
+
+    return _Panel(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            '${tick.counted}',
+            key: UiKeys.coachCount,
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            l10n.coachRepsLabel(tick.counted),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (last != null)
+                  Text(
+                    strings.repVerdict(last),
+                    key: UiKeys.coachVerdict,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: switch (last.outcome) {
+                        RepOutcome.counted => colors.good,
+                        RepOutcome.countedWithWarning => colors.minor,
+                        RepOutcome.notCounted => colors.unsafe,
+                      },
+                    ),
+                  ),
+                // The ledger, in one line. A rep the user felt and the
+                // counter refused has to be visible without being shouted
+                // about: they can see the reason for the last one and the
+                // tally for the rest.
+                if (rejected > 0)
+                  Text(
+                    l10n.coachRepsNotCounted(rejected),
+                    key: UiKeys.coachLedger,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Time held, and whether the clock is running.
+class _HoldPanel extends StatelessWidget {
+  const _HoldPanel({required this.tick, required this.strings});
+
+  final HoldTick tick;
+  final PlanStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.extension<FormSeverityColors>()!;
+    final seconds = tick.held.inSeconds;
+
+    return _Panel(
+      child: Row(
+        children: [
+          Text(
+            '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
+            key: UiKeys.coachCount,
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            l10n.coachHeldLabel,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              strings.holdState(tick),
+              key: UiKeys.coachVerdict,
+              textAlign: TextAlign.end,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: tick.accumulating ? colors.good : colors.minor,
+              ),
             ),
           ),
         ],

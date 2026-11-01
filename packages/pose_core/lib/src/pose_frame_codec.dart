@@ -95,11 +95,38 @@ abstract final class PoseFrameCodec {
     };
   }
 
+  /// The same frame as plain JSON types, for a fixture file.
+  ///
+  /// Identical to [encode] but for absence: JSON has no `NaN`, so a joint
+  /// the model did not place is written as `null`. A format that cannot say
+  /// "nothing here" cannot record a set where a limb left the frame, which
+  /// is most of the sets worth recording.
+  static Map<String, Object?> encodeJson(PoseFrame frame) {
+    final landmarks = List<Object?>.filled(bufferLength, null);
+    for (final joint in Joint.values) {
+      final base = joint.index * stride;
+      final landmark = frame.landmarks[joint];
+      if (landmark == null) continue;
+      landmarks[base] = landmark.x;
+      landmarks[base + 1] = landmark.y;
+      landmarks[base + 2] = landmark.z;
+      landmarks[base + 3] = landmark.visibility;
+    }
+
+    return <String, Object?>{
+      'frameId': frame.frameId,
+      'tUs': frame.t.inMicroseconds,
+      'confidence': frame.confidence,
+      'landmarks': landmarks,
+    };
+  }
+
   /// Accepts every float list the two senders can produce.
   ///
   /// Android's `StandardMessageCodec` delivers a `Float32List`, a 64-bit
-  /// sender a `Float64List`, and a JSON fixture a `List<num>`. All three are
-  /// the same contract, so all three decode.
+  /// sender a `Float64List`, and a JSON fixture a list of numbers and
+  /// `null`s. All three are the same contract, so all three decode: a `null`
+  /// means the same as [absent], because a JSON file cannot write `NaN`.
   static Float64List _landmarkBuffer(Object? raw) {
     final List<num> values;
     if (raw is Float32List) {
@@ -109,7 +136,9 @@ abstract final class PoseFrameCodec {
     } else if (raw is List) {
       values = [
         for (final value in raw)
-          if (value is num)
+          if (value == null)
+            absent
+          else if (value is num)
             value
           else
             throw FormatException(

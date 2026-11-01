@@ -685,6 +685,31 @@
   "coachFramingMissingHips": "I cannot see your hips. Re-aim the phone at your middle.",
   "coachFramingMissingKnees": "I cannot see your knees. Step back or tilt the phone down.",
   "coachFramingMissingAnkles": "I cannot see your ankles. Step back, or tilt the phone down.",
+
+  "@_coach_counting": {
+    "description": "Rep counting, M5. Every attempt the user makes is accounted for: counted, counted with a warning, or not counted with a reason. A counter that silently drops a rep reads as broken."
+  },
+
+  "coachCountingOnly": "Reps only for now. Spottr is not judging your technique yet.",
+  "coachRepsLabel": "{count, plural, =1{rep} other{reps}}",
+  "@coachRepsLabel": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "coachHeldLabel": "held",
+  "coachRepGood": "Good rep.",
+  "coachRepShallow": "Counted, but short of depth — go lower on the next one.",
+  "coachRepPartial": "Not counted: that was barely a dip.",
+  "coachRepTooFast": "Not counted: too fast to be a real rep.",
+  "coachRepTimedOut": "Not counted: that rep was never finished.",
+  "coachRepLostTracking": "Not counted: I lost sight of you part way through.",
+  "coachRepsNotCounted": "{count, plural, =1{1 attempt not counted} other{{count} attempts not counted}}",
+  "@coachRepsNotCounted": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "coachHoldRunning": "Holding. Keep going.",
+  "coachHoldOutOfPosition": "Paused — get back into position.",
+  "coachHoldUntracked": "Paused — I cannot see you.",
+  "coachCounterUnavailable": "Spottr has no rep counter for this movement.",
   "@_exercise_names": {
     "description": "Display names for every catalog entry. The catalog stores an ARB key, never prose, so adding an exercise adds a key here; a test fails if one is missing."
   },

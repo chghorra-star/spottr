@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:pose_core/pose_core.dart';
@@ -226,6 +227,91 @@ void main() {
       // would quietly make every "is the pose good enough" check fail open.
       final raw = _message()..['confidence'] = double.nan;
       expect(() => PoseFrameCodec.decode(raw), throwsFormatException);
+    });
+  });
+
+  group('PoseFrameCodec round-trips through JSON', () {
+    // Fixtures are the codec's second sender, and JSON has no NaN: a file
+    // that cannot say "no landmark here" cannot record a set where a limb
+    // left the frame, which is most of the sets worth recording.
+    test('encodes a frame as something jsonEncode accepts', () {
+      final frame = PoseFrame(
+        frameId: 3,
+        t: const Duration(milliseconds: 100),
+        landmarks: {
+          Joint.leftKnee: Landmark(x: 0.4, y: 0.6, z: 0.1, visibility: 0.9),
+        },
+        confidence: 0.8,
+      );
+
+      final json = jsonDecode(jsonEncode(PoseFrameCodec.encodeJson(frame)))
+          as Map<String, Object?>;
+      final decoded = PoseFrameCodec.decode(json);
+
+      expect(decoded.frameId, 3);
+      expect(decoded.t, const Duration(milliseconds: 100));
+      expect(decoded.confidence, closeTo(0.8, 1e-9));
+      expect(decoded.landmarks.keys, [Joint.leftKnee]);
+      expect(decoded.landmarks[Joint.leftKnee]!.x, closeTo(0.4, 1e-9));
+    });
+
+    test('writes a missing landmark as null rather than NaN', () {
+      final frame = PoseFrame(
+        frameId: 0,
+        t: Duration.zero,
+        landmarks: {
+          Joint.nose: Landmark(x: 0.5, y: 0.2, z: 0, visibility: 1),
+        },
+        confidence: 0.5,
+      );
+
+      final landmarks =
+          PoseFrameCodec.encodeJson(frame)['landmarks']! as List<Object?>;
+
+      expect(landmarks, hasLength(PoseFrameCodec.bufferLength));
+      expect(landmarks[0], closeTo(0.5, 1e-9));
+      expect(landmarks[PoseFrameCodec.stride], isNull);
+      expect(() => jsonEncode(landmarks), returnsNormally);
+    });
+
+    test('reads null as an absent landmark', () {
+      final landmarks = List<Object?>.filled(
+        PoseFrameCodec.bufferLength,
+        null,
+      );
+      final base = Joint.leftWrist.index * PoseFrameCodec.stride;
+      landmarks[base] = 0.3;
+      landmarks[base + 1] = 0.4;
+      landmarks[base + 2] = 0;
+      landmarks[base + 3] = 0.7;
+
+      final decoded = PoseFrameCodec.decode(
+        _message(landmarks: landmarks),
+      );
+
+      expect(decoded.landmarks.keys, [Joint.leftWrist]);
+      expect(decoded.landmarks[Joint.leftWrist]!.visibility, closeTo(0.7, 1e-9));
+    });
+
+    test('still rejects a landmark list of the wrong length', () {
+      expect(
+        () => PoseFrameCodec.decode(
+          _message(landmarks: List<Object?>.filled(8, null)),
+        ),
+        throwsFormatException,
+      );
+    });
+
+    test('still rejects a value that is neither a number nor absent', () {
+      final landmarks = List<Object?>.filled(
+        PoseFrameCodec.bufferLength,
+        null,
+      )..[0] = 'nope';
+
+      expect(
+        () => PoseFrameCodec.decode(_message(landmarks: landmarks)),
+        throwsFormatException,
+      );
     });
   });
 }

@@ -1684,6 +1684,90 @@ abstract class AppLocalizations {
   /// **'I cannot see your ankles. Step back, or tilt the phone down.'**
   String get coachFramingMissingAnkles;
 
+  /// No description provided for @coachCountingOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Reps only for now. Spottr is not judging your technique yet.'**
+  String get coachCountingOnly;
+
+  /// No description provided for @coachRepsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{rep} other{reps}}'**
+  String coachRepsLabel(int count);
+
+  /// No description provided for @coachHeldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'held'**
+  String get coachHeldLabel;
+
+  /// No description provided for @coachRepGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Good rep.'**
+  String get coachRepGood;
+
+  /// No description provided for @coachRepShallow.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted, but short of depth — go lower on the next one.'**
+  String get coachRepShallow;
+
+  /// No description provided for @coachRepPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Not counted: that was barely a dip.'**
+  String get coachRepPartial;
+
+  /// No description provided for @coachRepTooFast.
+  ///
+  /// In en, this message translates to:
+  /// **'Not counted: too fast to be a real rep.'**
+  String get coachRepTooFast;
+
+  /// No description provided for @coachRepTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Not counted: that rep was never finished.'**
+  String get coachRepTimedOut;
+
+  /// No description provided for @coachRepLostTracking.
+  ///
+  /// In en, this message translates to:
+  /// **'Not counted: I lost sight of you part way through.'**
+  String get coachRepLostTracking;
+
+  /// No description provided for @coachRepsNotCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 attempt not counted} other{{count} attempts not counted}}'**
+  String coachRepsNotCounted(int count);
+
+  /// No description provided for @coachHoldRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Holding. Keep going.'**
+  String get coachHoldRunning;
+
+  /// No description provided for @coachHoldOutOfPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused — get back into position.'**
+  String get coachHoldOutOfPosition;
+
+  /// No description provided for @coachHoldUntracked.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused — I cannot see you.'**
+  String get coachHoldUntracked;
+
+  /// No description provided for @coachCounterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr has no rep counter for this movement.'**
+  String get coachCounterUnavailable;
+
   /// No description provided for @exerciseBandAssistedPullUp.
   ///
   /// In en, this message translates to:

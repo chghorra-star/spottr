@@ -21,6 +21,68 @@ and all driven from hand-written frames — plus the logic half of M5 and M6.
 From M4 on it also covers the camera stack above `PoseSource`, because
 `FakePoseCamera` substitutes for the device at that seam and the widget
 tests run the real smoothing and framing code underneath the screen.
+### The accuracy harness is layer 1 with a number on it
+
+From M5 this layer has a command of its own:
+
+```bash
+cd packages/harness
+dart run bin/harness.dart              # the generated suite
+dart run bin/harness.dart --json       # for a machine
+dart run bin/harness.dart --no-smooth  # what the smoothing filter buys
+dart run bin/harness.dart -f recorded/ # landmarks extracted from video
+```
+
+`tool/check.ps1` runs it, and a miscounted rep fails the build. The gate on
+generated fixtures is 100 per cent: generated movement has one right answer,
+so anything short of it is a regression in the state machine, the catalog
+thresholds or the filter — not a tuning question.
+
+**It replays the pipeline that ships**, smoothing included. A measurement
+taken on a different pipeline than the one that ships measures something
+that does not ship.
+
+### What the harness found in its first run
+
+Two defects, neither of which any unit test was going to notice, both now
+fixed with tests of their own:
+
+- **Range of motion was measured from the edge of the tolerance band**
+  rather than from where the user was standing, so a full-depth squat
+  reported 61 degrees of travel on 85 degrees of movement — and
+  `minRangeOfMotion` meant something other than what it said.
+- **The smoothing filter's speed coefficient was three orders of magnitude
+  too small for its signal.** `beta` was a pixel-shaped number against
+  landmark velocities measured in normalized image units, so the one-euro
+  filter was a fixed 1.2Hz low-pass with an adaptive term that contributed
+  about one per cent. It lagged a squat descent by four degrees of knee
+  angle and a fast rep by thirty. Replaying one movement at two tempos is
+  what made it visible.
+
+The second one is worth remembering as a shape: every M4 smoothing test
+passed, because they asserted that jitter is attenuated and that a step is
+damped, and both were true of a filter that was not doing the thing it was
+chosen for.
+
+### Adding a recorded fixture
+
+The format is one JSON file per set — `packages/harness/README.md` has the
+shape. The parts that matter when writing one by hand or from an extractor:
+
+- `landmarks` is `PoseFrameCodec`'s flat buffer, 33 joints in BlazePose
+  ordinal order, four values each, `null` for a joint the model did not
+  place.
+- `source` must say `recorded`. The report counts synthetic and recorded
+  fixtures separately and never averages them, and that field is what makes
+  the difference.
+- `expected` is the label, from somebody watching the video. It is not
+  derived from the thresholds; a suite that agreed with the counter by
+  construction would measure nothing.
+- `notes` is for whatever explains a disagreement later: the clothing, the
+  lighting, the fault being demonstrated.
+
+Fixtures live outside the repository until there is a decision about size
+and licensing. `dart run bin/harness.dart -f <dir>` takes a path.
 
 ### Widget tests do not touch the database
 
@@ -155,12 +217,26 @@ unproven for the rest. M8 publishes a per-exercise accuracy table that states
 plainly which exercises lack real footage rather than quoting one aggregate
 number.
 
+**Where this stands after M5.** The harness exists, it gates CI, and it
+prints the coverage line every time it runs: four of the nine
+camera-coached exercises have a generated fixture, and **none has footage of
+a real body.** So the honest claim today is that the engine is
+self-consistent on movement of a known shape, and that is all. The report is
+written so that the number cannot be quoted without that sentence attached.
+
 **The cheap way to close the gap**, if it becomes worth closing: layer 2
-already requires exercise video to feed through the virtual camera. Those clips
-are the corpus — the only additional cost is labeling, and the labeling tool is
-built in M5 regardless. Separately, the `DecisionLog` dump means every real set
-the app ever runs produces a landmark trace that can be labeled after the fact,
-with no video stored.
+already requires exercise video to feed through the virtual camera. Those
+clips are the corpus, and the only additional cost is labelling. What M5
+built for that is the format and the runner — a fixture file carries its own
+label and notes, and `--fixtures <dir>` replays a directory of them. There
+is **no** labelling tool, no extractor and no video pipeline; an earlier
+draft of this document promised one in M5 and it was not built. Turning an
+mp4 into landmarks needs MediaPipe, which needs Python, which is not
+installed on this machine.
+
+Separately, the `DecisionLog` dump means every real set the app ever runs
+produces a landmark trace that can be labelled after the fact, with no video
+stored.
 
 ## Commands
 
@@ -173,6 +249,9 @@ powershell -ExecutionPolicy Bypass -File tool/check.ps1
 
 # Regenerate Drift and ARB output after a schema or string change
 powershell -ExecutionPolicy Bypass -File tool/generate.ps1
+
+# The accuracy harness on its own, with the report
+cd packages/harness && dart run bin/harness.dart
 ```
 
 Android builds need the Android Studio JDK:

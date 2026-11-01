@@ -960,6 +960,68 @@ class AppLocalizationsEn extends AppLocalizations {
       'I cannot see your ankles. Step back, or tilt the phone down.';
 
   @override
+  String get coachCountingOnly =>
+      'Reps only for now. Spottr is not judging your technique yet.';
+
+  @override
+  String coachRepsLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'reps',
+      one: 'rep',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get coachHeldLabel => 'held';
+
+  @override
+  String get coachRepGood => 'Good rep.';
+
+  @override
+  String get coachRepShallow =>
+      'Counted, but short of depth — go lower on the next one.';
+
+  @override
+  String get coachRepPartial => 'Not counted: that was barely a dip.';
+
+  @override
+  String get coachRepTooFast => 'Not counted: too fast to be a real rep.';
+
+  @override
+  String get coachRepTimedOut => 'Not counted: that rep was never finished.';
+
+  @override
+  String get coachRepLostTracking =>
+      'Not counted: I lost sight of you part way through.';
+
+  @override
+  String coachRepsNotCounted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count attempts not counted',
+      one: '1 attempt not counted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get coachHoldRunning => 'Holding. Keep going.';
+
+  @override
+  String get coachHoldOutOfPosition => 'Paused — get back into position.';
+
+  @override
+  String get coachHoldUntracked => 'Paused — I cannot see you.';
+
+  @override
+  String get coachCounterUnavailable =>
+      'Spottr has no rep counter for this movement.';
+
+  @override
   String get exerciseBandAssistedPullUp => 'Band-Assisted Pull-Up';
 
   @override

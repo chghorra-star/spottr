@@ -136,10 +136,26 @@ source and everything above it, because the overlay, the framing check and
 the rep counter all want the same steadied signal rather than three
 different ones.
 
-Three decisions inside it:
+It is applied **once**, to a broadcast stream, rather than per consumer: a
+transformer builds a fresh filter per subscription, so two listeners would
+otherwise run two filters started at different moments and disagree about
+the same body for the first few frames — and the app and the accuracy
+harness would be measuring differently filtered signals, which is the one
+thing the harness exists to rule out.
+
+Four decisions inside it:
 
 - **It is driven by timestamps, not by sample count**, because frames drop
   and a filter that assumed 30Hz would smooth a gap as if it were movement.
+- **The speed coefficient is in the units of the signal.** Landmarks are
+  normalized image coordinates, where a hip dropping through a squat moves
+  at a few tenths of a unit per second; the filter's published defaults are
+  written for pixels, which move a thousand times faster for the same
+  gesture. At the pixel-shaped value the adaptive term contributed about one
+  per cent of the cutoff and this was a fixed low-pass wearing a costume —
+  it lagged a squat descent by four degrees of knee angle and a fast rep by
+  thirty. The accuracy harness found it by replaying one movement at two
+  tempos.
 - **A gap longer than 400ms resets it.** That is a dozen frames at 30Hz,
   well past anything merely skipped. Smoothing across it drags the skeleton
   in from wherever the user used to be standing.
@@ -290,41 +306,120 @@ If the native side answers with something Dart does not know, the two halves
 of the bridge disagree. Failing closed would read as a permission problem
 forever instead of as the version skew it is, so the decoder throws.
 
-## The camera check claims nothing it cannot do
+## The coach screen claims exactly what it does
 
-M4's only screen is a setup screen: where to put the phone, and whether it
-can see you. It counts no reps and judges no form, because neither exists
-yet — and it says so rather than implying a coach that is not there. The
-copy is pinned by test, like the rest of the safety-relevant text: it has to
-say that Spottr flags risky movement, that it cannot see everything, and
-that it cannot guarantee you will not get hurt.
+The screen is still a setup screen first: where to put the phone, and
+whether it can see you. From M5 it also counts, and it says so — and says
+what it is still not doing. Two lines of copy, both pinned by test: the
+standing claim, that Spottr flags risky movement, cannot see everything and
+cannot guarantee you will not get hurt; and the line that says it is
+counting reps only and not judging technique yet, which comes out when the
+form rules arrive in M6.
 
-It is useful on its own regardless. Knowing where to stand the phone is a
-prerequisite for every later milestone, and getting it wrong is the most
-likely reason the coach would appear not to work at all.
+Knowing where to stand the phone was worth a screen on its own even before
+anything counted. Getting it wrong is the most likely reason the coach would
+appear not to work at all.
 
 ## Rep counting
 
-One config-driven state machine, instantiated per exercise from catalog data:
+One state machine, configured per exercise:
 
 ```
-idle -> ready(top) -> descending -> bottom -> ascending -> repComplete
+idle -> top -> descending -> bottom -> ascending -> (rep) -> top
 ```
 
-Thresholds (`topThreshold`, `bottomThreshold`, `hysteresis`,
-`minRepDuration`, `maxRepDuration`, `minRangeOfMotion`) are catalog JSON, not
-code. Tuning a squat is a data edit; adding a ninth camera exercise is a new
-catalog entry. Plank and other holds swap in a `HoldCounter` that accumulates
-time in valid posture and pauses on violation.
+Everything the machine knows about an exercise arrives as a
+`RepCounterConfig`: which signal to watch, which way it moves, where the two
+ends of the movement are, and the tolerances that decide what counts. Tuning
+a squat is an edit to one table; adding a ninth camera exercise is a new
+entry in it. `counterCatalog` holds the launch set, keyed by the
+`repCounterId` a catalog entry already carries.
 
-Each rep emits a `RepEvent` with its index, duration, peak angle, range of
-motion, tempo, form score, violations, and `counted` plus a reason.
+A plank gets a `HoldCounter` instead, which accumulates time in a posture
+rather than looking for a cycle, because a plank is not a rep count with the
+numbers changed.
+
+### A signal is configuration, not code
+
+Both counters read `PoseSignal`, of which there are two kinds: `JointAngle`
+(the angle at a joint — a knee, an elbow, a hip) and `SegmentTilt` (the
+angle of a segment from vertical). Each is **measured on both sides of the
+body and averaged over whichever sides are tracked**, because from the side
+view the far limb is behind the near one and which of the two the model
+reports is not something a config can predict. That averaging is right for
+the launch set because every camera-coached movement in it is bilaterally
+synchronous; a genuinely one-sided movement would have to name its side.
+
+A signal that cannot be measured returns `null`, never zero. A counter has
+to be able to tell a knee it cannot see from a knee that is folded shut.
+
+### Direction is a config, not two state machines
+
+A squat's knee angle gets *smaller* as the rep is performed; a glute
+bridge's hip angle and a press's elbow angle get *larger*. Rather than two
+machines or a pile of comparisons that flip, the config declares its
+direction and the machine works in **depth**: zero at the top of the rep,
+`fullRange` at the bottom, whichever way the underlying angle moved. There
+is one set of comparisons above it, and `validateCounters` rejects a config
+whose thresholds and direction disagree — a mistake that would otherwise
+open a camera, draw a skeleton and count nothing for ever, which looks
+exactly like a model that cannot see the user.
+
+### It will not count a rep it joined half way through
+
+From `idle` the machine waits to see the top before it will open an attempt.
+The set starts when the user taps start, which is not the same moment they
+are standing up, and a machine that treated its first frame as the top would
+hand a free rep to anybody who began mid-squat.
+
+### Range of motion is measured from where the user was standing
+
+`rangeOfMotion` is travel from the deepest point they *rested* at, not from
+the threshold and not from the last frame that happened to be inside the
+tolerance band. Measuring from the band loses everything inside it —
+systematically, about twenty-four degrees on a squat — which makes
+`minRangeOfMotion` mean something other than what it says and drags the
+shallow-rep boundary in with it. Position therefore comes from the deepest
+frame of the current stay at the top and time comes from the last one, which
+are deliberately different frames: dawdling at the top is not part of the
+rep, but standing up straight is where the rep started from.
+
+This was a real bug, and the accuracy harness is what found it: a generated
+set of full-depth squats reported sixty-one degrees of travel on
+eighty-five degrees of movement.
 
 ### Rejected reps are surfaced, never swallowed
 
-A counter that silently ignores a rep reads as broken. Every rep lands in one
-of three outcomes — `counted`, `counted with warning`, `not counted` — and the
-set summary shows the ledger with the reason for each.
+A counter that silently ignores a rep reads as broken. Every attempt lands in
+one of three outcomes — `counted`, `countedWithWarning`, `notCounted` — and
+carries the reason: `shallow` (past the acceptance bar, short of depth),
+`partialRange`, `tooFast`, `timedOut` (abandoned part way through), or
+`lostTracking`. The ledger keeps them all, in order, with no gaps in the
+numbering, and the screen shows the last verdict and a tally of the rest.
+
+The order the checks run in matters. Range is tested before speed, because a
+quick shallow dip is better explained by how far it went than by how long it
+took: "go deeper" is an instruction and "that was too fast" is a riddle.
+
+### Nothing is held across a gap it would have to guess across
+
+A signal that goes missing mid-rep for longer than `maxTrackingGap` — the
+same 400ms the smoothing filter resets after — abandons the attempt with
+`lostTracking` rather than resuming as though the body had been where it was
+left. Shorter gaps are ridden out. A hold's clock only ever accumulates the
+interval between two frames that were both in position, so a break costs
+exactly the time it lasted and nothing that was already banked.
+
+### A tick carries both the edge and the standing value
+
+`RepTick.completed` is set on the single frame an attempt finished, for
+anything that sees every tick: the cue engine in M7, a logger, the harness.
+`RepTick.last` is the same event on that frame and every frame after it, for
+anything that reads only the newest tick — which is what a screen does. The
+camera produces frames faster than the UI redraws, so an edge-only report is
+a verdict the user never sees, and holding it in the widget instead would
+lose it the same way, because the dropped frame never reaches the widget at
+all. That was the second thing M5 got wrong first.
 
 ### Why "count at a bad angle" and "don't count unsafe reps" do not conflict
 
@@ -340,6 +435,96 @@ supports, so it always applies.
 
 The user is therefore never punished for our blind spots, and every rejection
 is explainable.
+
+### Framing and counting are separate judgements
+
+The counter does not consult the framing check. It needs its own signal
+joints and nothing more, and somebody standing a little too far away is
+still training — a counter that stopped would look broken rather than
+careful. The framing bar says what to fix; the count keeps running.
+
+## The accuracy harness
+
+`packages/harness` replays labelled landmark fixtures through the real
+pipeline and reports what was counted. It is a command, it gates CI, and it
+is the reason the engine is pure Dart: no Flutter, no camera, no device.
+
+```bash
+dart run harness                        # the generated suite
+dart run harness --fixtures recorded/   # landmarks extracted from video
+dart run harness --no-smooth            # what the filter contributes
+```
+
+### It replays the pipeline that ships
+
+The same smoothing filter the app applies runs inside `replay`. This is not
+a nicety: a measurement taken on a different pipeline than the one that ships
+is a measurement of something that does not ship. The app feeds every
+consumer from one broadcast, once-smoothed stream for the same reason.
+
+The `--no-smooth` switch exists to make the filter's contribution visible
+rather than assumed, and the answer is not a tidier overlay: unsmoothed, the
+noisy fixture opens a ninth attempt that never happened and reports ranges of
+29 and 60 degrees on 85-degree reps.
+
+### The label is the author's, not the counter's
+
+A fixture states what should have been counted. Deriving that from the
+thresholds would make the suite agree with the engine by construction and
+measure nothing.
+
+### Fixtures are `PoseFrameCodec`, on disk
+
+One JSON file per set: the exercise id, the camera angle, where the
+landmarks came from, free-text notes, the label, and frames in the codec's
+flat 33-joint buffer. JSON has no `NaN`, so a joint the model did not place
+is `null` — the same meaning as `absent` on the wire, because a format that
+cannot say "nothing here" cannot record a set where a limb left the frame,
+which is most of the sets worth recording.
+
+The suite is **generated rather than stored**. Committing it would be
+megabytes of float arrays nobody can review; the cases are the reviewable
+part. `SideOnPose` describes a body by the tilt of each segment, so a pose
+reads as "the knee is bent to 95 degrees" rather than as a dozen
+coordinates, and interpolating between two poses bends a limb where
+interpolating positions would stretch it. One small fixture is committed as
+a file so the reader is tested against a file on disk rather than against
+the writer that produced it.
+
+### What a passing run proves, and what it does not
+
+It proves the state machine, the catalog thresholds and the smoothing filter
+agree with each other about movement of a known shape — including the cases
+a counter gets wrong: noise on every joint, reps that stop half way, a set
+bounced faster than the movement allows, a rep the tracker loses in the
+middle, a pause at the bottom, and a hold that breaks.
+
+It proves **nothing about a real body.** There is no clothing in a generated
+fixture, no occlusion, no model error and no camera. So the report never
+prints one accuracy figure over fixtures of different kinds, and it always
+says how many exercises have footage of a real body, which is currently
+none. The synthetic gate is 100 per cent — generated movement has one right
+answer, so anything else is a regression — and the recorded gate is the
+MVP's 95 per cent acceptance target, which applies the day there is footage
+to apply it to.
+
+### The harness has already earned its keep
+
+Two defects, in its first run, neither of which any unit test was going to
+notice:
+
+- **Range of motion was measured from the edge of the tolerance band**, so
+  every rep under-reported its travel by the width of the band plus whatever
+  the user was standing above the threshold.
+- **The smoothing filter's speed coefficient was three orders of magnitude
+  too small for its signal.** `beta` was 0.05 against landmark velocities of
+  a few tenths of a normalized unit per second, so the adaptive term
+  contributed about one per cent of the cutoff and the one-euro filter was a
+  fixed 1.2Hz low-pass wearing a costume. It lagged a squat descent by four
+  degrees of knee angle and a fast rep by thirty. Replaying the same
+  movement at two tempos is what made that visible, and nothing in the M4
+  tests could have: they asserted that jitter is attenuated and that a step
+  is damped, both of which were true.
 
 ## Form rules
 
@@ -863,8 +1048,24 @@ or landmark traces off the device.
   through the pipeline.
 - The live coach is tested by driving `FakePoseCamera` through a recorded set
   and asserting the exact cue sequence.
-- The accuracy harness reports rep-count error and per-rule precision and
-  recall, and gates CI once it exists in M5.
+- The rep counter is a decision table driven one angle at a time: a wobble
+  at the top, a dip on the way up, a rep joined half way through, a bounce
+  too fast to be real, a rep abandoned at the bottom, a tracking gap short
+  enough to ride out and one that is not. The thresholds in it are the
+  test's own, not the catalog's, because reading a state-machine test should
+  not require knowing what a real squat's numbers happen to be this week.
+- `counter_catalog_test` checks the launch counters the way the exercise
+  catalog is checked: every camera-supported exercise resolves to a counter,
+  every counter is referred to, and nothing in the table is internally
+  impossible. A counter whose thresholds run backwards opens a camera, draws
+  a skeleton and counts nothing for ever, which looks exactly like a broken
+  model, so it is checked once where it can be seen.
+- The accuracy harness gates CI from M5: the generated suite must come out
+  exact, and it reports rep-count error per fixture with the ledger behind
+  it. Per-rule precision and recall land with the rules in M6.
+- The widget tests of the coach screen are driven by the harness's generated
+  sets, so the screen is tested against a body rather than against a
+  hand-written pose that happens to suit it.
 
 Acceptance targets: rep count accuracy >= 95% at the recommended angle, form
 warnings firing on labeled faults with a low false-positive rate. These are

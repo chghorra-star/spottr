@@ -1,5 +1,7 @@
+import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:plan_engine/plan_engine.dart';
 import 'package:pose_camera/pose_camera.dart';
 import 'package:pose_core/pose_core.dart';
@@ -120,13 +122,49 @@ final Provider<PoseSource> poseSourceProvider = Provider<PoseSource>((ref) {
   return source;
 });
 
-/// Smoothed landmark frames.
+/// The smoothed landmark stream, smoothed exactly once.
 ///
 /// Smoothing sits here rather than in the camera or in each consumer: raw
 /// landmarks jitter by a couple of pixels even on a body that is holding
 /// still, and the overlay, the framing check and the rep counter all want
 /// the same steadied signal rather than three different ones.
-final StreamProvider<PoseFrame> poseFrameProvider = StreamProvider<PoseFrame>(
-  (ref) =>
-      ref.watch(poseSourceProvider).frames.transform(const PoseSmoothing()),
+///
+/// Broadcast on purpose. A transformer builds a fresh filter per
+/// subscription, so without this the overlay and the rep counter would each
+/// run their own — started at different moments, and therefore disagreeing
+/// about the same body for the first few frames. It would also mean the
+/// counter in the app and the counter in the accuracy harness were fed
+/// differently filtered signals, which is the one thing the harness exists
+/// to rule out.
+final Provider<Stream<PoseFrame>> poseFramesProvider =
+    Provider<Stream<PoseFrame>>(
+  (ref) => ref
+      .watch(poseSourceProvider)
+      .frames
+      .transform(const PoseSmoothing())
+      .asBroadcastStream(),
 );
+
+/// Smoothed landmark frames, for anything that reads one frame at a time.
+final StreamProvider<PoseFrame> poseFrameProvider = StreamProvider<PoseFrame>(
+  (ref) => ref.watch(poseFramesProvider),
+);
+
+/// What the rep counter makes of the stream, for one exercise.
+///
+/// A provider rather than something the screen owns, because a counter is
+/// stateful and a widget that fed it from `build` would count a rebuild as a
+/// rep. Family-scoped, so leaving the screen disposes it and the next set
+/// starts from zero.
+final StreamProviderFamily<CounterTick, String> counterTickProvider =
+    StreamProvider.family<CounterTick, String>((ref, exerciseId) {
+  final config = counterFor(ref.watch(catalogProvider).require(exerciseId));
+  if (config == null) {
+    throw ArgumentError.value(
+      exerciseId,
+      'exerciseId',
+      'no rep counter for this exercise',
+    );
+  }
+  return ref.watch(poseFramesProvider).transform(CounterStream(config));
+});

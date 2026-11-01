@@ -9,3 +9,8 @@
 library;
 
 export 'src/coach_style.dart';
+export 'src/pose_signal.dart';
+export 'src/counter_config.dart';
+export 'src/rep_event.dart';
+export 'src/set_counter.dart';
+export 'src/counter_catalog.dart';

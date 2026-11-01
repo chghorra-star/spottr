@@ -42,6 +42,12 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # The accuracy harness, for its synthetic bodies: a widget test that
+  # drives the coach screen with the same generated set the accuracy suite
+  # replays is testing the screen against a body rather than against a
+  # hand-written pose that happens to suit it.
+  harness:
+    path: ../packages/harness
   flutter_lints: ^6.0.0
   build_runner: ^2.4.13
   sqlite3: ^2.4.0

@@ -46,6 +46,11 @@ foreach ($pkg in $pureDartPackages) {
   }
 }
 
+Invoke-Step 'accuracy harness' {
+  Push-Location 'packages\harness'
+  try { dart run bin/harness.dart } finally { Pop-Location }
+}
+
 Invoke-Step 'flutter test app' {
   Push-Location 'app'
   try { flutter test } finally { Pop-Location }
