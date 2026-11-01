@@ -150,4 +150,78 @@ void main() {
       expect(knee!, inInclusiveRange(50, 100));
     });
   });
+
+  group('perpendicularOffset', () {
+    // A plank, seen from the side. The shoulder-knee line is the reference
+    // and the hip is the joint being judged against it.
+    const shoulder = Point2(0.20, 0.50);
+    const knee = Point2(0.80, 0.50);
+
+    test('a joint below the line reads positive, as a fraction of its span',
+        () {
+      // 0.10 below a 0.60 long line.
+      final offset = perpendicularOffset(
+        const Point2(0.50, 0.60),
+        shoulder,
+        knee,
+      );
+      expect(offset, closeTo(0.1667, 1e-3));
+    });
+
+    test('a joint above the line reads negative', () {
+      final offset = perpendicularOffset(
+        const Point2(0.50, 0.44),
+        shoulder,
+        knee,
+      );
+      expect(offset, closeTo(-0.1, 1e-3));
+    });
+
+    test('the sign does not depend on which way the body faces', () {
+      final facingRight = perpendicularOffset(
+        const Point2(0.50, 0.60),
+        shoulder,
+        knee,
+      );
+      // The same sag, with the reference points arriving the other way
+      // round because the user turned around.
+      final facingLeft = perpendicularOffset(
+        const Point2(0.50, 0.60),
+        knee,
+        shoulder,
+      );
+      expect(facingLeft, closeTo(facingRight!, 1e-9));
+    });
+
+    test('a line with no length has no side', () {
+      expect(
+        perpendicularOffset(const Point2(0.5, 0.6), shoulder, shoulder),
+        isNull,
+      );
+    });
+
+    test('a reference line that is nearly vertical has no below', () {
+      // Standing: shoulder above knee. "Below the line" is not a sentence
+      // about this geometry, and a sign that flips with a wobble is worse
+      // than no reading at all.
+      expect(
+        perpendicularOffset(
+          const Point2(0.56, 0.60),
+          const Point2(0.50, 0.40),
+          const Point2(0.51, 0.80),
+        ),
+        isNull,
+      );
+    });
+
+    test('a line well off vertical still has a side', () {
+      final offset = perpendicularOffset(
+        const Point2(0.50, 0.90),
+        const Point2(0.20, 0.50),
+        const Point2(0.80, 0.80),
+      );
+      expect(offset, isNotNull);
+      expect(offset!, greaterThan(0));
+    });
+  });
 }

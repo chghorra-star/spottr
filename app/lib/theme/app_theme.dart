@@ -24,7 +24,15 @@ class FormSeverityColors extends ThemeExtension<FormSeverityColors> {
   /// Cue fires every time, but the rep still counts.
   final Color major;
 
-  /// Rep is not counted and the coach says to drop the weight.
+  /// The movement looked risky. The coach says to stop the set and take
+  /// weight off, and the set's form score drops far enough to change the
+  /// next session's prescription.
+  ///
+  /// It does **not** cancel the rep, which an earlier draft of this comment
+  /// said it would. M6 decided against it: every threshold behind every
+  /// rule is a guess rather than a measurement, and deleting work somebody
+  /// actually did on the strength of an unvalidated proxy is the failure
+  /// mode that makes a coach impossible to trust.
   final Color unsafe;
 
   @override

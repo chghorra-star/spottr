@@ -123,4 +123,47 @@ void main() {
       expect(() => PoseFixture.fromJson(raw), throwsFormatException);
     });
   });
+
+  group('labelled faults', () {
+    test('round-trip through JSON', () {
+      final labelled = PoseFixture(
+        name: 'labelled',
+        exerciseId: 'bodyweight_squat',
+        angle: CameraAngle.side,
+        source: FixtureSource.recorded,
+        notes: 'loose hoodie, phone on a bench',
+        expectedReps: 5,
+        expectedFaults: const {'back_rounding', 'squat_depth'},
+        frames: _fixture().frames,
+      );
+
+      final back = PoseFixture.fromJson(_json(labelled));
+
+      expect(back.expectedFaults, {'back_rounding', 'squat_depth'});
+    });
+
+    test('a fixture with no faults listed expects none', () {
+      // Which is a label, not a gap: it is the one that catches a rule
+      // firing on good form.
+      final back = PoseFixture.fromJson(_json(_fixture()));
+
+      expect(back.expectedFaults, isEmpty);
+    });
+
+    test('refuses a label that is not a list of rule ids', () {
+      final raw = _json(_fixture());
+      (raw['expected']! as Map<String, Object?>)['faults'] = 'back_rounding';
+
+      expect(
+        () => PoseFixture.fromJson(raw),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('faults'),
+          ),
+        ),
+      );
+    });
+  });
 }

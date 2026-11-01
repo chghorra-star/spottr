@@ -42,8 +42,22 @@ String renderReport(HarnessReport report) {
     );
     if (!result.passed) {
       lines.add('        ${fixture.notes}');
-      for (final event in result.ledger) {
-        lines.add('        $event');
+      if (result.missedFaults.isNotEmpty) {
+        lines.add(
+          '        labelled and did not fire: '
+          '${_list(result.missedFaults)}',
+        );
+      }
+      if (result.unexpectedFaults.isNotEmpty) {
+        lines.add(
+          '        fired and was not labelled: '
+          '${_list(result.unexpectedFaults)}',
+        );
+      }
+      if (!result.countedRight) {
+        for (final event in result.ledger) {
+          lines.add('        $event');
+        }
       }
       if (result.framesTracked < result.framesSeen) {
         lines.add(
@@ -75,11 +89,60 @@ String renderReport(HarnessReport report) {
       );
     }
     if (holds.isNotEmpty) {
-      final passed = holds.where((result) => result.passed).length;
+      final passed = holds.where((result) => result.countedRight).length;
       lines.add(
         '${source.name.padRight(10)} holds        '
         '$passed of ${holds.length} within tolerance',
       );
+    }
+  }
+
+  lines.add('');
+  lines.add('Form rules');
+  final labelled = report.results.fold<int>(
+    0,
+    (sum, result) => sum + result.fixture.expectedFaults.length,
+  );
+  if (labelled > 0) {
+    final missed = report.results
+        .fold<int>(0, (sum, result) => sum + result.missedFaults.length);
+    lines.add(
+      '  labelled    ${labelled - missed} of $labelled fired '
+      '(${(report.faultDetection * 100).toStringAsFixed(0)}%)',
+    );
+  }
+  final firings = report.firings;
+  if (firings.isNotEmpty) {
+    final parts = [
+      for (final entry in (firings.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key))))
+        '${entry.key} x${entry.value}',
+    ];
+    lines.add('  fired       ${parts.join(', ')}');
+  }
+  final unexpected = {
+    for (final result in report.results) ...result.unexpectedFaults,
+  };
+  if (unexpected.isNotEmpty) {
+    lines.add('  unlabelled  ${_list(unexpected)}');
+  }
+  if (report.rulesUnexercised.isNotEmpty) {
+    lines.add(
+      '  no fixture  ${_list(report.rulesUnexercised)}',
+    );
+    lines.add(
+      '              evaluated, and nothing in the suite is built to trip '
+      'them, so',
+    );
+    lines.add(
+      '              nothing here says whether they would fire or when.',
+    );
+  }
+  if (report.rulesPending.isNotEmpty) {
+    lines.add('  not built   ${_list(report.rulesPending.keys.toSet())}');
+    for (final entry in (report.rulesPending.entries.toList()
+          ..sort((a, b) => a.key.compareTo(b.key)))) {
+      lines.add('              ${entry.key}: ${_wrap(entry.value, 60)}');
     }
   }
 
@@ -123,3 +186,21 @@ String _faults(FixtureResult result) {
 }
 
 String _list(Set<String> ids) => (ids.toList()..sort()).join(', ');
+
+/// Breaks [text] at [width], continuing on indented lines.
+String _wrap(String text, int width) {
+  final lines = <String>[];
+  var line = '';
+  for (final word in text.split(' ')) {
+    if (line.isEmpty) {
+      line = word;
+    } else if (line.length + 1 + word.length <= width) {
+      line = '$line $word';
+    } else {
+      lines.add(line);
+      line = word;
+    }
+  }
+  if (line.isNotEmpty) lines.add(line);
+  return lines.join('\n                  ');
+}

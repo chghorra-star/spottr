@@ -74,6 +74,9 @@ abstract final class UiKeys {
   static const Key coachCount = Key('spottr.coach.count');
   static const Key coachVerdict = Key('spottr.coach.verdict');
   static const Key coachLedger = Key('spottr.coach.ledger');
+  static const Key coachForm = Key('spottr.coach.form');
+  static const Key coachFormScore = Key('spottr.coach.form.score');
+  static const Key coachFormUnchecked = Key('spottr.coach.form.unchecked');
 
   /// A choice within a question, e.g. one goal or one injury site.
 

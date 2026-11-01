@@ -206,16 +206,40 @@ void main() {
   });
 
   group('what the coach admits it is not doing yet', () {
-    test('says it is counting reps and not judging technique', () {
-      // M5 counts and does not judge. The claim above is the standing one;
-      // this is the line that stops the screen implying a form coach that
-      // does not exist until M6.
-      final line = AppLocalizationsEn().coachCountingOnly.toLowerCase();
+    test('says the form checks have never been measured', () {
+      // M6 judges technique, so the M5 line about not judging it had to
+      // go. What replaces it is the thing that is still true: every
+      // threshold behind every rule is a plausible guess, and none of them
+      // has been compared against video of anybody training.
+      final line = AppLocalizationsEn().coachFormUntested.toLowerCase();
 
-      // Not "reps only": a plank is counted in seconds, and the same line
-      // sits under the hold timer.
-      expect(line, contains('counting'));
-      expect(line, contains('not judging'));
+      expect(line, contains('form'));
+      expect(line, contains('not been measured'));
+      expect(line, contains('footage'));
+    });
+
+    test('names every rule the catalog has, including the unbuilt ones', () {
+      // The screen lists what it is not watching by name. A rule with no
+      // name would have to be left out of that list, which would make the
+      // list wrong in the one direction that matters.
+      final strings = PlanStrings(
+        AppLocalizationsEn(),
+        ExerciseCatalog(standardExercises),
+      );
+
+      for (final entry in formCatalog.entries) {
+        expect(
+          strings.ruleName(entry.key),
+          isNotEmpty,
+          reason: 'no name for ',
+        );
+        if (entry.value is PendingRule) continue;
+        expect(
+          strings.ruleAdvice(entry.key),
+          isNotEmpty,
+          reason: 'no advice for ',
+        );
+      }
     });
   });
 }

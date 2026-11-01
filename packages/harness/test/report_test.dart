@@ -57,7 +57,7 @@ void main() {
     });
 
     test('counts a hold separately from a rep count', () {
-      expect(text, contains('holds        2 of 2 within tolerance'));
+      expect(text, contains('holds        4 of 4 within tolerance'));
     });
   });
 
@@ -66,8 +66,9 @@ void main() {
       final json = runFixtures(syntheticSuite()).toJson();
 
       expect(json['repAccuracy'], 1);
-      expect(json['fixtures'], 11);
-      expect(json['passed'], 11);
+      expect(json['fixtures'], syntheticSuite().length);
+      expect(json['passed'], syntheticSuite().length);
+      expect(json['faultDetection'], 1);
       final coverage = json['coverage']! as Map<String, Object?>;
       expect(coverage['recorded'], isEmpty);
       expect(coverage['cameraExercises'], 9);
@@ -131,6 +132,52 @@ void main() {
       expect(read.name, 'written');
       expect(read.expectedReps, 8);
       expect(read.frames, hasLength(_relabelled('written', 8).frames.length));
+    });
+  });
+
+  group('the report on form rules', () {
+    final report = runFixtures(syntheticSuite());
+    final text = renderReport(report);
+
+    test('says how many labelled faults fired', () {
+      expect(text, contains('labelled    18 of 18 fired (100%)'));
+    });
+
+    test('lists what fired and how often', () {
+      expect(text, contains('back_rounding x12'));
+      expect(text, contains('hip_pike x1'));
+    });
+
+    test('names the rules nothing in the suite trips', () {
+      expect(text, contains('lunge_depth'));
+      expect(text, contains('nothing here says whether they would fire'));
+    });
+
+    test('names the rules the engine does not evaluate, and why', () {
+      expect(text, contains('not built'));
+      expect(text, contains('knee_valgus'));
+      expect(text, contains('needs the front view'));
+      expect(text, contains('needs a signal that can name a side'));
+    });
+
+    test('says which rule disagreed when a fixture fails on form', () {
+      final clean = syntheticSuite()
+          .firstWhere((fixture) => fixture.name == 'squat_clean_8');
+      final mislabelled = PoseFixture(
+        name: 'mislabelled_faults',
+        exerciseId: clean.exerciseId,
+        angle: clean.angle,
+        source: clean.source,
+        notes: 'eight clean reps, labelled as a rounded back',
+        expectedReps: clean.expectedReps,
+        expectedFaults: const {'back_rounding'},
+        frames: clean.frames,
+      );
+
+      final failing = renderReport(runFixtures([mislabelled]));
+
+      expect(failing, contains('FAIL'));
+      expect(failing, contains('labelled and did not fire: back_rounding'));
     });
   });
 }

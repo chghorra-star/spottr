@@ -459,6 +459,90 @@ class PlanStrings {
         HoldPause.untracked => l10n.coachHoldUntracked,
       };
 
+
+  /// What to say to the user about a rule that fired.
+  ///
+  /// Advice rather than a diagnosis. A rule fires when the movement looked
+  /// like a shape somebody described, and the shapes have not been measured
+  /// against footage of real training — so every sentence here is something
+  /// to try rather than something that happened.
+  String ruleAdvice(String ruleId) => switch (ruleId) {
+        'squat_depth' => l10n.coachAdviceSquatDepth,
+        'lunge_depth' => l10n.coachAdviceLungeDepth,
+        'hinge_depth' => l10n.coachAdviceHingeDepth,
+        'bridge_lockout' => l10n.coachAdviceBridgeLockout,
+        'lockout' => l10n.coachAdviceLockout,
+        'press_lockout' => l10n.coachAdvicePressLockout,
+        'knee_bend' => l10n.coachAdviceKneeBend,
+        'hip_sag' => l10n.coachAdviceHipSag,
+        'hip_pike' => l10n.coachAdviceHipPike,
+        'neck_alignment' => l10n.coachAdviceNeckAlignment,
+        'heel_lift' => l10n.coachAdviceHeelLift,
+        'torso_lean' => l10n.coachAdviceTorsoLean,
+        'back_arch' => l10n.coachAdviceBackArch,
+        'torso_swing' => l10n.coachAdviceTorsoSwing,
+        'back_rounding' => l10n.coachAdviceBackRounding,
+        'rom' => l10n.coachAdviceRom,
+        'tempo' => l10n.coachAdviceTempo,
+        _ => throw ArgumentError.value(ruleId, 'ruleId', 'No rule advice'),
+      };
+
+  /// What to call a rule in a list of things the coach is not watching.
+  ///
+  /// Every rule in the catalog has one, including the four the engine does
+  /// not evaluate: naming them is the point of the list.
+  String ruleName(String ruleId) => switch (ruleId) {
+        'squat_depth' => l10n.coachRuleSquatDepth,
+        'lunge_depth' => l10n.coachRuleLungeDepth,
+        'hinge_depth' => l10n.coachRuleHingeDepth,
+        'bridge_lockout' => l10n.coachRuleBridgeLockout,
+        'lockout' => l10n.coachRuleLockout,
+        'press_lockout' => l10n.coachRulePressLockout,
+        'knee_bend' => l10n.coachRuleKneeBend,
+        'hip_sag' => l10n.coachRuleHipSag,
+        'hip_pike' => l10n.coachRuleHipPike,
+        'neck_alignment' => l10n.coachRuleNeckAlignment,
+        'heel_lift' => l10n.coachRuleHeelLift,
+        'torso_lean' => l10n.coachRuleTorsoLean,
+        'back_arch' => l10n.coachRuleBackArch,
+        'torso_swing' => l10n.coachRuleTorsoSwing,
+        'back_rounding' => l10n.coachRuleBackRounding,
+        'rom' => l10n.coachRuleRom,
+        'tempo' => l10n.coachRuleTempo,
+        'knee_valgus' => l10n.coachRuleKneeValgus,
+        'elbow_flare' => l10n.coachRuleElbowFlare,
+        'elbow_path' => l10n.coachRuleElbowPath,
+        'knee_travel' => l10n.coachRuleKneeTravel,
+        _ => throw ArgumentError.value(ruleId, 'ruleId', 'No rule name'),
+      };
+
+  /// The headline for one verdict: the worst thing that fired, or the fact
+  /// that nothing did.
+  ///
+  /// A verdict that checked nothing gets neither. "Nothing to flag" from a
+  /// coach that could not see anything is a lie, and it is the lie this
+  /// whole engine is arranged to avoid telling.
+  String formVerdict(FormVerdict verdict) {
+    final worst = verdict.violations.isEmpty ? null : verdict.violations.first;
+    if (worst != null) return ruleAdvice(worst.ruleId);
+    return verdict.checked == 0
+        ? l10n.coachFormWatching
+        : l10n.coachFormGood;
+  }
+
+  /// The rules this angle and this engine are not checking, named, or null
+  /// when there are none.
+  String? formUnchecked(RuleSelection selection) {
+    if (selection.active.isEmpty) return l10n.coachFormNothingWatched;
+    final ids = <String>{
+      ...selection.blind,
+      for (final rule in selection.pending) rule.id,
+    };
+    if (ids.isEmpty) return null;
+    final names = (ids.toList()..sort()).map(ruleName).join(', ');
+    return l10n.coachFormUnchecked(names);
+  }
+
   /// Sets and reps, or sets and a hold.
   String prescription(PlannedExercise value) =>
       value.metric == MetricType.holdSeconds

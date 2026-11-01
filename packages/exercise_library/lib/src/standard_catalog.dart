@@ -180,7 +180,11 @@ const _gluteBridgeCamera = CameraSupport(
   recommendedAngle: CameraAngle.side,
   acceptableAngles: {CameraAngle.side},
   repCounterId: 'bridge_hip_angle',
-  formRuleIds: {'bridge_lockout', 'back_arch', 'rom', 'tempo'},
+  // No back_arch: in a bridge the trunk is horizontal by design, and lumbar
+  // hyperextension at the top of one is invisible to a side-on skeleton
+  // that has no landmark on the pelvis or the spine. A rule that cannot be
+  // measured is worse than a gap, because the gap is at least visible.
+  formRuleIds: {'bridge_lockout', 'rom', 'tempo'},
 );
 
 const _hingeCamera = CameraSupport(
@@ -194,7 +198,10 @@ const _shoulderPressCamera = CameraSupport(
   recommendedAngle: CameraAngle.side,
   acceptableAngles: {CameraAngle.side, CameraAngle.front},
   repCounterId: 'press_elbow_angle',
-  formRuleIds: {'lockout', 'back_arch', 'elbow_flare', 'rom', 'tempo'},
+  // press_lockout rather than lockout: a press opens as it is performed, so
+  // full extension is at the far end of the movement and not at the top of
+  // the rep. Same distinction bridge_lockout already makes.
+  formRuleIds: {'press_lockout', 'back_arch', 'elbow_flare', 'rom', 'tempo'},
   rulesDisabledAt: {
     CameraAngle.front: {'back_arch'},
     CameraAngle.side: {'elbow_flare'},

@@ -14,3 +14,7 @@ export 'src/counter_config.dart';
 export 'src/rep_event.dart';
 export 'src/set_counter.dart';
 export 'src/counter_catalog.dart';
+export 'src/form_rule.dart';
+export 'src/form_catalog.dart';
+export 'src/form_verdict.dart';
+export 'src/form_analyzer.dart';

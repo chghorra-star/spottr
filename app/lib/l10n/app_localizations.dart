@@ -1684,12 +1684,6 @@ abstract class AppLocalizations {
   /// **'I cannot see your ankles. Step back, or tilt the phone down.'**
   String get coachFramingMissingAnkles;
 
-  /// No description provided for @coachCountingOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Counting only for now. Spottr is not judging your technique yet.'**
-  String get coachCountingOnly;
-
   /// No description provided for @coachRepsLabel.
   ///
   /// In en, this message translates to:
@@ -1767,6 +1761,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spottr has no rep counter for this movement.'**
   String get coachCounterUnavailable;
+
+  /// No description provided for @coachFormUntested.
+  ///
+  /// In en, this message translates to:
+  /// **'These form checks have not been measured against real training footage yet.'**
+  String get coachFormUntested;
+
+  /// No description provided for @coachFormGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to flag on that one.'**
+  String get coachFormGood;
+
+  /// No description provided for @coachFormWatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Watching your form.'**
+  String get coachFormWatching;
+
+  /// No description provided for @coachFormScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Form {score}'**
+  String coachFormScore(int score);
+
+  /// No description provided for @coachFormUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not watching: {rules}'**
+  String coachFormUnchecked(String rules);
+
+  /// No description provided for @coachFormNothingWatched.
+  ///
+  /// In en, this message translates to:
+  /// **'No form checks run from this angle.'**
+  String get coachFormNothingWatched;
+
+  /// No description provided for @coachAdviceSquatDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'Short of depth — get your hips below your knees.'**
+  String get coachAdviceSquatDepth;
+
+  /// No description provided for @coachAdviceLungeDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop the back knee further on the next one.'**
+  String get coachAdviceLungeDepth;
+
+  /// No description provided for @coachAdviceHingeDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'Push your hips further back — you are stopping high.'**
+  String get coachAdviceHingeDepth;
+
+  /// No description provided for @coachAdviceBridgeLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'Drive your hips all the way up at the top.'**
+  String get coachAdviceBridgeLockout;
+
+  /// No description provided for @coachAdviceLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'Straighten your arms out fully at the top.'**
+  String get coachAdviceLockout;
+
+  /// No description provided for @coachAdvicePressLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'Press all the way overhead — you are stopping short.'**
+  String get coachAdvicePressLockout;
+
+  /// No description provided for @coachAdviceKneeBend.
+  ///
+  /// In en, this message translates to:
+  /// **'Your knees are bending — keep them long and move at the hips.'**
+  String get coachAdviceKneeBend;
+
+  /// No description provided for @coachAdviceHipSag.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hips are dropping — squeeze your glutes and hold the line.'**
+  String get coachAdviceHipSag;
+
+  /// No description provided for @coachAdviceHipPike.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hips are riding high — bring them down into line.'**
+  String get coachAdviceHipPike;
+
+  /// No description provided for @coachAdviceNeckAlignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Your head is hanging forward — look at the floor just ahead of you.'**
+  String get coachAdviceNeckAlignment;
+
+  /// No description provided for @coachAdviceHeelLift.
+  ///
+  /// In en, this message translates to:
+  /// **'Your heels are coming up — keep them down.'**
+  String get coachAdviceHeelLift;
+
+  /// No description provided for @coachAdviceTorsoLean.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay upright — you are leaning into it.'**
+  String get coachAdviceTorsoLean;
+
+  /// No description provided for @coachAdviceBackArch.
+  ///
+  /// In en, this message translates to:
+  /// **'You are leaning back instead of pressing up.'**
+  String get coachAdviceBackArch;
+
+  /// No description provided for @coachAdviceTorsoSwing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your torso still and let your arms do the work.'**
+  String get coachAdviceTorsoSwing;
+
+  /// No description provided for @coachAdviceBackRounding.
+  ///
+  /// In en, this message translates to:
+  /// **'That looked like your back rounding. Stop the set and take weight off.'**
+  String get coachAdviceBackRounding;
+
+  /// No description provided for @coachAdviceRom.
+  ///
+  /// In en, this message translates to:
+  /// **'These are getting shorter than your first few — stop the set when they do.'**
+  String get coachAdviceRom;
+
+  /// No description provided for @coachAdviceTempo.
+  ///
+  /// In en, this message translates to:
+  /// **'You are dropping into it — lower under control.'**
+  String get coachAdviceTempo;
+
+  /// No description provided for @coachRuleSquatDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'squat depth'**
+  String get coachRuleSquatDepth;
+
+  /// No description provided for @coachRuleLungeDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'lunge depth'**
+  String get coachRuleLungeDepth;
+
+  /// No description provided for @coachRuleHingeDepth.
+  ///
+  /// In en, this message translates to:
+  /// **'hinge depth'**
+  String get coachRuleHingeDepth;
+
+  /// No description provided for @coachRuleBridgeLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'hip extension'**
+  String get coachRuleBridgeLockout;
+
+  /// No description provided for @coachRuleLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'arm lockout'**
+  String get coachRuleLockout;
+
+  /// No description provided for @coachRulePressLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'overhead lockout'**
+  String get coachRulePressLockout;
+
+  /// No description provided for @coachRuleKneeBend.
+  ///
+  /// In en, this message translates to:
+  /// **'knee bend'**
+  String get coachRuleKneeBend;
+
+  /// No description provided for @coachRuleHipSag.
+  ///
+  /// In en, this message translates to:
+  /// **'hip sag'**
+  String get coachRuleHipSag;
+
+  /// No description provided for @coachRuleHipPike.
+  ///
+  /// In en, this message translates to:
+  /// **'hip pike'**
+  String get coachRuleHipPike;
+
+  /// No description provided for @coachRuleNeckAlignment.
+  ///
+  /// In en, this message translates to:
+  /// **'neck position'**
+  String get coachRuleNeckAlignment;
+
+  /// No description provided for @coachRuleHeelLift.
+  ///
+  /// In en, this message translates to:
+  /// **'heel lift'**
+  String get coachRuleHeelLift;
+
+  /// No description provided for @coachRuleTorsoLean.
+  ///
+  /// In en, this message translates to:
+  /// **'torso lean'**
+  String get coachRuleTorsoLean;
+
+  /// No description provided for @coachRuleBackArch.
+  ///
+  /// In en, this message translates to:
+  /// **'back arch'**
+  String get coachRuleBackArch;
+
+  /// No description provided for @coachRuleTorsoSwing.
+  ///
+  /// In en, this message translates to:
+  /// **'torso swing'**
+  String get coachRuleTorsoSwing;
+
+  /// No description provided for @coachRuleBackRounding.
+  ///
+  /// In en, this message translates to:
+  /// **'back rounding'**
+  String get coachRuleBackRounding;
+
+  /// No description provided for @coachRuleRom.
+  ///
+  /// In en, this message translates to:
+  /// **'range of motion'**
+  String get coachRuleRom;
+
+  /// No description provided for @coachRuleTempo.
+  ///
+  /// In en, this message translates to:
+  /// **'tempo'**
+  String get coachRuleTempo;
+
+  /// No description provided for @coachRuleKneeValgus.
+  ///
+  /// In en, this message translates to:
+  /// **'knees falling in'**
+  String get coachRuleKneeValgus;
+
+  /// No description provided for @coachRuleElbowFlare.
+  ///
+  /// In en, this message translates to:
+  /// **'elbow flare'**
+  String get coachRuleElbowFlare;
+
+  /// No description provided for @coachRuleElbowPath.
+  ///
+  /// In en, this message translates to:
+  /// **'elbow path'**
+  String get coachRuleElbowPath;
+
+  /// No description provided for @coachRuleKneeTravel.
+  ///
+  /// In en, this message translates to:
+  /// **'knee travel'**
+  String get coachRuleKneeTravel;
 
   /// No description provided for @exerciseBandAssistedPullUp.
   ///

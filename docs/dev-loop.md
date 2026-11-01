@@ -17,7 +17,9 @@ rule thresholds, cue ordering, form scores.
 
 This layer covers M1 through M3 entirely, the pose domain in M4 — the wire
 codec, the smoothing filters, the framing check and the skeleton, all pure
-and all driven from hand-written frames — plus the logic half of M5 and M6.
+and all driven from hand-written frames — and the whole of M5 and M6: the
+rep counters, the form rules and the scoring are pure Dart and run under
+`dart test` in milliseconds.
 From M4 on it also covers the camera stack above `PoseSource`, because
 `FakePoseCamera` substitutes for the device at that seam and the widget
 tests run the real smoothing and framing code underneath the screen.
@@ -37,6 +39,14 @@ dart run bin/harness.dart -f recorded/ # landmarks extracted from video
 generated fixtures is 100 per cent: generated movement has one right answer,
 so anything short of it is a regression in the state machine, the catalog
 thresholds or the filter — not a tuning question.
+
+From M6 the form rules are gated too, and **in both directions**. Every
+fixture carries the rules that should fire on it, including the empty label.
+A rule that does not fire on the fault it was written for is useless; a rule
+that fires on a fixture nothing is wrong with will fire on every set anybody
+ever performs, and that is the worse of the two, because from the outside a
+coach that is always wrong is indistinguishable from a coach that is never
+listening.
 
 **It replays the pipeline that ships**, smoothing included. A measurement
 taken on a different pipeline than the one that ships measures something
@@ -64,6 +74,36 @@ passed, because they asserted that jitter is attenuated and that a step is
 damped, and both were true of a filter that was not doing the thing it was
 chosen for.
 
+### And in M6, when the form rules arrived
+
+Three more, all three invisible to the unit tests that covered the same
+code:
+
+- **Rules judged attempts the counter had already refused.** A depth rule
+  fired on the two half-dips in `squat_six_of_eight` and a range rule fired
+  on the rep in `squat_dropout_8` whose tracking was lost. They are faults
+  about movement nobody completed.
+- **A lockout rule could not pass.** It fired on all ten reps of
+  `pushup_clean_10`, because a rep ends the instant the signal crosses back
+  inside its tolerance band — up to eight degrees before the user has
+  finished straightening their arms.
+- **A travel bound written as `max - min` measured the noise.** It fired on
+  `squat_noisy_8`, which is eight clean reps with jitter added. Over sixty
+  noisy frames the two furthest-apart samples are, with high probability,
+  the two worst landmark errors in the set.
+
+The third has the same shape as the smoothing coefficient: a statistic that
+is right on clean data and measures an artefact on real data, passing every
+unit test either way. That shape has now come up twice, and both times what
+caught it was replaying one movement under two conditions rather than
+asserting a property of one.
+
+The suite also settled a threshold rather than just checking one. Asked how
+far the trunk-length ratio travels on every fixture, it answered eleven
+points at worst where nothing rounds and twenty-plus where something does,
+which is how `back_rounding` ended up at fifteen instead of the ten
+somebody guessed.
+
 ### Adding a recorded fixture
 
 The format is one JSON file per set — `packages/harness/README.md` has the
@@ -78,6 +118,11 @@ shape. The parts that matter when writing one by hand or from an extractor:
 - `expected` is the label, from somebody watching the video. It is not
   derived from the thresholds; a suite that agreed with the counter by
   construction would measure nothing.
+- `expected.faults` is the same, for form: the rule ids that should fire,
+  **and the empty list where none should**. Leaving it out says no rule
+  should fire, so a fixture of good form needs nothing written down and a
+  fixture demonstrating a fault needs the id of the rule it demonstrates.
+  The format version went from 1 to 2 when this was added.
 - `notes` is for whatever explains a disagreement later: the clothing, the
   lighting, the fault being demonstrated.
 
@@ -217,12 +262,25 @@ unproven for the rest. M8 publishes a per-exercise accuracy table that states
 plainly which exercises lack real footage rather than quoting one aggregate
 number.
 
-**Where this stands after M5.** The harness exists, it gates CI, and it
-prints the coverage line every time it runs: four of the nine
-camera-coached exercises have a generated fixture, and **none has footage of
-a real body.** So the honest claim today is that the engine is
-self-consistent on movement of a known shape, and that is all. The report is
-written so that the number cannot be quoted without that sentence attached.
+**Where this stands after M6.** The harness exists, it gates CI on counting
+and on form, and it prints three coverage lines every time it runs.
+
+- **Exercises:** seven of the nine camera-coached movements have a generated
+  fixture. The two that do not are the goblet squat, whose geometry is the
+  bodyweight squat's, and the forward lunge, which the generator cannot pose
+  at all — it mirrors one leg chain, and a lunge is the one launch movement
+  whose two legs do different things.
+- **Rules:** seventeen of the twenty-one the catalog names are evaluated, and
+  fifteen of those seventeen have a fixture built to trip them. The two that
+  do not, lunge depth and torso lean, belong to the lunge. The four that are
+  not evaluated at all are named on screen and in the report, with a sentence
+  each saying what would have to change.
+- **Footage: still none.** Every number above comes from generated movement.
+
+So the honest claim today is that the engine is self-consistent on movement
+of a known shape, including on movement built to contain a fault, and that is
+all. The report is written so that no number in it can be quoted without that
+sentence attached.
 
 **The cheap way to close the gap**, if it becomes worth closing: layer 2
 already requires exercise video to feed through the virtual camera. Those

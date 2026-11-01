@@ -150,21 +150,29 @@ final StreamProvider<PoseFrame> poseFrameProvider = StreamProvider<PoseFrame>(
   (ref) => ref.watch(poseFramesProvider),
 );
 
-/// What the rep counter makes of the stream, for one exercise.
+/// What the coach makes of the stream, for one exercise: the count and the
+/// form rules in one object.
 ///
-/// A provider rather than something the screen owns, because a counter is
+/// A provider rather than something the screen owns, because the analyzer is
 /// stateful and a widget that fed it from `build` would count a rebuild as a
 /// rep. Family-scoped, so leaving the screen disposes it and the next set
 /// starts from zero.
-final StreamProviderFamily<CounterTick, String> counterTickProvider =
-    StreamProvider.family<CounterTick, String>((ref, exerciseId) {
-  final config = counterFor(ref.watch(catalogProvider).require(exerciseId));
-  if (config == null) {
+///
+/// One analyzer rather than a counter and a rule engine side by side: a rule
+/// window is defined by the rep boundaries the counter found, and two
+/// components deciding separately where a rep began are two components that
+/// can disagree.
+final StreamProviderFamily<CoachTick, String> coachTickProvider =
+    StreamProvider.family<CoachTick, String>((ref, exerciseId) {
+  final exercise = ref.watch(catalogProvider).require(exerciseId);
+  if (counterFor(exercise) == null) {
     throw ArgumentError.value(
       exerciseId,
       'exerciseId',
       'no rep counter for this exercise',
     );
   }
-  return ref.watch(poseFramesProvider).transform(CounterStream(config));
+  return ref
+      .watch(poseFramesProvider)
+      .transform(CoachStream(exercise: exercise));
 });

@@ -35,6 +35,7 @@ const _knownFormRules = {
   'lockout',
   'lunge_depth',
   'neck_alignment',
+  'press_lockout',
   'rom',
   'squat_depth',
   'tempo',

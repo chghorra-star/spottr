@@ -309,12 +309,21 @@ forever instead of as the version skew it is, so the decoder throws.
 ## The coach screen claims exactly what it does
 
 The screen is still a setup screen first: where to put the phone, and
-whether it can see you. From M5 it also counts, and it says so — and says
-what it is still not doing. Two lines of copy, both pinned by test: the
-standing claim, that Spottr flags risky movement, cannot see everything and
-cannot guarantee you will not get hurt; and the line that says it is
-counting reps only and not judging technique yet, which comes out when the
-form rules arrive in M6.
+whether it can see you. From M5 it counts and from M6 it judges, and it says
+both — and says what it is still not doing. Three claims, all pinned by
+test.
+
+The standing one: Spottr flags risky movement, cannot see everything, and
+cannot guarantee you will not get hurt.
+
+The M6 one, which replaced M5's line about not judging technique: these form
+checks have not been measured against real training footage. That is still
+true of every rule but one, and it is the sentence that has to go the day it
+stops being true.
+
+And the one the screen computes rather than states: the rules it is **not**
+watching, by name. A coach that says nothing about somebody's knees is
+making a claim, and from the side it cannot see them fall inwards at all.
 
 Knowing where to stand the phone was worth a screen on its own even before
 anything counted. Getting it wrong is the most likely reason the coach would
@@ -528,31 +537,119 @@ notice:
 
 ## Form rules
 
-Each rule is a pure function over a `RepWindow` (the frames of one rep plus
-derived angles), declaring which camera angles it needs:
+A rule is an id, a severity, a signal and a number. Tuning one is an edit to
+`formCatalog`, not a change to anything that runs, and the id is the one the
+exercise catalog already names in `camera.formRuleIds` — so an exercise's
+rules are curation and the engine never learns a movement's name.
 
 ```dart
-abstract class FormRule {
+sealed class FormRule {
   String get id;
-  Set<CameraAngle> get requiredAngles;
-  FormVerdict evaluate(RepWindow window);
+  RuleSeverity get severity;
+  Set<PoseSignal> get signals;
+  RuleOutcome evaluate(RuleWindow window);
 }
 ```
 
-Severity is `ok | minor | major | unsafe`. Form score is 100 minus weighted
-penalties scaled by violation magnitude, clamped — fully deterministic, so a
-decision table covers it.
+Five shapes cover the launch set. A **bound** is one sample at one point in
+the rep inside a limit — depth at the bottom, a lockout at the top; a
+**band** is a signal that has to stay inside a range for the whole window —
+a plank's hips, a lunge's torso; a **travel** bound is how far a signal may
+move across the window, which is the complement of a band: a row's torso may
+be at any angle the user likes, and what makes it a fault is that the angle
+keeps changing. The last two read the rep rather than the pose: **range
+consistency** against the user's own best rep in this set, and **descent
+share**, how much of the rep was spent on the way in.
 
-Launch rules: squat depth, knee valgus (front), back rounding (side), hips
-rising early (side), elbow flare, lockout, range of motion, tempo, plank hip
-sag.
+### Two rules read the user instead of a threshold
 
-**No single angle sees everything.** Depth and spinal position need the side
-view; left-right symmetry such as knee valgus needs the front. So a camera
-config names every rule the exercise has and says which ones each acceptable
-angle cannot evaluate. The invariants the catalog validator enforces are
-therefore *not* "the recommended angle supports every rule" — that is
-impossible — but:
+`rom` and `tempo` are worth singling out because they need no number in
+degrees, and therefore need no footage before they can be trusted.
+
+`rom` compares this rep with the longest one the user managed earlier in the
+same set. Range shrinking across a set is what fatigue looks like, and it is
+the one form fault that is unambiguous without knowing anything about the
+exercise or the body performing it. `tempo` is a share and not a stopwatch:
+"three seconds down" is a different instruction for a sprinter and for
+somebody on their eleventh rep, and "do not drop into it" is the same
+instruction for both.
+
+Every other threshold in the table is a plausible guess, and the file says so
+where somebody tuning them will read it.
+
+### Four outcomes, because "I did not check" is not "that was fine"
+
+`pass`, `fail`, `notVisible`, `notImplemented`. A verdict records what it
+could not evaluate as carefully as what failed, and carries three separate
+reasons for silence: the signal was not tracked for enough of the window, the
+camera angle cannot see that rule at all, or the engine does not evaluate it
+yet.
+
+A rep where nothing could be checked scores `null` rather than 100. A set run
+with the phone face down would otherwise come out perfect, and `Progression`
+already treats a missing form score as no objection rather than as approval.
+
+### The rules do not judge an attempt the counter refused
+
+A rep that was not a rep did not happen. Measuring how deep somebody got into
+a movement they abandoned half way produces faults about a movement they
+never made — the accuracy harness found exactly that, as a depth rule firing
+on the two half-dips in `squat_six_of_eight` and a range rule firing on the
+rep whose tracking was lost. The counter's own reason is the whole verdict for
+those.
+
+### The rest at the top of a rep belongs to the rep
+
+The counter ends a rep the instant the signal crosses back inside its
+tolerance band, which is up to a whole hysteresis before the user has
+finished standing up. A lockout rule reading the final frame of a rep would
+therefore mark everybody down by eight degrees, and did: it fired on all ten
+reps of `pushup_clean_10`.
+
+So a rep's window carries the last second of rest at the top, and the
+analyzer tells the window which frame in it was the most extended. One
+second, not all of it — somebody who racks the weight and reads their phone
+has not performed a two-minute rep.
+
+### Nothing a rule says cancels a rep
+
+Severity decides what happens, and the scale has three levels: a **minor** is
+worth saying once, a **major** is worth saying every time, and an **unsafe**
+means the coach says to stop the set and take weight off.
+
+None of them refuses the rep. An earlier note in the theme file said an
+unsafe rep would not be counted, and that is the one thing this engine must
+not do: every threshold behind every rule is still a guess, and deleting work
+somebody actually did on the strength of an unvalidated proxy is the failure
+mode that makes a coach impossible to trust. Counting the rep and saying
+plainly that it looked unsafe costs nothing if the rule turns out to be
+wrong.
+
+### The score is anchored to the progression table, not to feel
+
+`Progression` asks two questions of a set's mean form score: is it at or
+above `formCeiling`, which earns more weight, and is it below `formFloor`,
+which takes weight off after a second session. The penalties are chosen so
+that three sentences come out true:
+
+- a minor on every rep still earns weight, because a coaching point is not a
+  reason to stall somebody's training;
+- a major on every rep holds the weight where it is, which is what "the cue
+  fires every time and the rep still counts" means;
+- an unsafe on every rep takes weight off.
+
+The penalties live in `coach_engine` and the bands live in `plan_engine`, and
+the two packages do not know about each other. `app/test/domain/form_score_test.dart`
+is the only place they can be checked against one another, and it is the test
+that fails if either is tuned without the other.
+
+### No single angle sees everything
+
+Depth and spinal position need the side view; left-right symmetry such as
+knee valgus needs the front. So a camera config names every rule the exercise
+has and says which ones each acceptable angle cannot evaluate. The invariants
+the catalog validator enforces are therefore *not* "the recommended angle
+supports every rule" — that is impossible — but:
 
 - the recommended angle evaluates at least as many rules as any other
   acceptable angle, since it is what the setup screen asks the user for, and
@@ -561,6 +658,84 @@ impossible — but:
 
 This was corrected during M1: the original invariant was unsatisfiable by any
 real exercise, and writing the catalog is what exposed it.
+
+### Rules the engine names and does not evaluate
+
+Four of the twenty-one are a `PendingRule`: an entry in the table that always
+answers `notImplemented` and carries a sentence saying what has to change.
+Entries rather than absences, because a missing id would make the catalog look
+complete and the coach look thorough. They are counted by the validator,
+printed by the harness report, and named on screen as things Spottr is not
+watching.
+
+Three of them — knee valgus, elbow flare, elbow path — need the front view,
+where the joint travels across the camera instead of along it, and there is no
+front-view fixture generator to test them against. The fourth, knee travel,
+needs something more interesting: a signal that can name a side. Every
+`PoseSignal` averages the two, which is right for the seven symmetrical launch
+movements and wrong for a lunge, where one shin leans forwards and the other
+leans back and the mean of the two is a number about nobody. M5's note about
+bilateral averaging said a one-sided movement would have to name its side; the
+lunge is the exercise that needs it, and it is also why the fixture generator
+has no lunge in it.
+
+### The spine is not visible, and its proxy is the rule most likely to be wrong
+
+There is no landmark between the shoulders and the hips, so the trunk is a
+straight line by construction and a rounded back cannot be seen directly. What
+can be seen is the line getting shorter, measured against a bone whose length
+does not change — the thigh. That ratio is `back_rounding`, the only `unsafe`
+rule in the table, and it is a proxy with three known artefacts that shorten a
+trunk without anybody's back moving: landmark jitter, a limb moving fast
+enough for the one-euro filter to lag, and the fact that smoothing each
+landmark on its own does not preserve the distance between two of them.
+Rotating towards the camera does it too, and no fixture here can show that.
+
+Its threshold is the one number in the file that is not a guess. The harness
+was asked how far the ratio travels on every fixture in the suite: the ones
+where nothing rounds reach eleven points at worst, and the two built with a
+shortening trunk reach twenty and twenty-three. Fifteen sits between them with
+four points of margin either side.
+
+That is still a measurement about generated movement, so pairing the most
+fragile signal in the engine with the only severity that interrupts a set is
+deliberately uncomfortable — and it is why M7's cue arbitration has to make it
+fire twice running before saying anything out loud.
+
+### A sag and a pike are the same angle
+
+A plank whose hips have dropped and a plank whose hips are in the air give the
+hip the same angle: 180 minus the same number, whichever way it went. The only
+thing that separates them is which side of the shoulder-to-knee line the hip
+fell to, and that needs a signed perpendicular offset.
+
+`perpendicularOffset` signs itself against gravity rather than against the
+order of its arguments, so it reads the same whichever way the body is facing.
+It returns nothing when the reference line is within fifteen degrees of
+vertical, because "below the line" is not a sentence about a standing body and
+a sign that flips with a wobble is worse than no reading. That is also why
+knee valgus from the front cannot use it: there the reference line *is*
+vertical.
+
+### What the harness found this time
+
+Three defects, in the order it found them, all fixed with tests of their own:
+
+- **Rules judged attempts the counter had already refused**, inventing depth
+  and range faults on movement nobody completed.
+- **A lockout rule could not pass**, because the frame a rep ends on is not
+  the frame the user is most extended in.
+- **A travel bound written as `max - min` measured the noise.** Over sixty
+  noisy frames the two furthest-apart samples are, with high probability, the
+  two worst landmark errors in the set. It now reads the spread between the
+  5th and 95th percentile, which on a short window degenerates to `max - min`
+  — where there is nothing to trim, trimming nothing is right.
+
+The third is the same shape as M5's smoothing-coefficient bug: a statistic
+that is correct on clean data and measures an artefact on real data, passing
+every unit test either way. It is worth noticing that this shape has now come
+up twice, and that both times the thing that caught it was replaying the same
+movement under two conditions rather than asserting a property of one.
 
 ## Coach voice
 

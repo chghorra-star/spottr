@@ -197,14 +197,16 @@ void main() {
         'db_shoulder_press',
         'push_up',
         'plank',
+        'db_romanian_deadlift',
+        'glute_bridge',
+        'db_bent_over_row',
       });
-      // Five of the nine camera exercises have no fixture at all, and the
-      // report says so rather than averaging over the four that do.
-      expect(report.uncovered, isNotEmpty);
-      expect(
-        report.uncovered,
-        containsAll(['glute_bridge', 'db_romanian_deadlift', 'forward_lunge']),
-      );
+      // Two of the nine camera exercises have no fixture at all, and the
+      // report says so rather than averaging over the seven that do. The
+      // lunge is one of them on purpose: a side-on generator mirrors one
+      // leg chain, and a lunge is the one launch movement whose two legs do
+      // different things.
+      expect(report.uncovered, {'forward_lunge', 'goblet_squat'});
     });
 
     test('counts coverage against the catalog, not against itself', () {
@@ -218,6 +220,124 @@ void main() {
             .map((exercise) => exercise.id)
             .toSet(),
       );
+    });
+  });
+
+  group('replay and the form rules', () {
+    /// The same frames, labelled with a different set of faults.
+    PoseFixture labelled(String name, Set<String> faults) {
+      final clean = _named(name);
+      return PoseFixture(
+        name: '${name}_relabelled',
+        exerciseId: clean.exerciseId,
+        angle: clean.angle,
+        source: clean.source,
+        notes: clean.notes,
+        expectedReps: clean.expectedReps,
+        expectedHold: clean.expectedHold,
+        expectedFaults: faults,
+        frames: clean.frames,
+      );
+    }
+
+    test('a clean set fires nothing and scores full marks', () {
+      final result = replay(_named('squat_clean_8'));
+
+      expect(result.review.firings, isEmpty);
+      expect(result.review.formScore, 100);
+      expect(result.faultsRight, isTrue);
+    });
+
+    test('the fault a fixture was built around fires on every rep', () {
+      final result = replay(_named('squat_rounded_6'));
+
+      expect(result.review.firings['back_rounding'], 6);
+      expect(result.review.worst, RuleSeverity.unsafe);
+      expect(result.review.formScore!, lessThan(70));
+    });
+
+    test('a labelled fault that does not fire is a failure', () {
+      // The direction people remember: a rule that misses the fault it was
+      // written for.
+      final result = replay(labelled('squat_clean_8', {'back_rounding'}));
+
+      expect(result.countedRight, isTrue);
+      expect(result.faultsRight, isFalse);
+      expect(result.missedFaults, {'back_rounding'});
+      expect(result.passed, isFalse);
+    });
+
+    test('a fault that fires and was not labelled is a failure too', () {
+      // The direction that matters more. A rule that fires on a fixture
+      // nothing is wrong with will fire on every set anybody performs, and
+      // the user cannot tell a coach that is always wrong from a coach that
+      // is never listening.
+      final result = replay(labelled('squat_rounded_6', const {}));
+
+      expect(result.faultsRight, isFalse);
+      expect(result.unexpectedFaults, {'back_rounding'});
+    });
+
+    test('a rule the camera angle cannot see is not scored against', () {
+      final result = replay(_named('squat_clean_8'));
+
+      expect(result.review.neverChecked, contains('knee_valgus'));
+      expect(result.review.formScore, 100);
+    });
+
+    test('a hold keeps the fault after the posture comes back', () {
+      final result = replay(_named('plank_broken_20s'));
+
+      expect(result.review.firings, contains('hip_sag'));
+      expect(result.review.formScore!, lessThan(100));
+    });
+
+    test('a sag and a pike are told apart', () {
+      // Identical hip angles, opposite sides of the line between the
+      // shoulder and the knee. Nothing else in the engine can separate
+      // them.
+      expect(
+        replay(_named('plank_broken_20s')).review.firings.keys,
+        ['hip_sag'],
+      );
+      expect(
+        replay(_named('plank_piked_20s')).review.firings.keys,
+        ['hip_pike'],
+      );
+    });
+  });
+
+  group('rule coverage', () {
+    final report = runFixtures(syntheticSuite());
+
+    test('names the rules no fixture is built to trip', () {
+      // The rule-level equivalent of an uncovered exercise. Both of these
+      // belong to the lunge, which the generator cannot pose.
+      expect(report.rulesUnexercised, {'lunge_depth', 'torso_lean'});
+    });
+
+    test('names the rules the engine does not evaluate at all', () {
+      expect(report.rulesPending.keys, {
+        'knee_valgus',
+        'elbow_flare',
+        'elbow_path',
+        'knee_travel',
+      });
+      for (final reason in report.rulesPending.values) {
+        expect(reason, isNotEmpty);
+      }
+    });
+
+    test('a pending rule is never counted as exercised', () {
+      expect(
+        report.rulesExercised.intersection(report.rulesPending.keys.toSet()),
+        isEmpty,
+      );
+    });
+
+    test('every labelled fault in the suite fires', () {
+      expect(report.faultDetection, 1);
+      expect(report.faultFailures, isEmpty);
     });
   });
 }

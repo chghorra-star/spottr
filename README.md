@@ -11,14 +11,20 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M5 complete — it counts. One state machine, configured per exercise from a
-table of thresholds, turns the landmark stream into reps: the coach screen
-shows a live count, what became of the last attempt, and a tally of the ones
-it did not count. A plank gets a clock instead, which stops when the hips
-drop and keeps what it had. 764 tests green, analyzer clean.
+M6 complete — it judges form. Seventeen rules, each an id, a severity, a
+signal and a number, run against every rep the counter accepts: the coach
+screen says what to fix, scores the set, and names the checks it is **not**
+running. 925 tests green, analyzer clean.
 
-It still judges no technique — that is M6 — and the screen says so rather
-than implying a coach that is not there.
+**Nothing a rule says cancels a rep.** A minor is worth saying once, a major
+every time, and an unsafe means stop the set and take weight off — but every
+threshold behind every rule is still a guess, and deleting work somebody
+actually did on the strength of an unvalidated proxy is the one failure mode
+that makes a coach impossible to trust.
+
+The score is not a feeling. It is anchored to the progression table: a
+coaching point on every rep still earns weight, a cue firing every rep holds
+it, and a set that looked unsafe takes weight off after a second one.
 
 **Every attempt is accounted for.** A rep can be counted, counted with a
 warning, or not counted, and each one carries the reason: too shallow to be
@@ -27,13 +33,21 @@ abandoned half way, or lost to tracking. A counter that silently ignores
 what you just did reads as broken.
 
 Alongside it, `packages/harness` replays labelled landmark fixtures through
-the real pipeline and reports what was counted. It gates CI, and it found
-two defects in its first run — one in how range of motion was measured, one
-in a smoothing coefficient that was three orders of magnitude off for its
-signal. What it cannot do is tell you the engine is accurate: every fixture
-so far is generated, and the report says so every time it prints.
+the real pipeline and gates CI on both the count and the rules — in both
+directions, so a rule that fires on good form fails the build too. It has
+found five defects across two milestones, including a smoothing coefficient
+three orders of magnitude off for its signal and a travel bound that was
+measuring landmark noise and calling it movement. What it cannot do is tell
+you the engine is accurate: every fixture so far is generated, and the report
+says so every time it prints a number.
 
-Before M5, M4 wired up the camera end to end: native CameraX and ML Kit own
+Before M6, M5 made it count. One state machine, configured per exercise from
+a table of thresholds, turns the landmark stream into reps — direction is
+configuration, so the same machine serves a squat whose knee angle closes and
+a bridge whose hip angle opens. A plank gets a clock instead, which stops
+when the hips drop and keeps what it had.
+
+Before that, M4 wired up the camera end to end: native CameraX and ML Kit own
 capture and inference, the only thing crossing the bridge is a flat buffer
 of 33 landmarks, and the camera check shows the live preview with the
 tracked skeleton over it. Landmarks are smoothed once, by a one-euro filter
@@ -69,8 +83,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M3 | Workout logging + progression | done |
 | M4 | Pose plumbing, native bridge, overlay | done |
 | M5 | Rep counting + accuracy harness | done |
-| M6 | Form rules + scoring | next |
-| M7 | Live coach UX, voice, safety | |
+| M6 | Form rules + scoring | done |
+| M7 | Live coach UX, voice, safety | next |
 | M8 | Dataset validation and tuning | |
 | M9 | iOS parity, cloud CI, TestFlight | |
 | M10 | Supabase sync | |
@@ -81,7 +95,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 app/                    Flutter app
 packages/pose_core/     pose primitives and geometry      [pure Dart]
 packages/exercise_library/  curated exercise catalog      [pure Dart]
-packages/coach_engine/  rep counting, form rules, cues    [pure Dart]
+packages/coach_engine/  counting, form rules, scoring     [pure Dart]
 packages/plan_engine/   plan generation, progression      [pure Dart]
 packages/harness/       accuracy harness CLI              [pure Dart]
 packages/pose_camera/   native camera + pose inference    [Flutter plugin]

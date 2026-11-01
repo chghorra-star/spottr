@@ -960,10 +960,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'I cannot see your ankles. Step back, or tilt the phone down.';
 
   @override
-  String get coachCountingOnly =>
-      'Counting only for now. Spottr is not judging your technique yet.';
-
-  @override
   String coachRepsLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1020,6 +1016,158 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachCounterUnavailable =>
       'Spottr has no rep counter for this movement.';
+
+  @override
+  String get coachFormUntested =>
+      'These form checks have not been measured against real training footage yet.';
+
+  @override
+  String get coachFormGood => 'Nothing to flag on that one.';
+
+  @override
+  String get coachFormWatching => 'Watching your form.';
+
+  @override
+  String coachFormScore(int score) {
+    return 'Form $score';
+  }
+
+  @override
+  String coachFormUnchecked(String rules) {
+    return 'Not watching: $rules';
+  }
+
+  @override
+  String get coachFormNothingWatched => 'No form checks run from this angle.';
+
+  @override
+  String get coachAdviceSquatDepth =>
+      'Short of depth — get your hips below your knees.';
+
+  @override
+  String get coachAdviceLungeDepth =>
+      'Drop the back knee further on the next one.';
+
+  @override
+  String get coachAdviceHingeDepth =>
+      'Push your hips further back — you are stopping high.';
+
+  @override
+  String get coachAdviceBridgeLockout =>
+      'Drive your hips all the way up at the top.';
+
+  @override
+  String get coachAdviceLockout => 'Straighten your arms out fully at the top.';
+
+  @override
+  String get coachAdvicePressLockout =>
+      'Press all the way overhead — you are stopping short.';
+
+  @override
+  String get coachAdviceKneeBend =>
+      'Your knees are bending — keep them long and move at the hips.';
+
+  @override
+  String get coachAdviceHipSag =>
+      'Your hips are dropping — squeeze your glutes and hold the line.';
+
+  @override
+  String get coachAdviceHipPike =>
+      'Your hips are riding high — bring them down into line.';
+
+  @override
+  String get coachAdviceNeckAlignment =>
+      'Your head is hanging forward — look at the floor just ahead of you.';
+
+  @override
+  String get coachAdviceHeelLift =>
+      'Your heels are coming up — keep them down.';
+
+  @override
+  String get coachAdviceTorsoLean => 'Stay upright — you are leaning into it.';
+
+  @override
+  String get coachAdviceBackArch =>
+      'You are leaning back instead of pressing up.';
+
+  @override
+  String get coachAdviceTorsoSwing =>
+      'Keep your torso still and let your arms do the work.';
+
+  @override
+  String get coachAdviceBackRounding =>
+      'That looked like your back rounding. Stop the set and take weight off.';
+
+  @override
+  String get coachAdviceRom =>
+      'These are getting shorter than your first few — stop the set when they do.';
+
+  @override
+  String get coachAdviceTempo =>
+      'You are dropping into it — lower under control.';
+
+  @override
+  String get coachRuleSquatDepth => 'squat depth';
+
+  @override
+  String get coachRuleLungeDepth => 'lunge depth';
+
+  @override
+  String get coachRuleHingeDepth => 'hinge depth';
+
+  @override
+  String get coachRuleBridgeLockout => 'hip extension';
+
+  @override
+  String get coachRuleLockout => 'arm lockout';
+
+  @override
+  String get coachRulePressLockout => 'overhead lockout';
+
+  @override
+  String get coachRuleKneeBend => 'knee bend';
+
+  @override
+  String get coachRuleHipSag => 'hip sag';
+
+  @override
+  String get coachRuleHipPike => 'hip pike';
+
+  @override
+  String get coachRuleNeckAlignment => 'neck position';
+
+  @override
+  String get coachRuleHeelLift => 'heel lift';
+
+  @override
+  String get coachRuleTorsoLean => 'torso lean';
+
+  @override
+  String get coachRuleBackArch => 'back arch';
+
+  @override
+  String get coachRuleTorsoSwing => 'torso swing';
+
+  @override
+  String get coachRuleBackRounding => 'back rounding';
+
+  @override
+  String get coachRuleRom => 'range of motion';
+
+  @override
+  String get coachRuleTempo => 'tempo';
+
+  @override
+  String get coachRuleKneeValgus => 'knees falling in';
+
+  @override
+  String get coachRuleElbowFlare => 'elbow flare';
+
+  @override
+  String get coachRuleElbowPath => 'elbow path';
+
+  @override
+  String get coachRuleKneeTravel => 'knee travel';
 
   @override
   String get exerciseBandAssistedPullUp => 'Band-Assisted Pull-Up';

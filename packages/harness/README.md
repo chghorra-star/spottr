@@ -30,17 +30,17 @@ recorded one. `docs/dev-loop.md` has the rest of that argument.
 
 ## Fixtures
 
-One JSON file per set, version 1:
+One JSON file per set, version 2:
 
 ```json
 {
-  "fixtureVersion": 1,
+  "fixtureVersion": 2,
   "name": "squat_side_eight",
   "exerciseId": "bodyweight_squat",
   "angle": "side",
   "source": "recorded",
   "notes": "loose shorts, third rep is shallow",
-  "expected": { "reps": 8 },
+  "expected": { "reps": 8, "faults": ["squat_depth"] },
   "frames": [ { "frameId": 0, "tUs": 0, "confidence": 0.94,
                 "landmarks": [ 0.5, 0.6, 0.0, 0.98, null, null, null, null ] } ]
 }
@@ -50,9 +50,15 @@ One JSON file per set, version 1:
 ordinal order, four values each, with `null` for a joint the model did not
 place. A hold uses `{ "holdMs": 30000 }` in place of `"reps"`.
 
-The label is the fixture author's judgement, not the counter's: deriving it
-from the thresholds would make the suite agree with the engine by
-construction and measure nothing.
+`faults` is the form label: the rule ids that should fire on this set. It is
+optional and leaving it out means **no rule should fire**, which is a label
+in its own right and the one that catches a rule firing on good form. Version
+2 is where it was added.
+
+Both labels are the fixture author's judgement, not the engine's: deriving
+either from the thresholds would make the suite agree with the engine by
+construction and measure nothing. The run fails if a labelled rule does not
+fire, and it fails just as hard if an unlabelled one does.
 
 `tool/make_tiny.dart` writes `test/fixtures/tiny_squat.json`, the one fixture
 committed as a file, so the reader is tested against a file on disk rather

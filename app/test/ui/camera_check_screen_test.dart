@@ -518,10 +518,10 @@ void main() {
       expect(tester.widget<Text>(find.byKey(UiKeys.coachCount)).data, '0:08');
     });
 
-    testWidgets('admits it is not judging technique yet', (tester) async {
+    testWidgets('admits its form checks have never been measured', (tester) async {
       await _open(tester);
 
-      expect(find.text(_l10n.coachCountingOnly), findsOneWidget);
+      expect(find.text(_l10n.coachFormUntested), findsOneWidget);
       expect(find.text(_l10n.coachClaim), findsOneWidget);
     });
 
@@ -552,6 +552,133 @@ void main() {
       expect(tester.widget<Text>(find.byKey(UiKeys.coachCount)).data, '2');
     });
   });
+
+  group('CameraCheckScreen form', () {
+    Future<void> perform(
+      WidgetTester tester,
+      List<PoseFrame> frames, {
+      String exerciseId = _coached,
+    }) async {
+      final camera = await _open(tester, exerciseId: exerciseId);
+      for (final frame in frames) {
+        camera.emit(frame);
+      }
+      await tester.pumpAndSettle();
+    }
+
+    List<PoseFrame> squats({
+      required int count,
+      SideOnPose bottom = squatBottom,
+      double depth = 1,
+    }) =>
+        syntheticReps(
+          name: 'widget_form_set',
+          exerciseId: _coached,
+          top: squatTop,
+          bottom: bottom,
+          reps: List.filled(count, SyntheticRep(depth: depth)),
+          expectedReps: count,
+        ).frames;
+
+    String formText(WidgetTester tester) =>
+        tester.widget<Text>(find.byKey(UiKeys.coachForm)).data!;
+
+    testWidgets('says nothing is wrong when nothing is wrong', (tester) async {
+      await perform(tester, squats(count: 3));
+
+      expect(formText(tester), _l10n.coachFormGood);
+    });
+
+    testWidgets('gives the advice for the rule that fired', (tester) async {
+      await perform(tester, squats(count: 3, depth: 0.65));
+
+      expect(formText(tester), _l10n.coachAdviceSquatDepth);
+    });
+
+    testWidgets('says to stop the set when the movement looked unsafe',
+        (tester) async {
+      // The only rule serious enough to interrupt a set, and the only one
+      // whose advice is an instruction to stop rather than an adjustment.
+      await perform(tester, squats(count: 3, bottom: squatRoundedBottom));
+
+      expect(formText(tester), _l10n.coachAdviceBackRounding);
+      expect(find.byIcon(Icons.warning_amber_outlined), findsOneWidget);
+    });
+
+    testWidgets('shows the score the progression table would read',
+        (tester) async {
+      await perform(tester, squats(count: 3));
+
+      expect(
+        tester.widget<Text>(find.byKey(UiKeys.coachFormScore)).data,
+        _l10n.coachFormScore(100),
+      );
+    });
+
+    testWidgets('a flagged set scores below a clean one', (tester) async {
+      await perform(tester, squats(count: 3, depth: 0.65));
+
+      expect(
+        tester.widget<Text>(find.byKey(UiKeys.coachFormScore)).data,
+        isNot(_l10n.coachFormScore(100)),
+      );
+    });
+
+    testWidgets('names what it is not watching', (tester) async {
+      // The requirement that is easiest to leave out: a coach that says
+      // nothing about the user's knees is making a claim, and from the side
+      // it cannot see them fall inwards at all.
+      await perform(tester, squats(count: 1));
+
+      expect(
+        tester.widget<Text>(find.byKey(UiKeys.coachFormUnchecked)).data,
+        contains(_l10n.coachRuleKneeValgus),
+      );
+    });
+
+    testWidgets('has no form panel at all before the first frame',
+        (tester) async {
+      // There is nothing to be silent about yet. The panel appears with the
+      // first frame, and a score only once a rule has answered.
+      await _open(tester);
+
+      expect(find.byKey(UiKeys.coachForm), findsNothing);
+      expect(find.byKey(UiKeys.coachFormScore), findsNothing);
+    });
+
+    testWidgets('does not judge an attempt the counter refused',
+        (tester) async {
+      // Two dips too shallow to be reps. The counter says why, and the form
+      // panel has nothing to add about a movement that did not happen.
+      await perform(tester, squats(count: 2, depth: 0.45));
+
+      expect(tester.widget<Text>(find.byKey(UiKeys.coachCount)).data, '0');
+      expect(formText(tester), _l10n.coachFormWatching);
+      expect(find.byKey(UiKeys.coachFormScore), findsNothing);
+    });
+
+    testWidgets('a plank says the hips are dropping while they are',
+        (tester) async {
+      // A hold has no reps, so the panel reads the live window: it has to
+      // say something during the hold rather than after it.
+      await perform(
+        tester,
+        syntheticHold(
+          name: 'widget_plank_sagging',
+          exerciseId: 'plank',
+          posture: plankHeld,
+          broken: plankSagging,
+          duration: const Duration(seconds: 10),
+          breakFrom: const Duration(seconds: 5),
+          breakFor: const Duration(seconds: 5),
+          expectedHold: const Duration(seconds: 5),
+        ).frames,
+        exerciseId: 'plank',
+      );
+
+      expect(formText(tester), _l10n.coachAdviceHipSag);
+    });
+  });
 }
 
 /// Somewhere to come back to, so a pop is a real pop.
@@ -572,5 +699,4 @@ class _Host extends StatelessWidget {
           ),
         ),
       );
-
 }

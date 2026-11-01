@@ -6,7 +6,7 @@ import 'package:pose_core/pose_core.dart';
 /// Bumped when the shape changes in a way an older reader would get wrong.
 /// The joint ordering inside each frame is the codec's contract and is not
 /// versioned here.
-const int fixtureVersion = 1;
+const int fixtureVersion = 2;
 
 /// Where a fixture's landmarks came from.
 ///
@@ -35,6 +35,7 @@ class PoseFixture {
     required this.frames,
     this.expectedReps,
     this.expectedHold,
+    this.expectedFaults = const {},
   })  : assert(
           (expectedReps == null) != (expectedHold == null),
           'a fixture expects reps or a hold, never both and never neither',
@@ -97,6 +98,7 @@ class PoseFixture {
       expectedHold: holdMs == null
           ? null
           : Duration(milliseconds: (holdMs as num).toInt()),
+      expectedFaults: _faults(expected['faults']),
       frames: frames,
     );
   }
@@ -124,6 +126,15 @@ class PoseFixture {
   /// The time that should be accumulated, or `null` for a rep count.
   final Duration? expectedHold;
 
+  /// The form rules that should fire on this set, by catalog id.
+  ///
+  /// The label, written by whoever watched the movement, and the reason the
+  /// suite can measure a rule at all: a fixture that derived this from the
+  /// thresholds would agree with the engine by construction. Empty means
+  /// **no rule should fire**, which is a label in its own right and the one
+  /// that catches a rule firing on good form.
+  final Set<String> expectedFaults;
+
   final List<PoseFrame> frames;
 
   bool get isHold => expectedHold != null;
@@ -141,6 +152,8 @@ class PoseFixture {
         'expected': <String, Object?>{
           if (expectedReps != null) 'reps': expectedReps,
           if (expectedHold != null) 'holdMs': expectedHold!.inMilliseconds,
+          if (expectedFaults.isNotEmpty)
+            'faults': expectedFaults.toList()..sort(),
         },
         'frames': [
           for (final frame in frames) PoseFrameCodec.encodeJson(frame),
@@ -166,4 +179,21 @@ T _enum<T extends Enum>(List<T> values, Object? raw, String key) {
     '$key: expected one of ${values.map((v) => v.name).join(', ')}, '
     'got $raw',
   );
+}
+
+/// The labelled faults, which an older fixture simply does not have.
+Set<String> _faults(Object? raw) {
+  if (raw == null) return const {};
+  if (raw is! List) {
+    throw FormatException(
+      'expected.faults: expected a list of rule ids, got ${raw.runtimeType}',
+    );
+  }
+  return {
+    for (final value in raw)
+      if (value is String && value.isNotEmpty)
+        value
+      else
+        throw FormatException('expected.faults: bad rule id $value'),
+  };
 }

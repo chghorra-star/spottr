@@ -690,7 +690,6 @@
     "description": "Rep counting, M5. Every attempt the user makes is accounted for: counted, counted with a warning, or not counted with a reason. A counter that silently drops a rep reads as broken."
   },
 
-  "coachCountingOnly": "Counting only for now. Spottr is not judging your technique yet.",
   "coachRepsLabel": "{count, plural, =1{rep} other{reps}}",
   "@coachRepsLabel": {
     "placeholders": { "count": { "type": "int" } }
@@ -710,6 +709,63 @@
   "coachHoldOutOfPosition": "Paused — get back into position.",
   "coachHoldUntracked": "Paused — I cannot see you.",
   "coachCounterUnavailable": "Spottr has no rep counter for this movement.",
+
+  "@_coach_form": {
+    "description": "Form rules, M6. One advice sentence per rule the engine evaluates, and one short name per rule in the catalog for the line that says what is not being watched. Nothing here is a diagnosis: a rule fires when the movement looked like a described shape, and the shapes have not been measured against real footage yet."
+  },
+
+  "coachFormUntested": "These form checks have not been measured against real training footage yet.",
+  "coachFormGood": "Nothing to flag on that one.",
+  "coachFormWatching": "Watching your form.",
+  "coachFormScore": "Form {score}",
+  "@coachFormScore": {
+    "placeholders": { "score": { "type": "int" } }
+  },
+  "coachFormUnchecked": "Not watching: {rules}",
+  "@coachFormUnchecked": {
+    "placeholders": { "rules": { "type": "String" } }
+  },
+  "coachFormNothingWatched": "No form checks run from this angle.",
+
+  "coachAdviceSquatDepth": "Short of depth — get your hips below your knees.",
+  "coachAdviceLungeDepth": "Drop the back knee further on the next one.",
+  "coachAdviceHingeDepth": "Push your hips further back — you are stopping high.",
+  "coachAdviceBridgeLockout": "Drive your hips all the way up at the top.",
+  "coachAdviceLockout": "Straighten your arms out fully at the top.",
+  "coachAdvicePressLockout": "Press all the way overhead — you are stopping short.",
+  "coachAdviceKneeBend": "Your knees are bending — keep them long and move at the hips.",
+  "coachAdviceHipSag": "Your hips are dropping — squeeze your glutes and hold the line.",
+  "coachAdviceHipPike": "Your hips are riding high — bring them down into line.",
+  "coachAdviceNeckAlignment": "Your head is hanging forward — look at the floor just ahead of you.",
+  "coachAdviceHeelLift": "Your heels are coming up — keep them down.",
+  "coachAdviceTorsoLean": "Stay upright — you are leaning into it.",
+  "coachAdviceBackArch": "You are leaning back instead of pressing up.",
+  "coachAdviceTorsoSwing": "Keep your torso still and let your arms do the work.",
+  "coachAdviceBackRounding": "That looked like your back rounding. Stop the set and take weight off.",
+  "coachAdviceRom": "These are getting shorter than your first few — stop the set when they do.",
+  "coachAdviceTempo": "You are dropping into it — lower under control.",
+
+  "coachRuleSquatDepth": "squat depth",
+  "coachRuleLungeDepth": "lunge depth",
+  "coachRuleHingeDepth": "hinge depth",
+  "coachRuleBridgeLockout": "hip extension",
+  "coachRuleLockout": "arm lockout",
+  "coachRulePressLockout": "overhead lockout",
+  "coachRuleKneeBend": "knee bend",
+  "coachRuleHipSag": "hip sag",
+  "coachRuleHipPike": "hip pike",
+  "coachRuleNeckAlignment": "neck position",
+  "coachRuleHeelLift": "heel lift",
+  "coachRuleTorsoLean": "torso lean",
+  "coachRuleBackArch": "back arch",
+  "coachRuleTorsoSwing": "torso swing",
+  "coachRuleBackRounding": "back rounding",
+  "coachRuleRom": "range of motion",
+  "coachRuleTempo": "tempo",
+  "coachRuleKneeValgus": "knees falling in",
+  "coachRuleElbowFlare": "elbow flare",
+  "coachRuleElbowPath": "elbow path",
+  "coachRuleKneeTravel": "knee travel",
   "@_exercise_names": {
     "description": "Display names for every catalog entry. The catalog stores an ARB key, never prose, so adding an exercise adds a key here; a test fails if one is missing."
   },

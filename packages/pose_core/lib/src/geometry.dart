@@ -49,3 +49,47 @@ double distance(Point2 a, Point2 b) {
   final double dx = a.x - b.x, dy = a.y - b.y;
   return math.sqrt(dx * dx + dy * dy);
 }
+
+/// The signed perpendicular distance from [p] to the line [a]-[b], as a
+/// fraction of that line's length.
+///
+/// Positive means [p] sits **below** the line on screen and negative means
+/// above it — whichever way round [a] and [b] are given, and whichever way
+/// the body is facing. The sign is referenced to gravity rather than to the
+/// order of the arguments, which is what tells a sagging hip from a piked
+/// one in a plank that may face either way.
+///
+/// A fraction rather than a distance because a body further from the camera
+/// is a smaller body, and a check written in normalized image units would
+/// get stricter as the user stepped back.
+///
+/// Returns `null` when the line has no length, and when it is within
+/// [verticalTolerance] degrees of vertical: "below" is not a sentence about
+/// a vertical reference, and a sign that flips with a wobble is worse than
+/// no reading. A check against a near-vertical reference — knee travel seen
+/// from the front, say — needs an offset referenced to the horizontal, and
+/// there is no such function yet because nothing measures that until there
+/// are front-view fixtures to measure it with.
+double? perpendicularOffset(
+  Point2 p,
+  Point2 a,
+  Point2 b, {
+  double verticalTolerance = 15,
+}) {
+  // Left to right, so that "below" means the same thing for a user facing
+  // either way.
+  final (from, to) = a.x <= b.x ? (a, b) : (b, a);
+
+  final double dx = to.x - from.x, dy = to.y - from.y;
+  final span = math.sqrt(dx * dx + dy * dy);
+  if (span < _epsilon) return null;
+
+  final sine = math.sin(verticalTolerance * math.pi / 180);
+  if (dx.abs() / span < sine) return null;
+
+  // Cross product, which is positive when p is clockwise of from->to. With
+  // y growing downward and the line running left to right, clockwise is
+  // below.
+  final cross = dx * (p.y - from.y) - dy * (p.x - from.x);
+  return cross / (span * span);
+}

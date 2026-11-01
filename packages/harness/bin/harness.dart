@@ -122,11 +122,37 @@ void main(List<String> arguments) {
   // Holds are not in the rep accuracy figure and would otherwise slip
   // through a gate that only reads it.
   for (final result in report.holdResults) {
-    if (result.passed) continue;
+    if (result.countedRight) continue;
     stderr.writeln(
       'hold ${result.fixture.name} came out at ${result.actual} '
       'against ${result.expectation}',
     );
+    failed = true;
+  }
+
+  // Form rules are gated by agreement with the label rather than by a
+  // percentage, and in both directions. A rule that does not fire on the
+  // fault it was written for is useless; a rule that fires on a fixture
+  // nothing is wrong with will fire on every set anybody ever performs,
+  // and that is the worse of the two.
+  for (final result in report.faultFailures) {
+    if (result.fixture.source != FixtureSource.synthetic) {
+      // Recorded movement is allowed to disagree: that disagreement is the
+      // measurement, and M8 is what turns it into thresholds.
+      continue;
+    }
+    if (result.missedFaults.isNotEmpty) {
+      stderr.writeln(
+        '${result.fixture.name} was labelled '
+        '${result.missedFaults.join(', ')} and nothing fired',
+      );
+    }
+    if (result.unexpectedFaults.isNotEmpty) {
+      stderr.writeln(
+        '${result.fixture.name} fired '
+        '${result.unexpectedFaults.join(', ')} and was not labelled for it',
+      );
+    }
     failed = true;
   }
 

@@ -305,7 +305,7 @@ class _Live extends ConsumerWidget {
           message: message,
           severity: failure == null ? severity : FramingSeverity.blocked,
         ),
-        _Counter(exerciseId: exerciseId),
+        _Coach(exerciseId: exerciseId),
         SafeArea(
           top: false,
           child: Padding(
@@ -313,7 +313,7 @@ class _Live extends ConsumerWidget {
             child: Column(
               children: [
                 Text(
-                  l10n.coachCountingOnly,
+                  l10n.coachFormUntested,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -420,25 +420,26 @@ class _FramingBar extends StatelessWidget {
   }
 }
 
-/// What the counter has made of the set so far.
+/// What the coach has made of the set so far: the count, and the rules.
 ///
-/// Reads the counter through a provider rather than owning one: a counter is
+/// Reads the analyzer through a provider rather than owning one: it is
 /// stateful, and a widget that fed frames to one from `build` would count
 /// every rebuild as movement.
-class _Counter extends ConsumerWidget {
-  const _Counter({required this.exerciseId});
+class _Coach extends ConsumerWidget {
+  const _Coach({required this.exerciseId});
 
   final String exerciseId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final strings = PlanStrings.of(context, ref.watch(catalogProvider));
-    final tick = ref.watch(counterTickProvider(exerciseId));
+    final catalog = ref.watch(catalogProvider);
+    final strings = PlanStrings.of(context, catalog);
+    final tick = ref.watch(coachTickProvider(exerciseId));
     final value = tick.value;
 
-    // An error with no value behind it is a counter that could not be built
-    // at all. An error with a value is one frame the stream could not read,
+    // An error with no value behind it is a coach that could not be built at
+    // all. An error with a value is one frame the stream could not read,
     // which the framing bar above has already said out loud.
     if (value == null) {
       return _Panel(
@@ -449,10 +450,23 @@ class _Counter extends ConsumerWidget {
       );
     }
 
-    return switch (value) {
-      RepTick() => _RepPanel(tick: value, strings: strings),
-      HoldTick() => _HoldPanel(tick: value, strings: strings),
-    };
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        switch (value.counter) {
+          final RepTick rep => _RepPanel(tick: rep, strings: strings),
+          final HoldTick hold => _HoldPanel(tick: hold, strings: strings),
+        },
+        _FormPanel(
+          tick: value,
+          // The rules the exercise has at the angle the set is being
+          // coached from, which is what decides the list of things the
+          // panel admits it is not watching.
+          selection: rulesFor(catalog.require(exerciseId)),
+          strings: strings,
+        ),
+      ],
+    );
   }
 }
 
@@ -590,6 +604,96 @@ class _HoldPanel extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// What the form rules made of the set, and what they are not looking at.
+///
+/// Shows the last finished rep's verdict where there is one and the live
+/// window otherwise, which is what makes a plank say something while it is
+/// being held and a squat say something after each rep rather than during
+/// it.
+///
+/// The second line is the part that is easy to leave out and should not be.
+/// A coach that says nothing about a user's knees is making a claim, and the
+/// three reasons it might be silent — the angle cannot see it, the engine
+/// does not do it yet, the signal was lost — are not the same as approval.
+class _FormPanel extends StatelessWidget {
+  const _FormPanel({
+    required this.tick,
+    required this.selection,
+    required this.strings,
+  });
+
+  final CoachTick tick;
+  final RuleSelection selection;
+  final PlanStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.extension<FormSeverityColors>()!;
+
+    final verdict = tick.last ?? tick.live;
+    final score = tick.review.formScore;
+    final unchecked = strings.formUnchecked(selection);
+
+    final color = switch (verdict.worst) {
+      null => verdict.checked == 0
+          ? theme.colorScheme.onSurfaceVariant
+          : colors.good,
+      RuleSeverity.minor => colors.minor,
+      RuleSeverity.major => colors.major,
+      RuleSeverity.unsafe => colors.unsafe,
+    };
+
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                verdict.unsafe
+                    ? Icons.warning_amber_outlined
+                    : Icons.visibility_outlined,
+                color: color,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  strings.formVerdict(verdict),
+                  key: UiKeys.coachForm,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: color),
+                ),
+              ),
+              if (score != null) ...[
+                const SizedBox(width: 10),
+                Text(
+                  l10n.coachFormScore(score.round()),
+                  key: UiKeys.coachFormScore,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (unchecked != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              unchecked,
+              key: UiKeys.coachFormUnchecked,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );

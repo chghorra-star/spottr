@@ -19,6 +19,16 @@ const double _thigh = 0.17;
 const double _trunk = 0.24;
 const double _upperArm = 0.13;
 const double _forearm = 0.13;
+const double _head = 0.12;
+const double _footLength = 0.09;
+
+/// How far behind the ankle the heel sits, and how far below it.
+///
+/// Small, and only roughly right. What the one rule that reads the foot
+/// cares about is the *tilt* of the heel-to-toe line, so the thing worth
+/// getting right is that a flat foot is flat.
+const double _heelBack = 0.03;
+const double _heelDrop = 0.01;
 
 /// How far the right side of the body sits from the left on screen.
 ///
@@ -47,6 +57,9 @@ class SideOnPose {
     required this.trunk,
     required this.upperArm,
     required this.forearm,
+    this.trunkLength = _trunk,
+    this.head = 0,
+    this.foot = 90,
   });
 
   /// Where the chain starts. Everything else is built from it.
@@ -67,6 +80,23 @@ class SideOnPose {
   /// Elbow to wrist.
   final double forearm;
 
+  /// Hip to shoulder, as a length rather than an angle.
+  ///
+  /// The one segment whose length is allowed to vary, because it is the one
+  /// the engine measures a length of. A rounded back is invisible to a
+  /// skeleton with no landmark on the spine; what is visible is the trunk
+  /// getting shorter, so a fixture that wants to demonstrate a rounded back
+  /// has to be able to shorten it.
+  final double trunkLength;
+
+  /// How far the head juts forward of the trunk line, in degrees. 0 carries
+  /// it in line with the body.
+  final double head;
+
+  /// Tilt of the heel-to-toe line from vertical. 90 is a foot flat on the
+  /// floor; more than that is a heel coming up off one.
+  final double foot;
+
   SideOnPose lerp(SideOnPose other, double t) => SideOnPose(
         ankle: Point2(
           _mix(ankle.x, other.ankle.x, t),
@@ -77,13 +107,17 @@ class SideOnPose {
         trunk: _mix(trunk, other.trunk, t),
         upperArm: _mix(upperArm, other.upperArm, t),
         forearm: _mix(forearm, other.forearm, t),
+        trunkLength: _mix(trunkLength, other.trunkLength, t),
+        head: _mix(head, other.head, t),
+        foot: _mix(foot, other.foot, t),
       );
 
   /// The pose as landmarks, both sides.
   ///
-  /// Six joints a side and no more: no head, hands or feet, because nothing
-  /// measures them yet and a fixture that invented them would be claiming
-  /// to have seen something it has not.
+  /// Nine joints a side: the six the counters read, plus an ear and a foot
+  /// because M6's rules read those. Still no hands and no eyes — nothing
+  /// measures them, and a fixture that invented them would be claiming to
+  /// have seen something it has not.
   Map<Joint, Landmark> landmarks({
     double visibility = 0.95,
     double jitter = 0,
@@ -91,9 +125,14 @@ class SideOnPose {
   }) {
     final knee = _step(ankle, _shin, shin, up: true);
     final hip = _step(knee, _thigh, thigh, up: true);
-    final shoulder = _step(hip, _trunk, trunk, up: true);
+    final shoulder = _step(hip, trunkLength, trunk, up: true);
     final elbow = _step(shoulder, _upperArm, upperArm, up: false);
     final wrist = _step(elbow, _forearm, forearm, up: false);
+    // The head carries on in the direction the trunk was going, turned by
+    // however far it is jutting forward.
+    final ear = _step(shoulder, _head, trunk + head, up: true);
+    final heel = Point2(ankle.x - _heelBack, ankle.y + _heelDrop);
+    final toe = _step(heel, _footLength, foot, up: true);
 
     final left = <Joint, Point2>{
       Joint.leftAnkle: ankle,
@@ -102,6 +141,9 @@ class SideOnPose {
       Joint.leftShoulder: shoulder,
       Joint.leftElbow: elbow,
       Joint.leftWrist: wrist,
+      Joint.leftEar: ear,
+      Joint.leftHeel: heel,
+      Joint.leftFootIndex: toe,
     };
 
     final landmarks = <Joint, Landmark>{};
@@ -253,6 +295,193 @@ const plankSagging = SideOnPose(
   forearm: 0,
 );
 
+/// Hips pushed up into a tent. Reads as a negative hip offset where a sag
+/// reads positive, which is the whole reason that signal is signed.
+const plankPiked = SideOnPose(
+  ankle: Point2(0.14, 0.70),
+  shin: 90,
+  thigh: 75,
+  trunk: 105,
+  upperArm: 0,
+  forearm: 0,
+);
+
+// ---------------------------------------------------------------------------
+// Poses that demonstrate a fault, for the rules added in M6.
+//
+// Each one differs from a clean pose in exactly the quantity the rule it is
+// meant to trip reads, and in nothing else. A fault fixture that also
+// changed the depth would not tell you which rule had fired on what.
+// ---------------------------------------------------------------------------
+
+/// The bottom of a squat with the trunk shortened, which is what spinal
+/// flexion looks like to a skeleton that has no landmark on the spine.
+const squatRoundedBottom = SideOnPose(
+  ankle: Point2(0.50, 0.90),
+  shin: 15,
+  thigh: -70,
+  trunk: 40,
+  upperArm: 10,
+  forearm: 60,
+  trunkLength: 0.205,
+);
+
+/// The bottom of a squat with the heels coming off the floor.
+const squatHeelsUpBottom = SideOnPose(
+  ankle: Point2(0.50, 0.90),
+  shin: 15,
+  thigh: -70,
+  trunk: 40,
+  upperArm: 10,
+  forearm: 60,
+  foot: 115,
+);
+
+/// The bottom of a push-up with the hips dropped out of line.
+///
+/// The wrists move, which a real push-up's would not — the hands stay where
+/// they were put. Nothing measures the wrists in a push-up, and bending the
+/// body at the hip while keeping the hands planted needs a chain that can
+/// close a loop, which this one cannot.
+const pushUpSaggingBottom = SideOnPose(
+  ankle: Point2(0.14, 0.756),
+  shin: 90,
+  thigh: 100,
+  trunk: 80,
+  upperArm: -45,
+  forearm: 45,
+);
+
+/// Standing, hips and knees straight, ready to hinge.
+const hingeTop = SideOnPose(
+  ankle: Point2(0.40, 0.90),
+  shin: 0,
+  thigh: 0,
+  trunk: 0,
+  upperArm: 0,
+  forearm: 0,
+);
+
+/// Folded at the hip with the knees still long: a Romanian deadlift at the
+/// bottom.
+const hingeBottom = SideOnPose(
+  ankle: Point2(0.40, 0.90),
+  shin: 0,
+  thigh: 0,
+  trunk: 70,
+  upperArm: 0,
+  forearm: 0,
+);
+
+/// The same hinge with the trunk shortened: a back rounding under load,
+/// which is the one fault this engine is willing to interrupt a set over.
+const hingeRoundedBottom = SideOnPose(
+  ankle: Point2(0.40, 0.90),
+  shin: 0,
+  thigh: 0,
+  trunk: 70,
+  upperArm: 0,
+  forearm: 0,
+  trunkLength: 0.20,
+);
+
+/// Lying on the back, knees bent, hips on the floor.
+const bridgeDown = SideOnPose(
+  ankle: Point2(0.62, 0.90),
+  shin: 20,
+  thigh: -152,
+  trunk: -90,
+  upperArm: -90,
+  forearm: -90,
+);
+
+/// Hips driven up into line with the shoulders and knees.
+const bridgeUp = SideOnPose(
+  ankle: Point2(0.62, 0.90),
+  shin: 20,
+  thigh: -98,
+  trunk: -90,
+  upperArm: -90,
+  forearm: -90,
+);
+
+/// Bent over a pair of dumbbells, arms hanging straight down.
+const rowTop = SideOnPose(
+  ankle: Point2(0.40, 0.90),
+  shin: 0,
+  thigh: 0,
+  trunk: 70,
+  upperArm: 0,
+  forearm: 0,
+);
+
+/// The dumbbells at the ribs, elbow at a right angle, torso where it was.
+const rowBottom = SideOnPose(
+  ankle: Point2(0.40, 0.90),
+  shin: 0,
+  thigh: 0,
+  trunk: 70,
+  upperArm: -20,
+  forearm: 70,
+);
+
+/// The top of a push-up with the elbows never quite straightening.
+///
+/// 155 degrees, which is inside the tolerance the counter needs to see a
+/// top and outside what the lockout rule asks for. Five degrees further and
+/// the counter would never find a top at all and nothing would be counted,
+/// which is a different fixture and a worse one to debug.
+const pushUpSoftTop = SideOnPose(
+  ankle: Point2(0.14, 0.68),
+  shin: 90,
+  thigh: 90,
+  trunk: 90,
+  upperArm: -12.5,
+  forearm: 12.5,
+);
+
+/// Locked out overhead by leaning away from the weight.
+const pressLeaningLockout = SideOnPose(
+  ankle: Point2(0.50, 0.90),
+  shin: 0,
+  thigh: 0,
+  trunk: 25,
+  upperArm: 175,
+  forearm: 175,
+);
+
+/// A hinge turned into a squat: the knees bend and the hips stop moving.
+const hingeKneesBentBottom = SideOnPose(
+  ankle: Point2(0.40, 0.90),
+  shin: 0,
+  thigh: -40,
+  trunk: 70,
+  upperArm: 0,
+  forearm: 0,
+);
+
+/// A plank held straight with the head hanging forward of the trunk.
+const plankHeadDown = SideOnPose(
+  ankle: Point2(0.14, 0.70),
+  shin: 90,
+  thigh: 90,
+  trunk: 90,
+  upperArm: 0,
+  forearm: 0,
+  head: 45,
+);
+
+/// The same row with the torso heaving up to help: the fault
+/// `torso_swing` is about.
+const rowSwungBottom = SideOnPose(
+  ankle: Point2(0.40, 0.90),
+  shin: 0,
+  thigh: 0,
+  trunk: 45,
+  upperArm: -20,
+  forearm: 70,
+);
+
 // ---------------------------------------------------------------------------
 // Fixture generation.
 // ---------------------------------------------------------------------------
@@ -264,6 +493,7 @@ class SyntheticRep {
     this.depth = 1,
     this.duration = const Duration(milliseconds: 1800),
     this.holdAtBottom = Duration.zero,
+    this.descentShare = 0.5,
   });
 
   /// How far into the movement this rep goes: 1 is full depth.
@@ -275,7 +505,15 @@ class SyntheticRep {
   /// Time spent at the deepest point.
   final Duration holdAtBottom;
 
+  /// Share of [duration] spent on the way in. A half is an even tempo;
+  /// much less than that is a rep dropped into rather than lowered.
+  final double descentShare;
+
   Duration get span => duration + holdAtBottom;
+
+  Duration get descent => duration * descentShare;
+
+  Duration get ascent => duration - descent;
 }
 
 /// A set of reps between two poses.
@@ -291,6 +529,7 @@ PoseFixture syntheticReps({
   required SideOnPose bottom,
   required List<SyntheticRep> reps,
   required int expectedReps,
+  Set<String> expectedFaults = const {},
   String notes = '',
   CameraAngle angle = CameraAngle.side,
   Duration gap = defaultRepGap,
@@ -311,6 +550,7 @@ PoseFixture syntheticReps({
     angle: angle,
     notes: notes,
     expectedReps: expectedReps,
+    expectedFaults: expectedFaults,
     total: total,
     frameInterval: frameInterval,
     jitter: jitter,
@@ -328,6 +568,7 @@ PoseFixture syntheticHold({
   required SideOnPose posture,
   required Duration duration,
   required Duration expectedHold,
+  Set<String> expectedFaults = const {},
   SideOnPose? broken,
   Duration? breakFrom,
   Duration? breakFor,
@@ -345,6 +586,7 @@ PoseFixture syntheticHold({
       angle: angle,
       notes: notes,
       expectedHold: expectedHold,
+      expectedFaults: expectedFaults,
       total: duration,
       frameInterval: frameInterval,
       jitter: jitter,
@@ -373,6 +615,7 @@ PoseFixture _build({
   required SideOnPose Function(Duration t) poseAt,
   int? expectedReps,
   Duration? expectedHold,
+  Set<String> expectedFaults = const {},
 }) {
   final frames = <PoseFrame>[];
   final count = total.inMicroseconds ~/ frameInterval.inMicroseconds;
@@ -408,6 +651,7 @@ PoseFixture _build({
     notes: notes,
     expectedReps: expectedReps,
     expectedHold: expectedHold,
+    expectedFaults: expectedFaults,
     frames: frames,
   );
 }
@@ -423,14 +667,14 @@ double _phaseAt(Duration t, List<SyntheticRep> reps, Duration gap) {
   for (final rep in reps) {
     if (at < Duration.zero) return 0;
     if (at < rep.span) {
-      final half = rep.duration * 0.5;
-      if (at < half) {
-        return rep.depth * _rise(at.inMicroseconds / half.inMicroseconds);
+      final down = rep.descent;
+      if (at < down) {
+        return rep.depth * _rise(at.inMicroseconds / down.inMicroseconds);
       }
-      final afterHold = at - half - rep.holdAtBottom;
+      final afterHold = at - down - rep.holdAtBottom;
       if (afterHold < Duration.zero) return rep.depth;
       return rep.depth *
-          _rise(1 - afterHold.inMicroseconds / half.inMicroseconds);
+          _rise(1 - afterHold.inMicroseconds / rep.ascent.inMicroseconds);
     }
     at -= rep.span + gap;
   }

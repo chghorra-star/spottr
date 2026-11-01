@@ -180,6 +180,21 @@ PoseFrame syntheticFrame(
         0.4 + segment * math.sin(radians),
         0.4 - segment * math.cos(radians),
       );
+
+    case JointOffset(:final joint, :final from, :final to):
+      // A horizontal reference line 0.4 long, with the judged joint at its
+      // midpoint and [value] per cent of that length below it.
+      const span = 0.4;
+      both(from, 0.5 - span / 2, 0.6);
+      both(to, 0.5 + span / 2, 0.6);
+      both(joint, 0.5, 0.6 + span * value / 100);
+
+    case SegmentRatio(segment: final top, against: final bottom):
+      const reference = 0.2;
+      both(bottom.from, 0.5, 0.6);
+      both(bottom.to, 0.5, 0.6 + reference);
+      both(top.to, 0.5, 0.6);
+      both(top.from, 0.5, 0.6 - reference * value / 100);
   }
 
   return frame(landmarks, id: id, t: t);

@@ -292,4 +292,89 @@ void main() {
       }
     });
   });
+
+  group('the joints M6 added', () {
+    test('a foot on the floor is flat', () {
+      expect(footTilt.measure(_at(squatTop)), closeTo(90, 1));
+    });
+
+    test('a lifted heel tilts the foot', () {
+      expect(footTilt.measure(_at(squatHeelsUpBottom))!, greaterThan(100));
+    });
+
+    test('the head sits in line with the trunk by default', () {
+      expect(neckAngle.measure(_at(plankHeld)), closeTo(180, 1));
+      expect(neckAngle.measure(_at(squatTop)), closeTo(180, 1));
+    });
+
+    test('a head hanging forward bends the neck', () {
+      expect(neckAngle.measure(_at(plankHeadDown))!, lessThan(150));
+    });
+
+    test('a shortened trunk reads as a smaller ratio', () {
+      final upright = trunkRatio.measure(_at(squatBottom))!;
+      final rounded = trunkRatio.measure(_at(squatRoundedBottom))!;
+
+      expect(rounded, lessThan(upright));
+      expect(upright - rounded, greaterThan(15));
+    });
+
+    test('a sag and a pike are opposite signs of the same signal', () {
+      final sag = hipOffset.measure(_at(plankSagging))!;
+      final pike = hipOffset.measure(_at(plankPiked))!;
+      final straight = hipOffset.measure(_at(plankHeld))!;
+
+      expect(sag, greaterThan(0));
+      expect(pike, lessThan(0));
+      expect(straight, closeTo(0, 1));
+    });
+
+    test('every pose in the suite stays inside the frame', () {
+      // The landmark builder clamps to the image, so a pose that wandered
+      // off the edge would quietly flatten a limb against it instead of
+      // failing.
+      for (final pose in [
+        squatRoundedBottom,
+        squatHeelsUpBottom,
+        pushUpSaggingBottom,
+        pushUpSoftTop,
+        pressLeaningLockout,
+        hingeTop,
+        hingeBottom,
+        hingeRoundedBottom,
+        hingeKneesBentBottom,
+        bridgeDown,
+        bridgeUp,
+        rowTop,
+        rowBottom,
+        rowSwungBottom,
+        plankPiked,
+        plankHeadDown,
+      ]) {
+        for (final entry in pose.landmarks().entries) {
+          expect(
+            entry.value.x,
+            inExclusiveRange(0, 1),
+            reason: '${entry.key.name} x is at the edge of the image in $pose',
+          );
+          expect(
+            entry.value.y,
+            inExclusiveRange(0, 1),
+            reason: '${entry.key.name} y is at the edge of the image in $pose',
+          );
+        }
+      }
+    });
+  });
+
+  group('rep shape', () {
+    test('a descent share moves the bottom of the rep', () {
+      const even = SyntheticRep();
+      const dropped = SyntheticRep(descentShare: 0.2);
+
+      expect(even.descent, even.ascent);
+      expect(dropped.descent, const Duration(milliseconds: 360));
+      expect(dropped.ascent, const Duration(milliseconds: 1440));
+    });
+  });
 }
