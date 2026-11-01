@@ -63,6 +63,15 @@ abstract final class UiKeys {
   static const Key sessionSummary = Key('spottr.session.summary');
   static const Key sessionSummaryDone = Key('spottr.session.summary.done');
 
+  static const Key coachScreen = Key('spottr.coach');
+  static const Key coachNotSupported = Key('spottr.coach.notSupported');
+  static const Key coachPermission = Key('spottr.coach.permission');
+  static const Key coachPermissionAllow = Key('spottr.coach.permission.allow');
+  static const Key coachBlocked = Key('spottr.coach.permission.blocked');
+  static const Key coachError = Key('spottr.coach.error');
+  static const Key coachFraming = Key('spottr.coach.framing');
+  static const Key coachDone = Key('spottr.coach.done');
+
   /// A choice within a question, e.g. one goal or one injury site.
 
   static Key choice(String question, String value) =>
@@ -81,6 +90,8 @@ abstract final class UiKeys {
       Key('spottr.session.weight.$exerciseId');
   static Key sessionSaveSet(String exerciseId) =>
       Key('spottr.session.save.$exerciseId');
+  static Key sessionCoach(String exerciseId) =>
+      Key('spottr.session.coach.$exerciseId');
 
   /// One answer to "how did that feel", by [SessionRating] name.
   static Key sessionRating(String rating) =>

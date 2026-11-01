@@ -839,6 +839,127 @@ class AppLocalizationsEn extends AppLocalizations {
       'Saving a change to your goal, days, session length, experience, equipment or injuries rebuilds your week.';
 
   @override
+  String get coachTitle => 'Camera check';
+
+  @override
+  String get coachOpen => 'Camera check';
+
+  @override
+  String get coachDone => 'Done';
+
+  @override
+  String get coachClaim =>
+      'Spottr flags movement that looks risky. It cannot see everything, and it cannot guarantee you will not get hurt.';
+
+  @override
+  String get coachSetupTitle => 'Where to put your phone';
+
+  @override
+  String get coachDistance =>
+      'Stand about two metres back, with the phone propped up around hip height.';
+
+  @override
+  String get coachAngleSide =>
+      'Put the phone to one side of you, so the camera sees you from the side.';
+
+  @override
+  String get coachAngleFront => 'Put the phone in front of you, facing you.';
+
+  @override
+  String get coachNotSupportedTitle => 'No camera coaching for this one';
+
+  @override
+  String get coachNotSupportedBody =>
+      'Spottr only coaches the movements it has rules for. Log this one by hand.';
+
+  @override
+  String get coachPermissionTitle => 'Spottr needs the camera';
+
+  @override
+  String get coachPermissionBody =>
+      'The form coach runs on this device. Video is never uploaded and never leaves your phone.';
+
+  @override
+  String get coachPermissionAllow => 'Allow camera';
+
+  @override
+  String get coachPermissionBlockedTitle => 'Camera access is turned off';
+
+  @override
+  String get coachPermissionBlockedBody =>
+      'Turn the camera on for Spottr in your device settings, then come back.';
+
+  @override
+  String get coachStarting => 'Opening the camera';
+
+  @override
+  String get coachErrorTitle => 'The camera could not start';
+
+  @override
+  String get coachErrorRetry => 'Try again';
+
+  @override
+  String get coachErrorPermission =>
+      'Spottr does not have permission to use the camera.';
+
+  @override
+  String get coachErrorNoCamera =>
+      'This device has no camera the coach can use yet.';
+
+  @override
+  String get coachErrorInUse =>
+      'Another app is using the camera. Close it and try again.';
+
+  @override
+  String get coachErrorModel =>
+      'The pose model stopped working. Try again, and restart Spottr if it keeps happening.';
+
+  @override
+  String get coachErrorBadFrame =>
+      'Spottr could not read what the camera sent. This is a bug; please report it.';
+
+  @override
+  String get coachErrorUnknown => 'Something went wrong with the camera.';
+
+  @override
+  String get coachFramingGood => 'That works — I can see all of you.';
+
+  @override
+  String get coachFramingNoPerson =>
+      'I cannot see anybody. Step into the frame.';
+
+  @override
+  String get coachFramingTooClose =>
+      'Step back — part of you is outside the frame.';
+
+  @override
+  String get coachFramingTooFar =>
+      'Come a little closer, or move the phone nearer.';
+
+  @override
+  String get coachFramingOffCentre => 'Move towards the middle of the frame.';
+
+  @override
+  String get coachFramingMissingSeveral =>
+      'I can only see part of you. Step back, or re-aim the phone.';
+
+  @override
+  String get coachFramingMissingShoulders =>
+      'I cannot see your shoulders. Tilt the phone up a little.';
+
+  @override
+  String get coachFramingMissingHips =>
+      'I cannot see your hips. Re-aim the phone at your middle.';
+
+  @override
+  String get coachFramingMissingKnees =>
+      'I cannot see your knees. Step back or tilt the phone down.';
+
+  @override
+  String get coachFramingMissingAnkles =>
+      'I cannot see your ankles. Step back, or tilt the phone down.';
+
+  @override
   String get exerciseBandAssistedPullUp => 'Band-Assisted Pull-Up';
 
   @override

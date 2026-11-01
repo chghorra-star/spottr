@@ -6,8 +6,12 @@
 library;
 
 export 'src/camera_angle.dart';
+export 'src/framing.dart';
 export 'src/geometry.dart';
 export 'src/joint.dart';
 export 'src/landmark.dart';
 export 'src/point2.dart';
 export 'src/pose_frame.dart';
+export 'src/pose_frame_codec.dart';
+export 'src/skeleton.dart';
+export 'src/smoothing.dart';

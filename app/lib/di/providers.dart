@@ -1,6 +1,8 @@
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_camera/pose_camera.dart';
+import 'package:pose_core/pose_core.dart';
 
 import '../data/local/database.dart';
 import '../data/plan_repository.dart';
@@ -105,4 +107,26 @@ final Provider<SessionController> sessionControllerProvider =
     progression: ref.watch(progressionProvider),
     edits: ref.watch(planEditsProvider),
   ),
+);
+
+/// The camera and the pose model.
+///
+/// A provider so that tests — and the fixture replay the whole engine is
+/// developed against — substitute `FakePoseCamera` here and exercise every
+/// layer above it for real.
+final Provider<PoseSource> poseSourceProvider = Provider<PoseSource>((ref) {
+  final source = DevicePoseCamera();
+  ref.onDispose(source.dispose);
+  return source;
+});
+
+/// Smoothed landmark frames.
+///
+/// Smoothing sits here rather than in the camera or in each consumer: raw
+/// landmarks jitter by a couple of pixels even on a body that is holding
+/// still, and the overlay, the framing check and the rep counter all want
+/// the same steadied signal rather than three different ones.
+final StreamProvider<PoseFrame> poseFrameProvider = StreamProvider<PoseFrame>(
+  (ref) =>
+      ref.watch(poseSourceProvider).frames.transform(const PoseSmoothing()),
 );

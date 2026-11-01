@@ -65,6 +65,244 @@ native bridge and the offline video extractor both send landmarks as a flat
 array indexed by position, so reordering the enum would silently remap every
 joint in the app. `pose_frame_test.dart` pins the ordinals.
 
+## The camera bridge
+
+Four things cross it, and only four: a permission question, a start, a stop,
+and a stream of landmark frames.
+
+Control calls go over a `MethodChannel` because they are request and reply.
+Frames go over an `EventChannel` because they are a one-way firehose at
+camera rate, and a method call per frame would pay for a reply nobody reads.
+
+### The wire format is a flat float buffer
+
+`PoseFrameCodec` owns it, in `pose_core`, not in the plugin — because there
+are two senders. The native bridge emits it at camera rate, and the offline
+video extractor writes the same shape into fixture files, which is what lets
+the harness replay a recorded set with no Flutter anywhere in the picture.
+
+Landmarks travel as **one `Float32List` of 33 x 4 values** — `x, y, z,
+visibility` per joint, indexed by BlazePose ordinal. A map keyed by joint
+name would be far friendlier to read and would also box 33 strings and 132
+doubles thirty times a second; the flat buffer crosses as raw bytes.
+
+A fixed-length buffer has to say "no landmark here" with a value rather than
+an absence, and that value is `NaN` in the position. It is the only bit
+pattern that cannot be mistaken for a place on the body — `(0, 0)` is the
+top left corner of the image, and no rule could tell that apart from a
+measurement.
+
+Two details that look like paranoia and are not:
+
+- **Visibility is clamped, not asserted.** Float32 rounding and ML Kit's own
+  arithmetic both produce values a hair outside the documented `0..1`, and
+  `Landmark` asserts on its range — so an unclamped decoder takes the whole
+  stream down over a frame that is otherwise perfectly good.
+- **A non-finite confidence is rejected outright.** Every threshold
+  comparison against `NaN` is false, so a `NaN` confidence would quietly
+  make "is this pose good enough" answer no forever instead of failing.
+
+### Landmarks that cross the bridge are never mirrored
+
+The front lens is *shown* mirrored, the way a gym mirror is. That is a
+presentation decision and it is made once, in Flutter, where one
+`Transform.flip` turns the preview and the skeleton over together so they
+cannot come apart.
+
+Mirroring on the native side as well would cancel the flip out, and nothing
+would look wrong — until a form rule read a left knee on the right. So the
+native side normalizes, rotates upright and sends; it flips nothing. No form
+rule ever has to ask which lens it is reading.
+
+### Normalizing by the rotated image, not the sensor
+
+ML Kit returns landmark positions in the **upright** frame, so dividing by
+the sensor's own width and height transposes the entire skeleton on a
+portrait phone. `LandmarkPacker.uprightSize` swaps the two for a quarter
+turn and the coach screen locks portrait, so there is one orientation to get
+right rather than four.
+
+## Smoothing is part of the pipeline, not of the camera
+
+Raw landmarks wobble by a pixel or two on a body that is holding still. A
+fixed low-pass has to choose between a steady ankle and a responsive hip,
+and pose data needs both at once from the same stream — so the filter is a
+**one-euro filter**, a low-pass whose cutoff rises with the speed of the
+signal. It smooths hard when nothing is happening and gets out of the way
+when it is.
+
+It lives in `pose_core` and is applied once, in the provider between the
+source and everything above it, because the overlay, the framing check and
+the rep counter all want the same steadied signal rather than three
+different ones.
+
+Three decisions inside it:
+
+- **It is driven by timestamps, not by sample count**, because frames drop
+  and a filter that assumed 30Hz would smooth a gap as if it were movement.
+- **A gap longer than 400ms resets it.** That is a dozen frames at 30Hz,
+  well past anything merely skipped. Smoothing across it drags the skeleton
+  in from wherever the user used to be standing.
+- **Visibility gets a plain exponential average**, not the adaptive filter.
+  Its wobble has nothing to do with how fast the body is moving, and an
+  overlay that blinks a limb in and out reads as a bug even when the
+  position underneath it is solid.
+
+A joint the model stops reporting is **dropped, not held**. A held-over
+position is invented data, and a limb resting where the tracker lost it
+looks exactly like a measurement.
+
+## Framing is a domain question, not a screen
+
+`Framing.assess` is arithmetic over one frame: is there anybody there, is
+any of them outside the frame, are they too far away, have they drifted to
+one side. Pure, which is what lets the setup screen be built and tested
+without a camera, and what will let the rep counter refuse to count at a
+framing it cannot trust.
+
+Two decisions worth not re-litigating:
+
+- **The body box is measured from a fixed reference span — shoulders to
+  ankles — never from the joints the caller asked for.** "Too far away" is a
+  question about how large the person appears, and the answer cannot depend
+  on which joints this exercise happens to care about. Measuring a press by
+  shoulders and hips alone reports a well-placed phone as too far, every
+  time. This was a real bug, caught by the test that passes a narrower
+  required set.
+- **The span is the longer dimension of the box, not its height**, because a
+  plank is a body too. Upright it is the height; face down it is the width;
+  one threshold has to mean the same thing for both.
+
+The verdict carries every issue it found and names **one** of them as the
+thing to say. A setup screen listing four complaints gets read as none of
+them. The order is by how fundamental the problem is and then by how
+actionable the fix is, which is why "step back" outranks "I cannot see your
+ankles": when somebody stands too near the phone both are true, and only one
+of them is an instruction.
+
+Issues split into **blocked** (nobody there, out of frame, a needed joint
+unseen) and **adjust** (too far, off centre). Too far is deliberately not a
+refusal — everything needed is visible, just noisier than ideal, and
+refusing to coach would be worse than coaching and saying so.
+
+## `PoseSource` is the seam the camera stack is built on
+
+```dart
+abstract class PoseSource {
+  Stream<PoseFrame> get frames;
+  Future<CameraPermissionStatus> permissionStatus();
+  Future<CameraPermissionStatus> requestPermission();
+  Future<PoseSourceInfo> start({CameraLens lens});
+  Future<void> stop();
+  Future<void> dispose();
+}
+```
+
+`DevicePoseCamera` runs a camera and a model. `FakePoseCamera` replays
+frames a test wrote by hand or a fixture recorded earlier. Every layer above
+— the overlay, the framing banner, and from M5 the rep counter and the form
+rules — is written against this interface, so the widget tests substitute
+the source and the real smoothing and framing code runs underneath them.
+
+There is deliberately **no `PlatformInterface`**. That pattern exists so a
+third party can supply another platform's implementation of a published
+plugin. This plugin is private to one app and ships both platforms itself,
+so the registration dance buys nothing, and the seam that is actually worth
+having is this one.
+
+`frames` is a broadcast stream, and the device source attaches to the native
+channel on the first listener and stays attached until disposal. The
+overlay, the framing banner and the rep counter all watch it at once;
+detaching when the last listener left would tear the native subscription
+down and rebuild it every time the UI rebuilt its watchers, dropping
+whatever arrived in between.
+
+One unreadable frame is an error on the stream, not the end of it. The set
+carries on, and the alternative — an exception thrown out of a channel
+callback — is an unhandled error with no clue which frame caused it.
+
+### `PoseSourceInfo` comes back from `start`, not with every frame
+
+An image size and a lens do not change thirty times a second, and a
+`PoseFrame` carrying them would stop being a pose and start being a camera
+reading — which the harness, replaying a fixture, has no business inventing.
+
+### The preview is letterboxed, not cropped
+
+A correctness decision rather than a cosmetic one. Landmarks arrive in
+normalized image space, so the overlay maps them to pixels with a multiply —
+but only while the box it draws in really is the image. Fill the screen with
+`BoxFit.cover` and the box is a crop, every landmark needs the same crop
+applied, and the day somebody changes the fit the skeleton silently slides
+off the body. Letterboxing keeps the two in step by construction, and the
+user needs to see the whole frame anyway to know whether they are in it.
+
+The overlay is stacked inside that same aspect-ratio box, and both camera
+use cases ask CameraX for the same aspect ratio, so the preview and the
+analysis frames cannot disagree about the shape of the picture.
+
+## The skeleton shows what is being measured
+
+`Skeleton.bones` is domain data in `pose_core`, not a constant inside the
+widget, because the offline labelling tool and the decision-log viewer draw
+the same figure and three copies of the list would diverge. `Skeleton.joints`
+is derived from it rather than listed again.
+
+**It draws no face.** No form rule reads a face landmark, and a face mesh
+over somebody's squat is decoration that makes the useful part harder to
+read. The figure comes out headless, which turns out to be the honest
+picture: it marks exactly the joints the coach is working from.
+
+A skeleton is also the only honest answer to "is it working". A framing
+verdict in words can be perfectly confident about a body it has mislocated.
+
+## Dart decides when the camera runs
+
+Native binds CameraX to a lifecycle it owns itself rather than to the
+activity's, so starting and stopping is an explicit call from Dart. The
+screen then stops the camera when it is disposed and when the app is
+backgrounded — a camera left running behind another app is somebody's
+battery and somebody's privacy, in that order of how quickly they notice.
+
+The screen reads the source out of the container **once, in `initState`**,
+and never through `ref` again. `dispose` has to stop the camera, and by then
+reading a provider through that widget throws. That is the M3 lesson applied
+before it cost anything: it passed every widget test there too.
+
+### Permission has three answers, and the third is not asked for twice
+
+`granted`, `denied`, and `permanentlyDenied` — the last one separate because
+only the system settings can undo it, and a button offering to ask again
+makes the app look broken rather than the setting look wrong.
+
+`permissionStatus` never reports `permanentlyDenied`, deliberately. Telling
+it apart from a plain refusal needs
+`shouldShowRequestPermissionRationale`, which is **also false before the
+user has ever been asked** — so reading it on a fresh install would send
+somebody to the system settings to grant a permission they were never
+offered. After an actual request the same signal is unambiguous. The cost is
+one wasted tap for a user who already refused permanently, which is the
+right way round.
+
+### An unrecognised status is an error, not a refusal
+
+If the native side answers with something Dart does not know, the two halves
+of the bridge disagree. Failing closed would read as a permission problem
+forever instead of as the version skew it is, so the decoder throws.
+
+## The camera check claims nothing it cannot do
+
+M4's only screen is a setup screen: where to put the phone, and whether it
+can see you. It counts no reps and judges no form, because neither exists
+yet — and it says so rather than implying a coach that is not there. The
+copy is pinned by test, like the rest of the safety-relevant text: it has to
+say that Spottr flags risky movement, that it cannot see everything, and
+that it cannot guarantee you will not get hurt.
+
+It is useful on its own regardless. Knowing where to stand the phone is a
+prerequisite for every later milestone, and getting it wrong is the most
+likely reason the coach would appear not to work at all.
+
 ## Rep counting
 
 One config-driven state machine, instantiated per exercise from catalog data:
@@ -599,6 +837,30 @@ or landmark traces off the device.
   coach has to say it never tells anyone to push through pain. Softening any of
   those is a change of claim, not a change of copy, and should have to break a
   test.
+- The pose pipeline is pure and tested from hand-written frames: the wire
+  codec against a malformed message and a float-boundary visibility, the
+  one-euro filter against jitter, a step, a repeated timestamp and a gap too
+  long to smooth across, and the framing check as a decision table named for
+  the user it is about — "says step back rather than naming the joints it
+  lost", "judges a face-down body by its longer dimension".
+- The camera itself is substituted at `PoseSource`, not at the frame stream
+  above it, so the widget tests run the real smoothing and the real framing
+  check underneath the screen. What they assert is what the screen does with
+  what it is given: which advice it shows, which severity it paints, that it
+  stops the camera when it is disposed and when the app is backgrounded, and
+  that an error on the frame stream is shown rather than looking like an
+  empty room.
+- The skeleton painter is tested by counting what reached the canvas, not
+  with an image golden. A golden would pin anti-aliasing and font rendering
+  across platforms along with the thing under test; counting draw calls says
+  exactly what the painter did — two bones and three dots for one leg, and a
+  landmark at `0.45, 0.5` landing at `135, 200` in a 300 by 400 box.
+- The native half has unit tests for the arithmetic Dart cannot see — the
+  joint-ordinal offsets, the normalization and the rotation transpose — and
+  **they do not run in CI**, because a Gradle unit test needs an example app
+  to host it and this plugin has none. `docs/dev-loop.md` records what that
+  leaves unverified and what to look at the first time a real body goes
+  through the pipeline.
 - The live coach is tested by driving `FakePoseCamera` through a recorded set
   and asserting the exact cue sequence.
 - The accuracy harness reports rep-count error and per-rule precision and

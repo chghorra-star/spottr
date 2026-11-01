@@ -2,6 +2,8 @@ import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter/widgets.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_camera/pose_camera.dart';
+import 'package:pose_core/pose_core.dart';
 
 import '../domain/user_profile.dart';
 import '../domain/workout_session.dart';
@@ -365,6 +367,75 @@ class PlanStrings {
         ? l10n.sessionLoggedSetReps(reps)
         : l10n.sessionLoggedSetRepsWeighted(reps, weight(load));
   }
+
+  /// Where to stand the phone for one camera angle.
+  String cameraAngle(CameraAngle value) => switch (value) {
+        CameraAngle.side => l10n.coachAngleSide,
+        CameraAngle.front => l10n.coachAngleFront,
+      };
+
+  /// The one thing to tell the user about how they are standing.
+  ///
+  /// One sentence, from [FramingVerdict.primary]. A setup screen listing
+  /// four complaints gets read as none of them, and the verdict has already
+  /// decided which complaint is the instruction.
+  String framingAdvice(FramingVerdict value) => switch (value.primary) {
+        null => l10n.coachFramingGood,
+        FramingIssue.noPerson => l10n.coachFramingNoPerson,
+        FramingIssue.tooClose => l10n.coachFramingTooClose,
+        FramingIssue.tooFar => l10n.coachFramingTooFar,
+        FramingIssue.offCentre => l10n.coachFramingOffCentre,
+        FramingIssue.jointsOutOfView => _missingAdvice(value.missing),
+      };
+
+  /// What went wrong with the camera, in a sentence.
+  String cameraError(PoseCameraError value) => switch (value) {
+        PoseCameraError.permissionDenied => l10n.coachErrorPermission,
+        PoseCameraError.noCamera => l10n.coachErrorNoCamera,
+        PoseCameraError.cameraInUse => l10n.coachErrorInUse,
+        PoseCameraError.modelFailed => l10n.coachErrorModel,
+        PoseCameraError.badFrame => l10n.coachErrorBadFrame,
+        PoseCameraError.unknown => l10n.coachErrorUnknown,
+      };
+
+  /// Names the body part that is out of shot, while there is only one.
+  ///
+  /// Beyond one the advice stops naming parts: "I cannot see your ankles,
+  /// your knees and your hips" is a list, and one instruction — step back —
+  /// fixes the lot of them.
+  String _missingAdvice(Set<Joint> missing) {
+    final groups = <String>{
+      for (final joint in missing)
+        if (_bodyPart(joint) != null) _bodyPart(joint)!,
+    };
+    if (groups.length != 1) return l10n.coachFramingMissingSeveral;
+
+    return switch (groups.single) {
+      'shoulders' => l10n.coachFramingMissingShoulders,
+      'hips' => l10n.coachFramingMissingHips,
+      'knees' => l10n.coachFramingMissingKnees,
+      'ankles' => l10n.coachFramingMissingAnkles,
+      _ => l10n.coachFramingMissingSeveral,
+    };
+  }
+
+  /// The body part a joint belongs to, for advice the user can act on.
+  ///
+  /// "I cannot see your left ankle" invites somebody to wonder about the
+  /// other one. The pair is the thing they move.
+  static String? _bodyPart(Joint joint) => switch (joint) {
+        Joint.leftShoulder || Joint.rightShoulder => 'shoulders',
+        Joint.leftHip || Joint.rightHip => 'hips',
+        Joint.leftKnee || Joint.rightKnee => 'knees',
+        Joint.leftAnkle ||
+        Joint.rightAnkle ||
+        Joint.leftHeel ||
+        Joint.rightHeel ||
+        Joint.leftFootIndex ||
+        Joint.rightFootIndex =>
+          'ankles',
+        _ => null,
+      };
 
   /// Sets and reps, or sets and a hold.
   String prescription(PlannedExercise value) =>

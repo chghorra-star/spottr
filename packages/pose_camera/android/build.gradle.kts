@@ -30,6 +30,11 @@ android {
 
     compileSdk = 36
 
+    // For BuildConfig.DEBUG, which gates the once-a-second frame-rate log.
+    buildFeatures {
+        buildConfig = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -72,6 +77,18 @@ kotlin {
 }
 
 dependencies {
+    // CameraX owns capture. camera2 is the implementation behind it and
+    // camera-lifecycle is what lets a binding be scoped to a lifecycle we
+    // drive ourselves, so Dart decides when the camera runs.
+    val cameraX = "1.4.2"
+    implementation("androidx.camera:camera-core:$cameraX")
+    implementation("androidx.camera:camera-camera2:$cameraX")
+    implementation("androidx.camera:camera-lifecycle:$cameraX")
+
+    // The base pose model, not the accurate one: this runs on every frame
+    // of a live set, and the accurate variant trades more latency than the
+    // extra precision is worth at the thresholds the form rules use.
+    implementation("com.google.mlkit:pose-detection:18.0.0-beta5")
+
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.mockito:mockito-core:5.0.0")
 }

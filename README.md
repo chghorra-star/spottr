@@ -11,17 +11,32 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M3 complete — you can now train the plan. A day card starts a session, sets
-are logged against the exact prescription they were performed against, and
-finishing asks how it felt and writes what the session earned into the plan as
-a new revision. 474 tests green, analyzer clean.
+M4 complete — the camera is wired up end to end. Native CameraX and ML Kit
+own capture and inference, and the only thing that crosses the bridge is a
+flat buffer of 33 landmarks. A camera check on every coached movement shows
+the live preview with the tracked skeleton drawn over it and tells you where
+to stand. 611 tests green, analyzer clean.
 
-Progression is a decision table, and safety sits at the top of it: the pain
-button stops anything going up, an unfinished session is not treated as
-evidence about the weight, and a missing form score counts as no objection
-rather than as failure — which matters because every set is logged by hand
-until the camera lands. Progression changes how hard a session is, never how
-much is in it; session length stays the budget's business.
+It counts nothing and judges nothing yet — rep counting is M5 and form rules
+are M6 — and the screen says so rather than implying a coach that is not
+there.
+
+The parts worth knowing about: landmarks are smoothed by a one-euro filter,
+whose cutoff rises with speed, so a planted ankle stops shimmering without a
+dropping hip falling behind. The framing check is pure arithmetic over one
+frame and names **one** thing to fix, because a setup screen listing four
+complaints gets read as none of them. And mirroring the front lens happens
+once, in Flutter, where the preview and the skeleton are flipped together —
+a second flip on the native side would cancel it out and nothing would look
+wrong until a form rule read a left knee on the right.
+
+Before M4, M3 made the plan trainable: a day card starts a session, sets are
+logged against the exact prescription they were performed against, and
+finishing asks how it felt and writes what the session earned into the plan
+as a new revision. Progression is a decision table with safety at the top of
+it — the pain button stops anything going up, an unfinished session is not
+treated as evidence about the weight, and a missing form score counts as no
+objection rather than as failure.
 
 Session length shapes a plan rather than only capping it: a template describes
 the longest sensible session and the budget decides how much of it you get, so
@@ -38,8 +53,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M1 | Exercise library + plan generation | done |
 | M2 | Onboarding, profile, plan UI | done |
 | M3 | Workout logging + progression | done |
-| M4 | Pose plumbing, native bridge, overlay | next |
-| M5 | Rep counting + accuracy harness | |
+| M4 | Pose plumbing, native bridge, overlay | done |
+| M5 | Rep counting + accuracy harness | next |
 | M6 | Form rules + scoring | |
 | M7 | Live coach UX, voice, safety | |
 | M8 | Dataset validation and tuning | |

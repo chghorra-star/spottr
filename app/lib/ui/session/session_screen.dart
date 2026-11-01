@@ -9,6 +9,7 @@ import '../../di/providers.dart';
 import '../../domain/workout_session.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/plan_strings.dart';
+import '../coach/camera_check_screen.dart';
 import '../common/async_view.dart';
 import '../common/ui_keys.dart';
 import 'finish_flow.dart';
@@ -330,9 +331,32 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              widget.strings.exercise(exercise.exerciseId),
-              style: theme.textTheme.titleMedium,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.strings.exercise(exercise.exerciseId),
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                // Only on the movements the coach has rules for. An offer
+                // to check the camera on an exercise it cannot judge is a
+                // promise the next milestones would have to break.
+                if (ref.watch(catalogProvider).require(exercise.exerciseId).camera !=
+                    null)
+                  IconButton(
+                    key: UiKeys.sessionCoach(exercise.exerciseId),
+                    icon: const Icon(Icons.videocam_outlined),
+                    tooltip: l10n.coachOpen,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (context) => CameraCheckScreen(
+                          exerciseId: exercise.exerciseId,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 2),
             Text(

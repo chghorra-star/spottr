@@ -1,3 +1,12 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.spottr.pose_camera">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <uses-permission android:name="android.permission.CAMERA" />
+
+  <!-- Not required: the plan half of the app works perfectly well on a
+       device with no camera, and declaring it required would hide Spottr
+       from those devices in the Play Store. -->
+  <uses-feature
+      android:name="android.hardware.camera.any"
+      android:required="false" />
+
 </manifest>

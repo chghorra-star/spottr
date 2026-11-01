@@ -4,6 +4,7 @@ import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_camera/fake.dart';
 import 'package:spottr/di/providers.dart';
 import 'package:spottr/domain/workout_session.dart';
 import 'package:spottr/l10n/app_localizations_en.dart';
@@ -512,6 +513,98 @@ void main() {
 
       expect(controller.names, isEmpty);
       expect(find.byKey(UiKeys.sessionScreen), findsOneWidget);
+    });
+  });
+
+  group('the camera check', () {
+    /// A day the generator fills with camera-coached movements, and one
+    /// exercise on it the coach has no rules for.
+    String coached() => day.exercises
+        .map((exercise) => exercise.exerciseId)
+        .firstWhere(
+          (id) => standardCatalog.require(id).camera != null,
+          orElse: () => '',
+        );
+
+    String uncoached() => day.exercises
+        .map((exercise) => exercise.exerciseId)
+        .firstWhere(
+          (id) => standardCatalog.require(id).camera == null,
+          orElse: () => '',
+        );
+
+    testWidgets('is offered on a movement the coach has rules for',
+        (tester) async {
+      await start(tester);
+      final id = coached();
+      expect(id, isNotEmpty, reason: 'the generated day has nothing coachable');
+
+      await tester.scrollUntilVisible(
+        find.byKey(UiKeys.sessionExercise(id)),
+        120,
+        scrollable: sessionScrollable,
+        maxScrolls: 40,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(UiKeys.sessionCoach(id)), findsOneWidget);
+    });
+
+    testWidgets('is not offered on one it cannot judge', (tester) async {
+      // Offering it would be a promise the next two milestones have to
+      // break: there are no rules for a curl and there will not be.
+      await start(tester);
+      final id = uncoached();
+      expect(id, isNotEmpty, reason: 'the generated day is all coachable');
+
+      await tester.scrollUntilVisible(
+        find.byKey(UiKeys.sessionExercise(id)),
+        120,
+        scrollable: sessionScrollable,
+        maxScrolls: 40,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(UiKeys.sessionCoach(id)), findsNothing);
+    });
+
+    testWidgets('opens the check, and comes back to the session',
+        (tester) async {
+      final camera = FakePoseCamera();
+      await pumpScreen(
+        tester,
+        SessionScreen(weekday: day.weekday),
+        plan: plan,
+        session: sessionWith(),
+        camera: camera,
+        overrides: [
+          sessionControllerProvider.overrideWithValue(
+            RecordingSessionController(),
+          ),
+        ],
+      );
+
+      final id = coached();
+      await tester.scrollUntilVisible(
+        find.byKey(UiKeys.sessionExercise(id)),
+        120,
+        scrollable: sessionScrollable,
+        maxScrolls: 40,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(UiKeys.sessionCoach(id)));
+      await tester.pumpAndSettle();
+      expect(find.byKey(UiKeys.coachScreen), findsOneWidget);
+      expect(camera.isRunning, isTrue);
+
+      await tester.tap(find.byKey(UiKeys.coachDone));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(UiKeys.sessionScreen), findsOneWidget);
+      // Leaving the check puts the camera down. Nothing else on the way
+      // back through the session would.
+      expect(camera.isRunning, isFalse);
     });
   });
 }

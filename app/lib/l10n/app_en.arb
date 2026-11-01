@@ -643,6 +643,48 @@
   "profileSave": "Save",
   "profileRebuildWarning": "Saving a change to your goal, days, session length, experience, equipment or injuries rebuilds your week.",
 
+
+  "@_coach": {
+    "description": "The camera check: where to put the phone, whether it can see you, and what to do when it cannot. Framing advice is one sentence per primary issue, never a list — a setup screen with four complaints on it gets read as none of them."
+  },
+
+  "coachTitle": "Camera check",
+  "coachOpen": "Camera check",
+  "coachDone": "Done",
+  "coachClaim": "Spottr flags movement that looks risky. It cannot see everything, and it cannot guarantee you will not get hurt.",
+  "coachSetupTitle": "Where to put your phone",
+  "coachDistance": "Stand about two metres back, with the phone propped up around hip height.",
+  "coachAngleSide": "Put the phone to one side of you, so the camera sees you from the side.",
+  "coachAngleFront": "Put the phone in front of you, facing you.",
+  "coachNotSupportedTitle": "No camera coaching for this one",
+  "coachNotSupportedBody": "Spottr only coaches the movements it has rules for. Log this one by hand.",
+
+  "coachPermissionTitle": "Spottr needs the camera",
+  "coachPermissionBody": "The form coach runs on this device. Video is never uploaded and never leaves your phone.",
+  "coachPermissionAllow": "Allow camera",
+  "coachPermissionBlockedTitle": "Camera access is turned off",
+  "coachPermissionBlockedBody": "Turn the camera on for Spottr in your device settings, then come back.",
+
+  "coachStarting": "Opening the camera",
+  "coachErrorTitle": "The camera could not start",
+  "coachErrorRetry": "Try again",
+  "coachErrorPermission": "Spottr does not have permission to use the camera.",
+  "coachErrorNoCamera": "This device has no camera the coach can use yet.",
+  "coachErrorInUse": "Another app is using the camera. Close it and try again.",
+  "coachErrorModel": "The pose model stopped working. Try again, and restart Spottr if it keeps happening.",
+  "coachErrorBadFrame": "Spottr could not read what the camera sent. This is a bug; please report it.",
+  "coachErrorUnknown": "Something went wrong with the camera.",
+
+  "coachFramingGood": "That works — I can see all of you.",
+  "coachFramingNoPerson": "I cannot see anybody. Step into the frame.",
+  "coachFramingTooClose": "Step back — part of you is outside the frame.",
+  "coachFramingTooFar": "Come a little closer, or move the phone nearer.",
+  "coachFramingOffCentre": "Move towards the middle of the frame.",
+  "coachFramingMissingSeveral": "I can only see part of you. Step back, or re-aim the phone.",
+  "coachFramingMissingShoulders": "I cannot see your shoulders. Tilt the phone up a little.",
+  "coachFramingMissingHips": "I cannot see your hips. Re-aim the phone at your middle.",
+  "coachFramingMissingKnees": "I cannot see your knees. Step back or tilt the phone down.",
+  "coachFramingMissingAnkles": "I cannot see your ankles. Step back, or tilt the phone down.",
   "@_exercise_names": {
     "description": "Display names for every catalog entry. The catalog stores an ARB key, never prose, so adding an exercise adds a key here; a test fails if one is missing."
   },

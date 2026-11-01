@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plan_engine/plan_engine.dart';
+import 'package:pose_camera/pose_camera.dart';
 import 'package:spottr/app.dart';
 import 'package:spottr/di/providers.dart';
 import 'package:spottr/domain/user_profile.dart';
@@ -70,6 +71,7 @@ Future<void> pumpScreen(
   WorkoutSession? session,
   Stream<WeekPlan?> Function()? planStream,
   Stream<WorkoutSession?> Function()? sessionStream,
+  PoseSource? camera,
   List<Override> overrides = const [],
   bool settled = true,
 }) async {
@@ -82,6 +84,10 @@ Future<void> pumpScreen(
         activeSessionProvider.overrideWith(
           (ref) => (sessionStream ?? () => Stream.value(session))(),
         ),
+        // Substituting the source, rather than the frame stream above it,
+        // means the smoothing and the framing check in between run for
+        // real — which is most of what there is to get wrong.
+        if (camera != null) poseSourceProvider.overrideWithValue(camera),
         ...overrides,
       ],
       child: MaterialApp(

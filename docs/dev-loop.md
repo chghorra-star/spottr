@@ -15,7 +15,12 @@ cue arbitration all run under `dart test` in milliseconds.
 rule thresholds, cue ordering, form scores.
 **Cannot prove:** anything about the camera, the model, or performance.
 
-This layer covers M1 through M3 entirely, plus the logic half of M5 and M6.
+This layer covers M1 through M3 entirely, the pose domain in M4 — the wire
+codec, the smoothing filters, the framing check and the skeleton, all pure
+and all driven from hand-written frames — plus the logic half of M5 and M6.
+From M4 on it also covers the camera stack above `PoseSource`, because
+`FakePoseCamera` substitutes for the device at that seam and the widget
+tests run the real smoothing and framing code underneath the screen.
 
 ### Widget tests do not touch the database
 
@@ -62,6 +67,58 @@ overlay, the setup and framing screen, end-to-end wiring.
 **Cannot prove:** frame rate, latency, thermal behaviour, or real-world
 accuracy. Emulator fps is not representative of a mid-range phone and must
 never be quoted as a result.
+
+### What layer 2 actually proved in M4, and what it did not
+
+Run on `rivo_pixel` with `hw.camera.back=webcam0` and the app driven through
+`adb`, the camera check **did** show: the permission flow, CameraX opening
+the camera, the preview arriving through a Flutter texture at the right
+aspect ratio and the right way up, frames reaching Dart continuously, the
+framing check reading them, the camera stopping when the app is backgrounded
+and starting again on return.
+
+It did **not** show a skeleton on a body, because the webcam was pointed at
+a ceiling and nobody can be put in front of it from here. So the piece that
+remains unverified on real hardware is the one with the most ways to be
+quietly wrong: the joint-ordinal mapping, the normalization and the rotation
+transpose in `LandmarkPacker`. Those are pinned by `LandmarkPackerTest.kt`
+and, on the other side of the wire, by `pose_frame_codec_test.dart` — but a
+test written by the same person who wrote the bug is not a device.
+
+**The first time a real body goes through this path, check the skeleton
+tracks the limbs it names.** A transposed frame still produces a plausible
+figure; a left-right swap produces one that is exactly right until a form
+rule reads it.
+
+### Reading the pipeline from outside
+
+In a debug build `PoseCameraSession` logs a frame count and a mean
+confidence once a second:
+
+```bash
+adb logcat -s PoseCameraSession:D
+```
+
+This is the only window onto the native half, and it is what distinguishes
+"an empty room" from "no frames at all" — which look identical on screen. It
+is a count and a mean and never a landmark: a pose trace in the system log
+would be a copy of somebody's body leaving the app, which is the one thing
+this design promises not to do.
+
+Running it that way on the emulator reported 3 to 6 fps with the confidence
+at zero. The zero is correct for a ceiling. The fps is software rendering on
+a machine with `hw.gpu.enabled=no` and means nothing about a phone.
+
+### The native unit tests do not run
+
+`LandmarkPackerTest.kt` covers the arithmetic that cannot be checked from
+Dart. It is not in CI and not in `tool/check.ps1`, because a Gradle unit
+test needs an example app to host it and this plugin has none.
+
+Adding one is a real option and the cost is a second Gradle build in CI.
+Until then the native half is verified by reading it, by the Dart side of
+the contract, and by layer 2 — and the gap is exactly where the warning
+above says to look.
 
 ## Layer 3 — iOS on real hardware via cloud macOS CI
 

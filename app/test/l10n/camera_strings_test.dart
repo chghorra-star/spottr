@@ -1,0 +1,131 @@
+import 'package:exercise_library/exercise_library.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:pose_camera/pose_camera.dart';
+import 'package:pose_core/pose_core.dart';
+import 'package:spottr/l10n/app_localizations_en.dart';
+import 'package:spottr/l10n/plan_strings.dart';
+
+final PlanStrings _strings = PlanStrings(AppLocalizationsEn(), standardCatalog);
+
+FramingVerdict _verdict({
+  Set<FramingIssue> issues = const {},
+  Set<Joint> missing = const {},
+}) =>
+    FramingVerdict(
+      issues: issues,
+      missing: missing,
+      bodyBox: const BodyBox(left: 0.4, top: 0.1, right: 0.6, bottom: 0.9),
+    );
+
+void main() {
+  group('PlanStrings.cameraAngle', () {
+    test('tells the user where to put the phone for every angle', () {
+      for (final angle in CameraAngle.values) {
+        expect(_strings.cameraAngle(angle), isNotEmpty, reason: angle.name);
+      }
+    });
+
+    test('asks for a side view and a front view by name', () {
+      expect(_strings.cameraAngle(CameraAngle.side).toLowerCase(),
+          contains('side'));
+      expect(_strings.cameraAngle(CameraAngle.front).toLowerCase(),
+          contains('front'));
+    });
+  });
+
+  group('PlanStrings.framingAdvice', () {
+    test('says something for every issue', () {
+      for (final issue in FramingIssue.values) {
+        expect(
+          _strings.framingAdvice(_verdict(issues: {issue})),
+          isNotEmpty,
+          reason: issue.name,
+        );
+      }
+    });
+
+    test('confirms when nothing is wrong', () {
+      expect(_strings.framingAdvice(_verdict()), isNotEmpty);
+    });
+
+    test('names the one body part it cannot see', () {
+      expect(
+        _strings
+            .framingAdvice(
+              _verdict(
+                issues: {FramingIssue.jointsOutOfView},
+                missing: {Joint.leftAnkle, Joint.rightAnkle},
+              ),
+            )
+            .toLowerCase(),
+        contains('ankles'),
+      );
+      expect(
+        _strings
+            .framingAdvice(
+              _verdict(
+                issues: {FramingIssue.jointsOutOfView},
+                missing: {Joint.leftKnee},
+              ),
+            )
+            .toLowerCase(),
+        contains('knees'),
+      );
+    });
+
+    test('stops naming parts once several are missing', () {
+      // Listing four body parts is a list nobody reads. One instruction
+      // fixes all of them.
+      final advice = _strings.framingAdvice(
+        _verdict(
+          issues: {FramingIssue.jointsOutOfView},
+          missing: {Joint.leftAnkle, Joint.leftShoulder, Joint.leftHip},
+        ),
+      );
+
+      expect(advice.toLowerCase(), isNot(contains('ankles')));
+      expect(advice, isNotEmpty);
+    });
+
+    test('says the primary thing, not all of them', () {
+      // Too close and joints out of view are both true when somebody
+      // stands near the phone, and only one of them is an instruction.
+      final advice = _strings.framingAdvice(
+        _verdict(
+          issues: {FramingIssue.tooClose, FramingIssue.jointsOutOfView},
+          missing: {Joint.leftAnkle},
+        ),
+      );
+
+      expect(advice, _strings.framingAdvice(
+        _verdict(issues: {FramingIssue.tooClose}),
+      ));
+    });
+  });
+
+  group('PlanStrings.cameraError', () {
+    test('explains every failure the bridge can report', () {
+      for (final error in PoseCameraError.values) {
+        final message = _strings.cameraError(error);
+        expect(message, isNotEmpty, reason: error.name);
+        // A raw enum name on screen is the failure this seam prevents.
+        expect(message, isNot(contains(error.name)), reason: error.name);
+      }
+    });
+  });
+
+  group('the camera claim', () {
+    test('states its limits rather than promising prevention', () {
+      // The brief is explicit: form feedback that flags risky movement,
+      // never a guarantee of safety. Pinned as the words that have to be
+      // there rather than words that must not be, because "cannot
+      // guarantee" and "guarantees" differ by one token and a forbidden
+      // substring cannot tell them apart.
+      final claim = AppLocalizationsEn().coachClaim.toLowerCase();
+
+      expect(claim, contains('risky'));
+      expect(claim, contains('cannot guarantee'));
+      expect(claim, contains('cannot see everything'));
+    });
+  });
+}

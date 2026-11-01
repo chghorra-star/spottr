@@ -1480,6 +1480,210 @@ abstract class AppLocalizations {
   /// **'Saving a change to your goal, days, session length, experience, equipment or injuries rebuilds your week.'**
   String get profileRebuildWarning;
 
+  /// No description provided for @coachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera check'**
+  String get coachTitle;
+
+  /// No description provided for @coachOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera check'**
+  String get coachOpen;
+
+  /// No description provided for @coachDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get coachDone;
+
+  /// No description provided for @coachClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr flags movement that looks risky. It cannot see everything, and it cannot guarantee you will not get hurt.'**
+  String get coachClaim;
+
+  /// No description provided for @coachSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Where to put your phone'**
+  String get coachSetupTitle;
+
+  /// No description provided for @coachDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Stand about two metres back, with the phone propped up around hip height.'**
+  String get coachDistance;
+
+  /// No description provided for @coachAngleSide.
+  ///
+  /// In en, this message translates to:
+  /// **'Put the phone to one side of you, so the camera sees you from the side.'**
+  String get coachAngleSide;
+
+  /// No description provided for @coachAngleFront.
+  ///
+  /// In en, this message translates to:
+  /// **'Put the phone in front of you, facing you.'**
+  String get coachAngleFront;
+
+  /// No description provided for @coachNotSupportedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No camera coaching for this one'**
+  String get coachNotSupportedTitle;
+
+  /// No description provided for @coachNotSupportedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr only coaches the movements it has rules for. Log this one by hand.'**
+  String get coachNotSupportedBody;
+
+  /// No description provided for @coachPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr needs the camera'**
+  String get coachPermissionTitle;
+
+  /// No description provided for @coachPermissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The form coach runs on this device. Video is never uploaded and never leaves your phone.'**
+  String get coachPermissionBody;
+
+  /// No description provided for @coachPermissionAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera'**
+  String get coachPermissionAllow;
+
+  /// No description provided for @coachPermissionBlockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is turned off'**
+  String get coachPermissionBlockedTitle;
+
+  /// No description provided for @coachPermissionBlockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn the camera on for Spottr in your device settings, then come back.'**
+  String get coachPermissionBlockedBody;
+
+  /// No description provided for @coachStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening the camera'**
+  String get coachStarting;
+
+  /// No description provided for @coachErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera could not start'**
+  String get coachErrorTitle;
+
+  /// No description provided for @coachErrorRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get coachErrorRetry;
+
+  /// No description provided for @coachErrorPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr does not have permission to use the camera.'**
+  String get coachErrorPermission;
+
+  /// No description provided for @coachErrorNoCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has no camera the coach can use yet.'**
+  String get coachErrorNoCamera;
+
+  /// No description provided for @coachErrorInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Another app is using the camera. Close it and try again.'**
+  String get coachErrorInUse;
+
+  /// No description provided for @coachErrorModel.
+  ///
+  /// In en, this message translates to:
+  /// **'The pose model stopped working. Try again, and restart Spottr if it keeps happening.'**
+  String get coachErrorModel;
+
+  /// No description provided for @coachErrorBadFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr could not read what the camera sent. This is a bug; please report it.'**
+  String get coachErrorBadFrame;
+
+  /// No description provided for @coachErrorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong with the camera.'**
+  String get coachErrorUnknown;
+
+  /// No description provided for @coachFramingGood.
+  ///
+  /// In en, this message translates to:
+  /// **'That works — I can see all of you.'**
+  String get coachFramingGood;
+
+  /// No description provided for @coachFramingNoPerson.
+  ///
+  /// In en, this message translates to:
+  /// **'I cannot see anybody. Step into the frame.'**
+  String get coachFramingNoPerson;
+
+  /// No description provided for @coachFramingTooClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Step back — part of you is outside the frame.'**
+  String get coachFramingTooClose;
+
+  /// No description provided for @coachFramingTooFar.
+  ///
+  /// In en, this message translates to:
+  /// **'Come a little closer, or move the phone nearer.'**
+  String get coachFramingTooFar;
+
+  /// No description provided for @coachFramingOffCentre.
+  ///
+  /// In en, this message translates to:
+  /// **'Move towards the middle of the frame.'**
+  String get coachFramingOffCentre;
+
+  /// No description provided for @coachFramingMissingSeveral.
+  ///
+  /// In en, this message translates to:
+  /// **'I can only see part of you. Step back, or re-aim the phone.'**
+  String get coachFramingMissingSeveral;
+
+  /// No description provided for @coachFramingMissingShoulders.
+  ///
+  /// In en, this message translates to:
+  /// **'I cannot see your shoulders. Tilt the phone up a little.'**
+  String get coachFramingMissingShoulders;
+
+  /// No description provided for @coachFramingMissingHips.
+  ///
+  /// In en, this message translates to:
+  /// **'I cannot see your hips. Re-aim the phone at your middle.'**
+  String get coachFramingMissingHips;
+
+  /// No description provided for @coachFramingMissingKnees.
+  ///
+  /// In en, this message translates to:
+  /// **'I cannot see your knees. Step back or tilt the phone down.'**
+  String get coachFramingMissingKnees;
+
+  /// No description provided for @coachFramingMissingAnkles.
+  ///
+  /// In en, this message translates to:
+  /// **'I cannot see your ankles. Step back, or tilt the phone down.'**
+  String get coachFramingMissingAnkles;
+
   /// No description provided for @exerciseBandAssistedPullUp.
   ///
   /// In en, this message translates to:
