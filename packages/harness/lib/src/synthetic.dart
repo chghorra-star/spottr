@@ -121,6 +121,8 @@ class SideOnPose {
   Map<Joint, Landmark> landmarks({
     double visibility = 0.95,
     double jitter = 0,
+    double drift = 0,
+    Duration t = Duration.zero,
     math.Random? random,
   }) {
     final knee = _step(ankle, _shin, shin, up: true);
@@ -148,16 +150,18 @@ class SideOnPose {
 
     final landmarks = <Joint, Landmark>{};
     for (final entry in left.entries) {
+      final wander = _drift(entry.key, drift, t);
       landmarks[entry.key] = _landmark(
-        entry.value.x,
-        entry.value.y,
+        entry.value.x + wander.x,
+        entry.value.y + wander.y,
         visibility,
         jitter,
         random,
       );
+      final mirrored = _drift(entry.key.mirrored, drift, t);
       landmarks[entry.key.mirrored] = _landmark(
-        entry.value.x + _sideOffset,
-        entry.value.y,
+        entry.value.x + _sideOffset + mirrored.x,
+        entry.value.y + mirrored.y,
         visibility,
         jitter,
         random,
@@ -300,8 +304,8 @@ const plankSagging = SideOnPose(
 const plankPiked = SideOnPose(
   ankle: Point2(0.14, 0.70),
   shin: 90,
-  thigh: 75,
-  trunk: 105,
+  thigh: 70,
+  trunk: 110,
   upperArm: 0,
   forearm: 0,
 );
@@ -368,7 +372,7 @@ const hingeBottom = SideOnPose(
   ankle: Point2(0.40, 0.90),
   shin: 0,
   thigh: 0,
-  trunk: 70,
+  trunk: 85,
   upperArm: 0,
   forearm: 0,
 );
@@ -379,7 +383,7 @@ const hingeRoundedBottom = SideOnPose(
   ankle: Point2(0.40, 0.90),
   shin: 0,
   thigh: 0,
-  trunk: 70,
+  trunk: 85,
   upperArm: 0,
   forearm: 0,
   trunkLength: 0.20,
@@ -445,7 +449,7 @@ const pressLeaningLockout = SideOnPose(
   ankle: Point2(0.50, 0.90),
   shin: 0,
   thigh: 0,
-  trunk: 25,
+  trunk: 35,
   upperArm: 175,
   forearm: 175,
 );
@@ -535,6 +539,7 @@ PoseFixture syntheticReps({
   Duration gap = defaultRepGap,
   Duration frameInterval = defaultFrameInterval,
   double jitter = 0,
+  double drift = 0,
   math.Random? random,
   Duration? dropoutFrom,
   Duration? dropoutFor,
@@ -554,6 +559,7 @@ PoseFixture syntheticReps({
     total: total,
     frameInterval: frameInterval,
     jitter: jitter,
+    drift: drift,
     random: random,
     dropoutFrom: dropoutFrom,
     dropoutFor: dropoutFor,
@@ -576,6 +582,7 @@ PoseFixture syntheticHold({
   CameraAngle angle = CameraAngle.side,
   Duration frameInterval = defaultFrameInterval,
   double jitter = 0,
+  double drift = 0,
   math.Random? random,
   Duration? dropoutFrom,
   Duration? dropoutFor,
@@ -590,6 +597,7 @@ PoseFixture syntheticHold({
       total: duration,
       frameInterval: frameInterval,
       jitter: jitter,
+      drift: drift,
       random: random,
       dropoutFrom: dropoutFrom,
       dropoutFor: dropoutFor,
@@ -609,6 +617,7 @@ PoseFixture _build({
   required Duration total,
   required Duration frameInterval,
   required double jitter,
+  required double drift,
   required math.Random? random,
   required Duration? dropoutFrom,
   required Duration? dropoutFor,
@@ -637,7 +646,12 @@ PoseFixture _build({
         // different to a counter and identical to a user.
         landmarks: blank
             ? const {}
-            : poseAt(t).landmarks(jitter: jitter, random: noise),
+            : poseAt(t).landmarks(
+                jitter: jitter,
+                drift: drift,
+                t: t,
+                random: noise,
+              ),
         confidence: blank ? 0 : 0.95,
       ),
     );
@@ -684,3 +698,23 @@ double _phaseAt(Duration t, List<SyntheticRep> reps, Duration gap) {
 /// 0 at `u = 0`, 1 at `u = 1`, flat at both ends.
 double _rise(double u) =>
     (1 - math.cos(u.clamp(0.0, 1.0) * math.pi)) / 2;
+
+/// Where a tracker has wandered to for this joint at this moment.
+///
+/// Not noise. Landmark error is not independent from frame to frame — a
+/// model that has misplaced a knee goes on misplacing it for a while, and
+/// the misplacement moves slowly. Independent per-frame jitter is exactly
+/// what a low-pass filter is built to remove, so a suite that only tests
+/// jitter is testing the filter rather than the engine.
+///
+/// A slow sine per joint, with the phase and the rate derived from the
+/// joint so that the same fixture generates identically every time, and
+/// different enough between joints that a limb bends as well as moves.
+Point2 _drift(Joint joint, double amplitude, Duration t) {
+  if (amplitude == 0) return const Point2(0, 0);
+  final seconds = t.inMicroseconds / 1e6;
+  final phase = joint.index * 1.7;
+  final rate = 0.3 + (joint.index % 5) * 0.15;
+  final angle = 2 * math.pi * rate * seconds + phase;
+  return Point2(amplitude * math.sin(angle), amplitude * math.cos(angle * 0.7));
+}

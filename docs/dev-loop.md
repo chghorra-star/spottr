@@ -154,6 +154,87 @@ What this leaves genuinely untested is the construction of the on-device
 database itself, which needs a real platform. That is integration territory
 and belongs in Layer 2.
 
+## Layer 1b — asking the suite what it actually constrains
+
+M8 is the milestone where the thresholds were supposed to be tuned against
+footage. There is no footage and there is no way to produce any on this
+machine, so what M8 did instead was measure how much the evidence that does
+exist is worth. Two commands, neither of them in CI, both of them slow and
+worth reading rather than passing.
+
+```bash
+cd packages/harness
+dart run bin/harness.dart --margins     # how far each number can move
+dart run bin/harness.dart --robustness  # how much degradation counting survives
+```
+
+### Every number in the engine is a knob, and almost none of them are measured
+
+`engineKnobs()` enumerates them: 78 numbers across the counters and the form
+rules, each with an id, a value, a unit, and a function that rebuilds its
+configuration with that number changed. Exactly one of them —
+`back_rounding.max` — has ever been compared against anything. The other 77
+were chosen by somebody being plausible about anatomy.
+
+That ratio is the honest headline of this project's accuracy story, and the
+knob list is what makes it countable rather than rhetorical.
+
+### What `--margins` says, and what it does not
+
+For every knob, the sweep nudges the number up and down a ladder of offsets
+and asks whether every fixture that could notice still agrees with its label.
+A ladder rather than a binary search, because nothing guarantees a threshold
+breaks monotonically.
+
+**28 of the 78 numbers can be changed without any fixture noticing**, 10 of
+them because nothing in the suite exercises them at all.
+
+That is not permission to change them. It is the measurement of how little
+generated movement constrains a threshold: every fixture is built from the
+same anatomy the thresholds were guessed from, so of course it agrees with
+them. A wide margin means the suite is silent, not that the number is safe.
+
+A narrow margin is the more interesting reading, and it comes in two kinds:
+
+- **The fixture is marginal.** Three of them were: a piked plank five degrees
+  from the band that was supposed to catch it, a leaning press five degrees
+  from the bound, and a *clean* hinge two degrees from being flagged as not
+  deep enough. All three were fixtures demonstrating something unconvincingly,
+  and all three were widened. A fault fixture that only just trips its rule is
+  testing arithmetic rather than detection.
+- **The separation is genuinely narrow.** `back_rounding.max` has a window of
+  roughly 13 to 20, which is exactly the gap M6 measured by hand between the
+  artefacts and a real shortening trunk — found again here by a different
+  mechanism. `squat_depth.max` sits two degrees above where a full-depth squat
+  lands after smoothing, which is a real tightness and one only footage can
+  settle.
+
+### What `--robustness` says
+
+Clean sets, degraded on purpose, to find where counting breaks. Three axes:
+
+- **Landmark jitter**, independent per joint per frame: counting survives
+  about 0.1 normalized units, which is a tenth of the image on every joint.
+- **Correlated wander**, every joint drifting slowly: counting breaks at
+  0.032 to 0.048 — roughly **three times more damaging than jitter of the
+  same amplitude**.
+- **Frame interval**: counting survives down to 750ms a frame, which is well
+  under two frames a second.
+
+The wander number is the one that matters. Real landmark error is correlated
+in time — a model that has misplaced a knee goes on misplacing it — and
+independent per-frame noise is precisely what a low-pass filter is built to
+remove. A suite that only tested jitter would have been testing the smoothing
+filter. The first version of this sweep did exactly that, ran out of ladder
+without breaking anything, and measured nothing.
+
+All three numbers are implausibly large, and the reason is the same one the
+margins give: generated movement is a big, clean, smooth signal that is
+trivially detectable under noise which would make a real skeleton
+unrecognisable. **These are measurements of headroom on synthetic data, not
+of accuracy.** The useful one is the ratio between them, not any of the
+absolute values.
+
 ## Layer 2 — Android emulator with the host webcam
 
 The emulator can expose a host camera as its back camera.
@@ -265,12 +346,16 @@ has a known gap:
   mismatch to reconcile against our rule ids.
 
 So the target will be verifiable for roughly half the launch exercises and
-unproven for the rest. M8 publishes a per-exercise accuracy table that states
-plainly which exercises lack real footage rather than quoting one aggregate
-number.
+unproven for the rest. The per-exercise table M8 promised is in the report
+now: one row per exercise the app offers to coach, including the two nothing
+has ever been measured on, and an acceptance-targets block that says
+UNMEASURED where it is unmeasured. The table exists; the footage column is
+empty for all nine.
 
-**Where this stands after M7.** The harness exists, it gates CI on counting
-and on form, and it prints three coverage lines every time it runs.
+**Where this stands after M8.** The harness exists, it gates CI on counting
+and on form, it prints a per-exercise table rather than an aggregate, and it
+can now say how much its own evidence is worth. What it still cannot do is
+measure accuracy, because that needs footage.
 
 - **Exercises:** seven of the nine camera-coached movements have a generated
   fixture. The two that do not are the goblet squat, whose geometry is the
@@ -282,6 +367,9 @@ and on form, and it prints three coverage lines every time it runs.
   do not, lunge depth and torso lean, belong to the lunge. The four that are
   not evaluated at all are named on screen and in the report, with a sentence
   each saying what would have to change.
+- **Thresholds:** seventy-eight numbers, one of them measured. Twenty-eight
+  could be changed without any fixture noticing. See layer 1b above for what
+  that does and does not mean.
 - **Footage: still none.** Every number above comes from generated movement.
 - **The voice has never been heard.** Text-to-speech works in a build and is
   exercised by tests through a fake speaker, but no audio has come out of a

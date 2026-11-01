@@ -31,6 +31,18 @@ void main(List<String> arguments) {
     )
     ..addFlag('json', help: 'Print the report as JSON.', negatable: false)
     ..addFlag(
+      'robustness',
+      help: 'Instead of replaying, degrade the clean sets with noise and a '
+          'falling frame rate and report where counting breaks.',
+      negatable: false,
+    )
+    ..addFlag(
+      'margins',
+      help: 'Instead of replaying, sweep every threshold in the engine and '
+          'report how far it can move before a fixture disagrees.',
+      negatable: false,
+    )
+    ..addFlag(
       'smooth',
       help: 'Run the smoothing filter, as the app does. Off shows what the '
           'filter contributes.',
@@ -76,6 +88,24 @@ void main(List<String> arguments) {
   if (fixtures.isEmpty) {
     stderr.writeln('No fixtures to run.');
     exit(64);
+  }
+
+  if (options.flag('robustness')) {
+    stdout.writeln(
+      renderRobustness(sweepJitter(), sweepDrift(), sweepFrameRate()),
+    );
+    return;
+  }
+
+  if (options.flag('margins')) {
+    // Minutes rather than seconds: every number in the engine, nudged six
+    // times in each direction, against every fixture that could notice.
+    // Not in check.ps1 for that reason, and because what it reports is a
+    // measurement to read rather than a gate to pass.
+    stdout.writeln(
+      renderMargins(measureMargins(suite: fixtures)),
+    );
+    return;
   }
 
   final HarnessReport report;

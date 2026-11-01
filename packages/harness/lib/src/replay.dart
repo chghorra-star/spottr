@@ -142,6 +142,8 @@ FixtureResult replay(
   PoseFixture fixture, {
   ExerciseCatalog? catalog,
   bool smooth = true,
+  Map<String, CounterConfig> counters = counterCatalog,
+  Map<String, FormRule> rules = formCatalog,
 }) {
   final library = catalog ?? ExerciseCatalog(standardExercises);
   final exercise = library[fixture.exerciseId];
@@ -153,7 +155,7 @@ FixtureResult replay(
     );
   }
 
-  final config = counterFor(exercise);
+  final config = counters[exercise.camera?.repCounterId];
   if (config == null) {
     throw ArgumentError.value(
       fixture.exerciseId,
@@ -180,7 +182,12 @@ FixtureResult replay(
   // what somebody was prescribed, and feeding one in as the other would
   // fill the report with cues congratulating a set nobody planned. What
   // the coach says here is corrections only.
-  final analyzer = FormAnalyzer(exercise: exercise, angle: fixture.angle);
+  final analyzer = FormAnalyzer(
+    exercise: exercise,
+    angle: fixture.angle,
+    counters: counters,
+    rules: rules,
+  );
   final cues = <Cue>[];
   var tracked = 0;
 
@@ -344,6 +351,48 @@ class HarnessReport {
     return cues == 0 ? seconds : seconds / cues;
   }
 
+  /// One row per exercise the app offers to coach, including the ones
+  /// nothing has ever been measured on.
+  List<ExerciseAccuracy> byExercise(
+    ExerciseCatalog catalog, {
+    Map<String, FormRule> withRules = formCatalog,
+  }) =>
+      [
+        for (final id in cameraExercises.toList()..sort())
+          _rowFor(id, catalog, withRules),
+      ];
+
+  ExerciseAccuracy _rowFor(
+    String id,
+    ExerciseCatalog catalog,
+    Map<String, FormRule> withRules,
+  ) {
+    final mine = results.where((r) => r.fixture.exerciseId == id).toList();
+    final reps = mine.where((r) => !r.fixture.isHold);
+    final holds = mine.where((r) => r.fixture.isHold);
+    final exercise = catalog[id];
+    final selection = exercise == null
+        ? const RuleSelection(active: [], pending: [], blind: {})
+        : rulesFor(exercise, rules: withRules);
+    final demonstrated = {
+      for (final result in mine) ...result.fixture.expectedFaults,
+    };
+
+    return ExerciseAccuracy(
+      exerciseId: id,
+      fixtures: mine.length,
+      expectedReps:
+          reps.fold(0, (sum, r) => sum + (r.fixture.expectedReps ?? 0)),
+      countedReps: reps.fold(0, (sum, r) => sum + (r.countedReps ?? 0)),
+      repError: reps.fold(0, (sum, r) => sum + r.repError.abs()),
+      holds: holds.length,
+      holdsWithin: holds.where((r) => r.countedRight).length,
+      rulesEvaluated: selection.active.length,
+      rulesDemonstrated: demonstrated.length,
+      recorded: mine.any((r) => r.fixture.source == FixtureSource.recorded),
+    );
+  }
+
   /// Every rule that fired anywhere in the run, and how often.
   Map<String, int> get firings {
     final counts = <String, int>{};
@@ -385,17 +434,76 @@ HarnessReport runFixtures(
   Iterable<PoseFixture> fixtures, {
   ExerciseCatalog? catalog,
   bool smooth = true,
+  Map<String, CounterConfig> counters = counterCatalog,
+  Map<String, FormRule> rules = formCatalog,
 }) {
   final library = catalog ?? ExerciseCatalog(standardExercises);
 
   return HarnessReport(
     results: [
       for (final fixture in fixtures)
-        replay(fixture, catalog: library, smooth: smooth),
+        replay(
+          fixture,
+          catalog: library,
+          smooth: smooth,
+          counters: counters,
+          rules: rules,
+        ),
     ],
     cameraExercises: {
       for (final exercise in library.cameraSupported) exercise.id,
     },
-    rules: formCatalog,
+    rules: rules,
   );
+}
+
+/// What the run says about one exercise the app offers to coach.
+///
+/// The milestone this exists for promised a per-exercise table rather than
+/// one aggregate number, for a reason worth repeating: an aggregate over
+/// seven exercises that have fixtures and two that do not is a number about
+/// the seven, quoted as though it were about all nine.
+@immutable
+class ExerciseAccuracy {
+  const ExerciseAccuracy({
+    required this.exerciseId,
+    required this.fixtures,
+    required this.expectedReps,
+    required this.countedReps,
+    required this.repError,
+    required this.holds,
+    required this.holdsWithin,
+    required this.rulesEvaluated,
+    required this.rulesDemonstrated,
+    required this.recorded,
+  });
+
+  final String exerciseId;
+  final int fixtures;
+  final int expectedReps;
+  final int countedReps;
+  final int repError;
+
+  final int holds;
+  final int holdsWithin;
+
+  /// Rules the engine would evaluate for this exercise at its recommended
+  /// angle.
+  final int rulesEvaluated;
+
+  /// How many of those a fixture in this run is labelled to trip.
+  final int rulesDemonstrated;
+
+  /// Whether any of its fixtures came from footage of a real body.
+  final bool recorded;
+
+  /// `null` when nothing counted reps for it.
+  double? get accuracy =>
+      expectedReps == 0 ? null : (1 - repError / expectedReps).clamp(0.0, 1.0);
+
+  bool get covered => fixtures > 0;
+
+  @override
+  String toString() => '$exerciseId: $fixtures fixtures, '
+      '${accuracy == null ? 'no reps' : '${(accuracy! * 100).round()}%'}';
 }

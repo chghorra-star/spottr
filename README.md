@@ -11,9 +11,29 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M7 complete — it coaches a set. The camera screen now runs the set: it
+M8 complete — it knows what it does not know. The harness now publishes a
+per-exercise table instead of one aggregate, and two new sweeps say how much
+its own evidence is worth. 1032 tests green, analyzer clean.
+
+**78 numbers in the engine; one of them has ever been measured.** 28 can be
+changed without any fixture noticing, 10 of those because nothing exercises
+them at all. That is not permission to change them — it is the measurement of
+how little generated movement constrains a threshold built from the same
+assumptions.
+
+The sweeps also found the error that actually costs reps: a tracker that
+**wanders** breaks counting at a third of the amplitude that uncorrelated
+noise needs, and wander is exactly what a low-pass filter cannot remove. The
+first version of that sweep only tested noise, never broke anything, and was
+measuring the smoothing filter.
+
+The per-exercise table says UNMEASURED where it is unmeasured. All nine
+camera exercises still have an empty footage column, and no rule's
+false-positive rate on a real body is known.
+
+Before that, M7 made it coach a set. The camera screen now runs the set: it
 counts, judges, talks, and writes what it watched into the log, with a pain
-button on screen for the whole of it. 986 tests green, analyzer clean.
+button on screen for the whole of it.
 
 **The hard part of a talking coach is refusing to say things.** A rule has to
 fire on two consecutive reps before it is spoken, a coaching point is made
@@ -101,8 +121,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M5 | Rep counting + accuracy harness | done |
 | M6 | Form rules + scoring | done |
 | M7 | Live coach UX, voice, safety | done |
-| M8 | Dataset validation and tuning | next |
-| M9 | iOS parity, cloud CI, TestFlight | |
+| M8 | Dataset validation and tuning | done |
+| M9 | iOS parity, cloud CI, TestFlight | next |
 | M10 | Supabase sync | |
 
 ## Layout

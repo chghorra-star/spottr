@@ -8,6 +8,8 @@
 library;
 
 export 'src/fixture.dart';
+export 'src/margins.dart';
+export 'src/robustness.dart';
 export 'src/replay.dart';
 export 'src/suite.dart';
 export 'src/synthetic.dart';

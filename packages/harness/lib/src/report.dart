@@ -1,4 +1,5 @@
 import 'package:coach_engine/coach_engine.dart';
+import 'package:exercise_library/exercise_library.dart';
 
 import 'fixture.dart';
 import 'replay.dart';
@@ -153,6 +154,9 @@ String renderReport(HarnessReport report) {
   }
 
   lines.add('');
+  lines.add(renderExercises(report, ExerciseCatalog(standardExercises)));
+
+  lines.add('');
   lines.add('Coverage');
   lines.add('  measured    ${_list(report.covered)}');
   if (report.uncovered.isNotEmpty) {
@@ -209,4 +213,83 @@ String _wrap(String text, int width) {
   }
   if (line.isNotEmpty) lines.add(line);
   return lines.join('\n                  ');
+}
+
+/// The per-exercise table, and what the acceptance targets can be said to
+/// have met.
+///
+/// Separate from [renderReport] so that it can be asked for on its own, and
+/// because it is the part a reader should take away: an aggregate over the
+/// exercises that happen to have fixtures is a number about those, quoted as
+/// though it were about the app.
+String renderExercises(HarnessReport report, ExerciseCatalog catalog) {
+  final rows = report.byExercise(catalog);
+  final width = rows
+      .map((row) => row.exerciseId.length)
+      .fold(8, (a, b) => a > b ? a : b);
+
+  final lines = <String>[
+    'Per exercise',
+    '  ${'exercise'.padRight(width)}  fixtures   reps  accuracy  '
+        'rules  footage',
+  ];
+
+  for (final row in rows) {
+    final reps = row.expectedReps == 0
+        ? (row.holds > 0 ? '${row.holdsWithin}/${row.holds} held' : '-')
+        : '${row.countedReps}/${row.expectedReps}';
+    final accuracy = row.accuracy == null
+        ? '-'
+        : '${(row.accuracy! * 100).toStringAsFixed(0)}%';
+    lines.add(
+      '  ${row.exerciseId.padRight(width)}  '
+      '${row.fixtures.toString().padLeft(8)}  '
+      '${reps.padLeft(9)}  '
+      '${accuracy.padLeft(6)}  '
+      '${'${row.rulesDemonstrated}/${row.rulesEvaluated}'.padLeft(5)}  '
+      '${row.recorded ? 'recorded' : 'none'}',
+    );
+  }
+
+  final uncovered = rows.where((row) => !row.covered).toList();
+  final recorded = rows.where((row) => row.recorded).toList();
+
+  lines.addAll([
+    '',
+    '  accuracy is reps counted against reps labelled, on generated '
+        'movement.',
+    '  rules is how many of the rules this exercise is coached by have a '
+        'fixture',
+    '  built to trip them. Two of them, rom and tempo, read the rep rather '
+        'than',
+    '  the pose, so one fixture anywhere demonstrates them everywhere and '
+        'this',
+    '  column reads low for every exercise but the squat.',
+  ]);
+
+  if (uncovered.isNotEmpty) {
+    lines.add(
+      '  ${uncovered.length} of ${rows.length} exercises have no fixture at '
+      'all: ${uncovered.map((row) => row.exerciseId).join(', ')}.',
+    );
+  }
+
+  lines.addAll([
+    '',
+    'Acceptance targets',
+    '  rep accuracy >= 95% at the recommended angle',
+    '    ${recorded.isEmpty ? 'UNMEASURED' : 'see the recorded rows above'}. '
+        'The accuracy column is generated movement,',
+    '    which shows the engine agrees with itself and is not the same '
+        'claim.',
+    '  form warnings fire on labelled faults, with few false alarms',
+    '    ${(report.faultDetection * 100).toStringAsFixed(0)}% of labelled '
+        'faults fired and '
+        '${report.faultFailures.where((r) => r.unexpectedFaults.isNotEmpty).length} '
+        'fixtures fired something they were',
+    '    not labelled for, on generated movement. On a real body: '
+        'UNMEASURED.',
+  ]);
+
+  return lines.join('\n');
 }

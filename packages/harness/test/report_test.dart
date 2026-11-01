@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:exercise_library/exercise_library.dart';
 import 'package:harness/harness.dart';
 import 'package:pose_core/pose_core.dart';
 import 'package:test/test.dart';
@@ -178,6 +179,85 @@ void main() {
 
       expect(failing, contains('FAIL'));
       expect(failing, contains('labelled and did not fire: back_rounding'));
+    });
+  });
+
+  group('per exercise', () {
+    final catalog = ExerciseCatalog(standardExercises);
+    final report = runFixtures(syntheticSuite());
+    final rows = report.byExercise(catalog);
+
+    test('has a row for every exercise the app would coach', () {
+      expect(
+        rows.map((row) => row.exerciseId).toSet(),
+        report.cameraExercises,
+      );
+    });
+
+    test('an exercise with no fixture says so rather than being left out', () {
+      // The whole point of the table. An aggregate over the seven that have
+      // fixtures, quoted as though it were about all nine, is the number
+      // this milestone exists to stop anybody printing.
+      final lunge =
+          rows.firstWhere((row) => row.exerciseId == 'forward_lunge');
+
+      expect(lunge.covered, isFalse);
+      expect(lunge.accuracy, isNull);
+      expect(lunge.fixtures, 0);
+    });
+
+    test('counts reps against the labels, per exercise', () {
+      final squat =
+          rows.firstWhere((row) => row.exerciseId == 'bodyweight_squat');
+
+      expect(squat.accuracy, 1);
+      expect(squat.expectedReps, greaterThan(0));
+      expect(squat.repError, 0);
+    });
+
+    test('a hold has no rep accuracy and is counted as a hold', () {
+      final plank = rows.firstWhere((row) => row.exerciseId == 'plank');
+
+      expect(plank.accuracy, isNull);
+      expect(plank.holds, 4);
+      expect(plank.holdsWithin, 4);
+    });
+
+    test('says how many of an exercise rules anything demonstrates', () {
+      final squat =
+          rows.firstWhere((row) => row.exerciseId == 'bodyweight_squat');
+      final row = rows.firstWhere((r) => r.exerciseId == 'db_bent_over_row');
+
+      expect(squat.rulesDemonstrated, squat.rulesEvaluated);
+      expect(row.rulesDemonstrated, lessThan(row.rulesEvaluated));
+    });
+
+    test('nothing in the suite is footage of a real body', () {
+      expect(rows.every((row) => !row.recorded), isTrue);
+    });
+  });
+
+  group('the acceptance targets block', () {
+    final text = renderExercises(
+      runFixtures(syntheticSuite()),
+      ExerciseCatalog(standardExercises),
+    );
+
+    test('prints the table with every exercise in it', () {
+      expect(text, contains('forward_lunge'));
+      expect(text, contains('goblet_squat'));
+      expect(text, contains('2 of 9 exercises have no fixture'));
+    });
+
+    test('calls the rep accuracy target unmeasured, because it is', () {
+      expect(text, contains('rep accuracy >= 95%'));
+      expect(text, contains('UNMEASURED'));
+      expect(text, contains('not the same claim'));
+    });
+
+    test('reports the form target in both directions', () {
+      expect(text, contains('labelled faults'));
+      expect(text, contains('false alarms'));
     });
   });
 }

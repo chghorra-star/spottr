@@ -535,6 +535,48 @@ notice:
   tests could have: they asserted that jitter is attenuated and that a step
   is damped, both of which were true.
 
+### Every number is a knob, and the suite says how little it constrains them
+
+`engineKnobs()` enumerates every threshold the engine was given — 78 of them
+across the counters and the form rules — as an id, a value, a unit and a
+function that rebuilds its configuration with that number changed. One of
+them has ever been compared against anything.
+
+The point of making them enumerable is that the suite can then be asked what
+it would notice. `--margins` nudges each number up and down a ladder and
+reports the largest nudge every affected fixture still survives. Twenty-eight
+of the seventy-eight can move as far as the ladder reaches without any
+fixture disagreeing.
+
+**A wide margin means the suite is silent, not that the number is safe.**
+Every fixture is generated from the same anatomy the thresholds were guessed
+from, so agreement is close to tautological. The reading that carries
+information is a *narrow* margin, and it has two causes worth telling apart:
+a fixture that only just demonstrates what it was built to demonstrate, which
+is a fixture to widen; and a genuinely narrow separation, which is a fact
+about the signal and a warning about the rule.
+
+Three fixtures turned out to be the first kind and were widened. One number,
+`back_rounding.max`, turned out to be the second — and the window the sweep
+found for it is the same window M6 measured by hand, arrived at by a
+different mechanism.
+
+### Degrading the suite on purpose
+
+`--robustness` takes the clean sets and makes them worse along three axes:
+uncorrelated landmark jitter, correlated wander, and frame interval.
+
+The second one was added because the first measured nothing. Independent
+per-frame noise is exactly what a low-pass filter removes, so a sweep that
+only varies jitter is a sweep of the smoothing filter — and the first version
+of it ran out of ladder without breaking a single set. Real landmark error is
+correlated in time: a model that has misplaced a knee goes on misplacing it,
+and the misplacement moves slowly. Modelled that way, counting breaks at
+about a third of the amplitude.
+
+All three limits are implausibly large in absolute terms, for the same reason
+the margins are wide: generated movement is a big clean signal. The ratio
+between the axes is the part worth keeping.
 ## Form rules
 
 A rule is an id, a severity, a signal and a number. Tuning one is an edit to
