@@ -11,7 +11,24 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M8 complete — it knows what it does not know. The harness now publishes a
+M9 in progress — iOS is written and has never been compiled. The plugin's
+iOS half exists: AVFoundation capture, the same ML Kit model Android runs,
+the same flat buffer over the same two channels. There is no macOS here, so
+the CI jobs added alongside it are what will put the Swift in front of a
+compiler for the first time — and this repository has no remote, so they
+have never run either.
+
+**The same model on both platforms, on purpose.** Apple's Vision framework
+needs no pod and reports nineteen joints instead of thirty-three, with no
+heel and no toe, so one form rule would silently stop existing on iOS and
+every threshold would mean something different depending on the handset.
+
+CI also finally runs the accuracy harness, which has gated the local check
+since M5 while a stale comment in the workflow promised it would be wired in
+"once the harness exists". And the app had no camera usage description,
+which would have terminated it the moment it opened the camera on an iPhone.
+
+Before that, M8 made it know what it does not know. The harness now publishes a
 per-exercise table instead of one aggregate, and two new sweeps say how much
 its own evidence is worth. 1032 tests green, analyzer clean.
 
@@ -122,7 +139,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M6 | Form rules + scoring | done |
 | M7 | Live coach UX, voice, safety | done |
 | M8 | Dataset validation and tuning | done |
-| M9 | iOS parity, cloud CI, TestFlight | next |
+| M9 | iOS parity, cloud CI, TestFlight | written, never compiled |
 | M10 | Supabase sync | |
 
 ## Layout

@@ -122,6 +122,60 @@ portrait phone. `LandmarkPacker.uprightSize` swaps the two for a quarter
 turn and the coach screen locks portrait, so there is one orientation to get
 right rather than four.
 
+### Two platforms, one wire
+
+The same four things cross the bridge on iOS, with the same channel names,
+the same method names and the same error codes. What differs is everything
+underneath, and the differences are worth naming because each one is a place
+the two could drift apart without any test noticing.
+
+**The same model on both.** ML Kit, not Apple Vision. Vision is already on
+the device and needs no pod, and it reports nineteen joints where BlazePose
+reports thirty-three — with no heel and no toe, so `heel_lift` would
+silently stop existing on iOS. Every threshold in the coach engine would then
+mean something slightly different depending on which phone somebody was
+holding, and the architecture above `PoseSource` is built on the two being
+indistinguishable.
+
+**Rotation happens in a different place.** Android lets ML Kit rotate and
+carries the arithmetic in `uprightSize`; iOS rotates the capture connection,
+so buffers arrive upright and the packer normalizes by the buffer's own
+dimensions. One fewer place for a transposed skeleton, and the arithmetic is
+still there and still tested, because the two platforms have to agree about
+what "upright" means.
+
+**The preview runs the other way round.** Android pushes frames into a
+`SurfaceProducer`; iOS is pulled through `FlutterTexture`, so the session
+keeps exactly one frame behind a lock and hands it over when Flutter asks.
+One frame, never a queue: a preview is only ever about now.
+
+**A landmark's identity is not the same thing.** On Android the landmark type
+*is* the BlazePose index. On iOS it is a string constant, so
+`PoseLandmarkOrdinal` writes the order out by hand — which makes it the one
+file in the plugin that can remap every joint in the app while looking
+perfectly reasonable. A wrong constant name fails to compile; a duplicated
+line does not, so a test checks the table is thirty-three distinct entries.
+
+**iOS can tell "refused" from "never asked".** Android cannot, before the
+first prompt: `shouldShowRequestPermissionRationale` is false both for
+somebody who has refused permanently and for somebody who has never been
+asked, so reading it on a fresh install would send a new user to the system
+settings to grant a permission they were never offered. iOS reports the two
+separately, so its `permissionStatus` can answer `permanentlyDenied`
+honestly and without asking anybody anything.
+
+**Neither side mirrors.** The front lens is displayed mirrored, the way a gym
+mirror is, and Flutter does that to the preview and the overlay together so
+they cannot drift apart. The iOS capture connection sets
+`automaticallyAdjustsVideoMirroring` to false explicitly, because the default
+for a front camera is to mirror — and a mirrored buffer would cancel the flip
+on screen while reversing the landmark x axis relative to Android. That is
+the failure mode that looks like nothing at all until a form rule reads it.
+
+**None of the Swift has been compiled.** This project is developed on
+Windows. `docs/dev-loop.md` has the list of what is most likely wrong and
+what will say so first.
+
 ## Smoothing is part of the pipeline, not of the camera
 
 Raw landmarks wobble by a pixel or two on a body that is holding still. A

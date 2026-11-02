@@ -67,5 +67,140 @@ jobs:
           (cd app && flutter test)
           (cd packages/pose_camera && flutter test)
 
-      # The accuracy gate (rep count >= 95%, form-rule false-positive rate)
-      # is wired in here once the harness exists in M5.
+      # The gate tool/check.ps1 has run since M5, finally wired in here. It
+      # fails on a miscounted rep and on a form rule that disagrees with a
+      # fixture's label in either direction — a rule that misses its fault
+      # is useless, and one that fires on good form will fire on every set
+      # anybody ever performs.
+      - name: Accuracy harness
+        run: cd packages/harness && dart run bin/harness.dart
+
+  # Everything below needs a Mac, which is why none of it existed before M9:
+  # this project is developed on Windows, where iOS cannot be built at all.
+  # These jobs are the first thing that will ever compile the Swift.
+  ios-build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve workspace
+        run: flutter pub get
+
+      # No signing: this proves the code compiles and links, which is the
+      # question. Shipping it anywhere needs an Apple developer account and
+      # the secrets below.
+      - name: Build iOS
+        run: cd app && flutter build ios --no-codesign
+
+      # Compiles the XCTest target without running it. Worth its own step
+      # because the landmark ordinal table is resolved by the compiler: a
+      # constant ML Kit does not have is a build failure here rather than a
+      # joint that silently never arrives.
+      - name: Compile the native tests
+        run: |
+          cd app/ios
+          xcodebuild build-for-testing \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO
+
+  # Split from the build because ML Kit ships no arm64 simulator slice, so
+  # the tests cannot run on an Apple Silicon runner at all. If GitHub
+  # retires the Intel images this has to move to a real device.
+  ios-test:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve workspace
+        run: flutter pub get
+
+      # Builds the iOS app once so that the Podfile is resolved and
+      # Generated.xcconfig exists; xcodebuild cannot do either itself.
+      - name: Prepare the Xcode workspace
+        run: cd app && flutter build ios --simulator
+
+      - name: Run the native tests
+        run: |
+          cd app/ios
+          xcodebuild test \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -only-testing:RunnerTests
+
+  # Manual, and silently skipped without the secrets, because shipping to
+  # TestFlight needs an Apple developer account and this project may not
+  # have one yet. The pipeline exists so that the day it does, the answer is
+  # a button rather than a week.
+  testflight:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [analyze-and-test, ios-build]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Check the secrets are here
+        run: |
+          if [ -z "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" ]; then
+            echo "::error::TestFlight needs APP_STORE_CONNECT_KEY_ID, "\
+              "APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_PRIVATE_KEY, "\
+              "IOS_CERTIFICATE_P12 and IOS_PROVISIONING_PROFILE."
+            exit 1
+          fi
+
+      - name: Resolve workspace
+        run: flutter pub get
+
+      - name: Install the signing identity
+        env:
+          CERTIFICATE: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          echo "$CERTIFICATE" | base64 --decode > /tmp/certificate.p12
+          echo "$PROFILE" | base64 --decode > /tmp/profile.mobileprovision
+
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import /tmp/certificate.p12 -k build.keychain \
+            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp /tmp/profile.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Build the archive
+        run: cd app && flutter build ipa --export-method app-store
+
+      - name: Upload to TestFlight
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$PRIVATE_KEY" | base64 --decode > ~/private_keys/AuthKey_$KEY_ID.p8
+          xcrun altool --upload-app --type ios \
+            --file app/build/ios/ipa/*.ipa \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID"

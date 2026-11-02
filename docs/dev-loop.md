@@ -317,15 +317,103 @@ above says to look.
 
 ## Layer 3 — iOS on real hardware via cloud macOS CI
 
-Builds run on a hosted macOS runner (Codemagic or GitHub Actions macOS) and
-ship to TestFlight for testing on the iPhone.
+Builds run on a hosted macOS runner and ship to TestFlight for testing on the
+iPhone.
 
 **Proves:** real camera, real model, real fps, real lighting, real thermals —
 the only layer whose performance numbers are quotable.
 **Cost:** a 10 to 20 minute loop with no local debugger, which is painful for
 threshold tuning. Tune against layer 1, verify on layer 3.
 
-This lands in M9. Until then, nothing about on-device performance is known.
+### What M9 built, and what has run
+
+The iOS half of the plugin exists: AVFoundation capture, ML Kit pose
+inference, the same flat Float32 buffer over the same two channels Android
+uses. It is written to be read side by side with the Kotlin — same class
+names, same callbacks, same error codes.
+
+**None of it has been compiled.** There is no macOS here and no Xcode, so
+every line of Swift in this repository is code that has been reasoned about
+and never once put in front of a compiler. The CI jobs added in M9 are what
+will do that, the first time this repository has a remote and a push. Right
+now it has neither.
+
+So the honest status of iOS is: written, unverified, and with a specific list
+of things most likely to be wrong.
+
+- **The landmark ordinal table.** Android gets BlazePose indices from ML Kit
+  for free; on iOS the landmark type is a string constant, so
+  `PoseLandmarkOrdinal` writes the order out by hand. A wrong constant name
+  is a compile error — that is the good case, and the one CI catches. A
+  duplicated or missing line is not, which is why `PoseLandmarkOrdinalTests`
+  checks the table is thirty-three distinct entries. What neither catches is
+  ML Kit having renamed something: `leftPinkyFinger`, `leftIndexFinger` and
+  `leftToe` are the iOS spellings of Android's `LEFT_PINKY`, `LEFT_INDEX` and
+  `LEFT_FOOT_INDEX`, and those three are the first thing to check against the
+  installed headers.
+- **Rotation.** iOS rotates at capture rather than at inference, so buffers
+  arrive upright and the packer normalizes by the buffer's own dimensions.
+  That is one fewer place for a transposed skeleton than Android has, but
+  `videoRotationAngle` is iOS 17+ and the fallback path is the deprecated
+  `videoOrientation`. Both are written; neither has run.
+- **Mirroring.** The connection is explicitly *not* mirrored, because Flutter
+  flips the preview and the overlay together. If AVFoundation mirrors as well
+  the preview will look right and the landmark x axis will be reversed
+  relative to Android, which is the failure mode that looks like nothing at
+  all until a form rule reads it.
+- **The texture.** Android pushes into a `SurfaceProducer`; iOS pulls through
+  `FlutterTexture`, so `PreviewTexture` keeps exactly one frame behind a lock
+  and hands it over on demand. Lifecycle bugs here show up as a frozen
+  preview or a crash on stop, not as a wrong number.
+- **The Podfile.** Committed rather than generated, because two of its lines
+  are not the defaults: a deployment target of 15 for ML Kit, and
+  `use_frameworks!` for a Swift pod. The first `pod install` will be CI's.
+
+### Why ML Kit and not Apple Vision
+
+Vision is already on the device, needs no pod, and would have been less work.
+It reports nineteen joints where BlazePose reports thirty-three, and it has
+no heel and no toe — so `heel_lift` would silently stop existing on iOS, and
+every threshold in the coach engine would mean something slightly different
+depending on which phone somebody was holding.
+
+The whole architecture is built on the two platforms being
+indistinguishable above `PoseSource`. A second model would make that false in
+a way no test in this repository could see.
+
+### What CI does now
+
+`.github/workflows/ci.yml` grew three jobs in M9, and fixed one omission:
+
+- **analyze-and-test** now runs the accuracy harness. It has gated
+  `tool/check.ps1` since M5 and a stale comment in the workflow promised it
+  would be wired in here; it now is, so a miscounted rep or a rule that
+  disagrees with a fixture label fails the build on a push rather than only
+  on somebody's laptop.
+- **ios-build** compiles the app and links the plugin on `macos-latest`, with
+  no signing, and separately compiles the XCTest target. Compiling the tests
+  is its own step on purpose: that is what resolves the ordinal constants.
+- **ios-test** runs the native tests, on an Intel runner. ML Kit ships no
+  arm64 simulator slice, so an Apple Silicon runner cannot link it for a
+  simulator at all. If GitHub retires the Intel images this has to move to a
+  real device.
+- **testflight** is manual and fails fast without its secrets. Shipping needs
+  an Apple developer account, an App Store Connect API key, a certificate and
+  a provisioning profile, none of which this project has. The pipeline is
+  here so that the day it has them the answer is a button rather than a week.
+
+**None of these four has ever executed.** There is no git remote.
+
+### The Kotlin tests still do not run
+
+`LandmarkPackerTest.kt` covers the same arithmetic on Android and remains
+outside CI, because a Gradle unit test needs an example app to host it and
+the plugin has none. iOS got its equivalent for free: the Runner has a test
+target already, and `LandmarkPackerTests.swift` lives in it.
+
+So the asymmetry is now the other way round from how it looked in M4 — the
+platform that cannot be built locally is the one whose native arithmetic has
+a home in CI.
 
 ## What the acceptance targets can honestly claim
 
@@ -375,6 +463,9 @@ measure accuracy, because that needs footage.
   exercised by tests through a fake speaker, but no audio has come out of a
   device in this project yet — the emulator has no working GPU to render the
   screen that would trigger it.
+- **No Swift has ever been compiled.** The iOS half of the plugin was written
+  in M9 and there is no macOS here to build it. See layer 3 for the specific
+  list of what is most likely wrong.
 
 So the honest claim today is that the engine is self-consistent on movement
 of a known shape, including on movement built to contain a fault, and that is
