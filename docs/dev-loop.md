@@ -365,9 +365,17 @@ of things most likely to be wrong.
   `FlutterTexture`, so `PreviewTexture` keeps exactly one frame behind a lock
   and hands it over on demand. Lifecycle bugs here show up as a frozen
   preview or a crash on stop, not as a wrong number.
-- **The Podfile.** Committed rather than generated, because two of its lines
-  are not the defaults: a deployment target of 15 for ML Kit, and
-  `use_frameworks!` for a Swift pod. The first `pod install` will be CI's.
+- **The Podfile.** Committed rather than generated, because three of its
+  lines are not the defaults: a deployment target of 15 for ML Kit,
+  `use_frameworks!` for a Swift pod, and `ENABLE_TESTABILITY` so the test
+  target can reach into the plugin without the plugin making its arithmetic
+  public. The first `pod install` will be CI's.
+- **The Xcode project.** A `.swift` file in a directory is not a file in a
+  target: `project.pbxproj` lists them explicitly, in four places, and this
+  one was edited by hand because there is no Xcode here to do it. Had it
+  been missed, the test job would have compiled the test target without the
+  tests in it and passed — which is the exact shape of silent nothing this
+  project is arranged to avoid.
 
 ### Why ML Kit and not Apple Vision
 

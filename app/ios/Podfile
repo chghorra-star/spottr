@@ -52,6 +52,11 @@ post_install do |installer|
       # cannot run this app in a simulator at all. Builds and tests go to a
       # device, or to a device-destination build without signing.
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64 i386'
+
+      # So RunnerTests can reach into the plugin with @testable rather than
+      # the plugin having to make its landmark arithmetic public to be
+      # tested at all.
+      config.build_settings['ENABLE_TESTABILITY'] = 'YES' if config.name == 'Debug'
     end
   end
 end
