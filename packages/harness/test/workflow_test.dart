@@ -245,6 +245,36 @@ void main() {
           reason: 'the Xcode project targets $targets while the pods are '
               'built for $platform; Swift will not import across that gap');
     });
+
+    test('the app excludes the same simulator arch as the pods', () {
+      // The Podfile excludes arm64 for the simulator on every pod, because
+      // ML Kit has no slice for it. Nothing applied the same exclusion to
+      // the app project, so the Runner asks the simulator build for an
+      // arm64 slice that was deliberately not built, and the module it
+      // cannot find is reported as missing rather than as wrong-arch:
+      //   Parse Issue (Xcode): Module 'flutter_tts' not found
+      //   GeneratedPluginRegistrant.m:11
+      // Which is why the device build was fine and only the simulator
+      // failed, through three runs.
+      const key = r'EXCLUDED_ARCHS\[sdk=iphonesimulator\*\]';
+      final pattern = RegExp('$key' r'''[^=]*=\s*['"]([^'"]+)['"]''');
+
+      final podfile = File('${root.path}/app/ios/Podfile').readAsStringSync();
+      final project = File(
+        '${root.path}/app/ios/Runner.xcodeproj/project.pbxproj',
+      ).readAsStringSync();
+
+      final inPods = pattern.firstMatch(podfile)?.group(1);
+      expect(inPods, isNotNull,
+          reason: 'the Podfile stopped excluding the arch ML Kit lacks');
+
+      final inProject =
+          pattern.allMatches(project).map((m) => m.group(1)).toSet();
+      expect(inProject, {inPods},
+          reason: 'the app project excludes $inProject for the simulator '
+              'while the pods exclude $inPods; they have to agree or the '
+              'app looks for a slice nothing built');
+    });
   });
 }
 

@@ -528,6 +528,35 @@ deliberately left for the next run rather than fixed alongside: the
 deployment-target mismatch is itself a candidate cause, and changing two
 things at once would make the result unreadable. One change, one answer.
 
+### Run 4: the native tests compile
+
+`ios-build` green, both steps. The app builds, **and the XCTest target
+compiles** — which is the step that resolves every landmark constant, so
+`leftPinkyFinger`, `leftIndexFinger` and `leftToe` are the right ML Kit iOS
+spellings and the ordinal table names thirty-three things that exist. That
+was the single largest guess in M9 and it was correct.
+
+It is worth being exact about what that does and does not settle. The
+compiler has now agreed that the table's *names* are real. Whether they are
+in the right *order* is a different question, and a table that is complete,
+distinct and transposed compiles exactly as happily. Only
+`PoseLandmarkOrdinalTests` can answer that, and it has still never run,
+because the job that runs it has never got past building the app for a
+simulator.
+
+Run 4 also gave a clean negative: the deployment target was **not** behind
+the `flutter_tts` error. Same failure, same place, with 15.0 everywhere.
+
+What was behind it is the asymmetry that explains why only the simulator
+ever failed. The Podfile excludes arm64 for the simulator on every pod,
+because ML Kit has no slice for it — and nothing applied that exclusion to
+the app project. So the Runner asked a simulator build for an arm64 slice
+that was deliberately never built, and clang reports a module it cannot
+find for the current architecture as simply missing. The device build has no
+exclusion on either side, which is why it was green while the simulator was
+red through three runs. The app project now carries the same exclusion, and
+a test fails if the two files ever disagree.
+
 ### The Kotlin tests still do not run
 
 `LandmarkPackerTest.kt` covers the same arithmetic on Android and remains
