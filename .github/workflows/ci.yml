@@ -157,6 +157,17 @@ jobs:
             echo "::error::no iPhone simulator on this runner image"
             exit 1
           fi
+
+          # Boot it here and wait, rather than letting xcodebuild do it
+          # implicitly. Run 6 built everything and then sat for thirteen
+          # minutes before "Test runner never began executing tests after
+          # launching" — the shape of a host that was launched into a
+          # simulator still coming up. bootstatus -b blocks until the device
+          # reports itself ready, and a boot failure then says so here
+          # rather than as a test result.
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+
           xcodebuild test \
             -workspace Runner.xcworkspace \
             -scheme Runner \

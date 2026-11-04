@@ -557,6 +557,42 @@ exclusion on either side, which is why it was green while the simulator was
 red through three runs. The app project now carries the same exclusion, and
 a test fails if the two files ever disagree.
 
+### Runs 5 and 6: everything compiles
+
+Run 5 gave a second clean negative — the missing arch exclusion was not
+behind the `flutter_tts` error either — which was two wrong guesses in a row
+at six minutes each, so run 6 changed the diagnostics instead of the code.
+
+`ios-test` had been building the app twice: `flutter build ios --simulator`
+compiled everything, and then `xcodebuild test` compiled it again. The first
+build's only contributions were to fail first and to summarise the compiler,
+so three runs produced the same single line with no clang invocation, no
+search paths and no reason. That step now runs `--config-only`, which is
+what it was for: resolve the pods, write `Generated.xcconfig`, stop.
+
+Removing the duplicate build removed the error. **Everything compiles and
+links, on both destinations** — the plugin's Swift, ML Kit, `flutter_tts`,
+the generated registrant, the XCTest target. The "module not found" was an
+artefact of two builds disagreeing about the same derived data, not a fact
+about `flutter_tts`, which compiles with nothing worse than a Sendable
+warning. Six runs to learn that the only thing wrong with the code was one
+array, and the rest was the build asking itself the same question twice.
+
+What is left is not a compile error at all:
+
+    Runner (14727) encountered an error
+    (Test runner never began executing tests after launching)
+
+Thirteen minutes of waiting, then that. The app is the test host, it was
+launched, and XCTest never got a connection back — which is the shape of a
+host launched into a simulator that was still coming up, since xcodebuild
+boots one implicitly and does not wait for it to be ready. The job now boots
+the device itself and blocks on `simctl bootstatus -b`, so a slow boot costs
+time instead of a test result and a failed boot says so in its own step.
+
+So the ordinal table's *order* is still unverified, and it is the last thing
+standing between "it compiles" and "it is right".
+
 ### The Kotlin tests still do not run
 
 `LandmarkPackerTest.kt` covers the same arithmetic on Android and remains
