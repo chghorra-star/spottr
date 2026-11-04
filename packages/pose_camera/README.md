@@ -40,10 +40,11 @@ here could see.
 
 ## Status
 
-The Android half has run on an emulator. The iOS half, added in M9, **has
-never been compiled** — this project is developed on Windows. The CI jobs in
-`.github/workflows/ci.yml` are what will compile it; `docs/dev-loop.md` lists
-the specific things most likely to be wrong.
+The Android half has run on an emulator. The iOS half, added in M9, was
+written on Windows and had never been compiled; the CI jobs in
+`.github/workflows/ci.yml` are what compile it, and since 4 November 2026
+there is a remote for them to run on. `docs/dev-loop.md` lists the specific
+things most likely to be wrong, and what the first run made of them.
 
 ## Tests
 

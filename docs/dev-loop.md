@@ -332,12 +332,17 @@ inference, the same flat Float32 buffer over the same two channels Android
 uses. It is written to be read side by side with the Kotlin — same class
 names, same callbacks, same error codes.
 
-**None of it has been compiled.** There is no macOS here and no Xcode, so
-every line of Swift in this repository is code that has been reasoned about
-and never once put in front of a compiler. The CI jobs added in M9 are what
-will do that, the first time this repository has a remote and a push. Right
-now it has neither.
+**None of it had been compiled** when it was written. There is no macOS here
+and no Xcode, so every line of Swift in this repository is code that was
+reasoned about and never once put in front of a compiler. The CI jobs added
+in M9 are what does that, and since 4 November 2026 there is somewhere for
+them to run: `github.com/chghorra-star/spottr`, public, so the macOS runners
+are free rather than ten times the price.
 
+What the first run found is at the end of this section. Until it finished,
+the honest status of iOS was: written, unverified, and with a specific list
+of what was most likely wrong — kept below, because the list is what the
+run was a test of.
 So the honest status of iOS is: written, unverified, and with a specific list
 of things most likely to be wrong.
 
@@ -401,16 +406,28 @@ a way no test in this repository could see.
 - **ios-build** compiles the app and links the plugin on `macos-latest`, with
   no signing, and separately compiles the XCTest target. Compiling the tests
   is its own step on purpose: that is what resolves the ordinal constants.
-- **ios-test** runs the native tests, on an Intel runner. ML Kit ships no
-  arm64 simulator slice, so an Apple Silicon runner cannot link it for a
-  simulator at all. If GitHub retires the Intel images this has to move to a
-  real device.
+- **ios-test** runs the native tests on `macos-15-intel`. ML Kit's pods ship
+  an arm64 device slice and an x86_64 simulator slice and nothing else, so an
+  Apple Silicon runner cannot link a simulator build at all. That image is
+  the last x86_64 macOS GitHub offers and it retires in Fall 2027, after
+  which this has to move to a real device. The job originally asked for
+  `macos-13`, which GitHub removed in December 2025; it would have queued and
+  died on the image without compiling a line.
 - **testflight** is manual and fails fast without its secrets. Shipping needs
   an Apple developer account, an App Store Connect API key, a certificate and
   a provisioning profile, none of which this project has. The pipeline is
   here so that the day it has them the answer is a button rather than a week.
 
-**None of these four has ever executed.** There is no git remote.
+**Testing the workflow before the first push found four reasons it could not
+work**, of which the dead runner label was one. The others: `testflight` was
+gated on `workflow_dispatch` while the workflow listened only for `push` and
+`pull_request`, so it could never run and nothing would ever have said so;
+the simulator destination named a model the image might not carry, which
+goes stale silently in one direction and loudly in the other; and the
+accuracy harness was the M9 gap itself. `packages/harness/test/workflow_test.dart`
+pins all four, plus the rule that every gate in `tool/check.ps1` appears in
+CI too. The runner labels are pinned with GitHub's removal dates, so the
+pin fails here in a second rather than on a runner after a queue.
 
 ### The Kotlin tests still do not run
 

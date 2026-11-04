@@ -11,12 +11,19 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M9 in progress — iOS is written and has never been compiled. The plugin's
-iOS half exists: AVFoundation capture, the same ML Kit model Android runs,
-the same flat buffer over the same two channels. There is no macOS here, so
-the CI jobs added alongside it are what will put the Swift in front of a
-compiler for the first time — and this repository has no remote, so they
-have never run either.
+M9 done, and the repository finally has somewhere to be compiled:
+[github.com/chghorra-star/spottr](https://github.com/chghorra-star/spottr),
+public, which is what makes the macOS runners free instead of ten times the
+price of the Linux one. The plugin's iOS half exists — AVFoundation capture,
+the same ML Kit model Android runs, the same flat buffer over the same two
+channels — and until the first CI run it had never been near a compiler,
+because there is no macOS here.
+
+Testing the workflow before that first push found four reasons it could not
+have worked: a job gated on an event the workflow never listened for, a
+runner image GitHub deleted a year ago, a simulator model named rather than
+asked for, and the accuracy-harness gap M9 had already found once.
+`packages/harness/test/workflow_test.dart` pins all four.
 
 **The same model on both platforms, on purpose.** Apple's Vision framework
 needs no pod and reports nineteen joints instead of thirty-three, with no
