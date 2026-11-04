@@ -464,6 +464,42 @@ because ML Kit is CocoaPods-only and an SPM manifest beside a podspec means
 the dependency vanishes the day somebody enables SPM. When Flutter makes SPM
 mandatory, that decision has to be revisited rather than rediscovered.
 
+### Run 2: the compiler, at last
+
+The linkage fix got `pod install` through in twenty seconds, Xcode built for
+thirty-nine, **and then the Swift compiler read the file for the first
+time** and rejected it:
+
+    Value of type '[Pose]' has no member 'landmarks'
+      PoseCameraSession.swift:289
+    Value of type 'Any' has no member 'type'
+      PoseCameraSession.swift:290
+
+A fifth platform difference, and one nothing on this machine could have
+found. `PoseDetector.process` hands iOS an **array** of poses where it hands
+Android a single `Pose`. The detector is configured for one person so the
+array holds nought or one, and the Dart contract cannot express a second
+body in any case — a frame is one set of thirty-three joints or none — so
+the fix is `poses?.first?.landmarks`. The second error was the first one
+cascading: with the type unresolved, the closure's parameter degraded to
+`Any`.
+
+That is what a compiler is for, and it is worth being precise about which
+kinds of error it catches. A wrong landmark *constant* would have failed
+here too. A landmark table that is complete, distinct and in the wrong
+*order* compiles perfectly and ships a skeleton with its knees in its
+elbows, which is why `PoseLandmarkOrdinalTests` exists and why it has still
+never run.
+
+The simulator job failed differently, further up: `Module 'flutter_tts' not
+found`, from `GeneratedPluginRegistrant.m`. Static linkage drops the dynamic
+requirement ML Kit cannot meet but does not bring module maps with it, and
+the registrant is Objective-C reaching each plugin through `@import`, which
+needs one. The common advice is to go back to dynamic frameworks; ML Kit
+forbids that, so `use_modular_headers!` is the combination left. The Podfile
+now carries three non-default lines and a test for each, and every one of
+them was bought with a CI run.
+
 ### The Kotlin tests still do not run
 
 `LandmarkPackerTest.kt` covers the same arithmetic on Android and remains

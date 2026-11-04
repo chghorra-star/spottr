@@ -275,7 +275,11 @@ extension PoseCameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
     // about its orientation.
     image.orientation = .up
 
-    detector.process(image) { [weak self] pose, error in
+    // ML Kit hands iOS an array where it hands Android a single Pose. It is
+    // configured for one person, so the array holds nought or one, and the
+    // Dart contract has no way to express a second body anyway: a frame is
+    // one set of thirty-three joints or none.
+    detector.process(image) { [weak self] poses, error in
       guard let self else { return }
       self.busy = false
 
@@ -287,7 +291,7 @@ extension PoseCameraSession: AVCaptureVideoDataOutputSampleBufferDelegate {
         return
       }
 
-      let landmarks: [SourceLandmark] = (pose?.landmarks ?? []).compactMap { landmark in
+      let landmarks: [SourceLandmark] = (poses?.first?.landmarks ?? []).compactMap { landmark in
         guard let index = PoseLandmarkOrdinal.index(of: landmark.type) else { return nil }
         return SourceLandmark(
           type: index,

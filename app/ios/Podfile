@@ -42,9 +42,18 @@ target 'Runner' do
   # CocoaPods refuses to mix that with dynamic frameworks at all:
   #   The 'Pods-Runner' target has transitive dependencies that include
   #   statically linked binaries: (GoogleUtilitiesComponents)
-  # Static linkage keeps the module maps a Swift pod needs and drops the
-  # dynamic requirement ML Kit cannot meet.
+  # Static linkage drops the dynamic requirement ML Kit cannot meet. It does
+  # not bring the module maps with it, which run 2 established the hard way;
+  # those are asked for separately, below.
   use_frameworks! :linkage => :static
+
+  # Static linkage is not free. GeneratedPluginRegistrant.m is Objective-C
+  # and reaches each plugin with `@import`, which needs a module map that a
+  # static framework does not reliably produce — run 2 failed on exactly
+  # that, in the simulator build only, with "Module 'flutter_tts' not
+  # found". The usual advice is to go back to dynamic frameworks, which ML
+  # Kit forbids, so this is the combination that is left.
+  use_modular_headers!
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
   # So the Runner's test target can link the plugin and test the landmark

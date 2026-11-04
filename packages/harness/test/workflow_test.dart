@@ -169,8 +169,8 @@ void main() {
       // CocoaPods refuses the combination outright:
       //   The 'Pods-Runner' target has transitive dependencies that include
       //   statically linked binaries: (GoogleUtilitiesComponents)
-      // Static linkage keeps the module maps a Swift pod needs and drops
-      // the dynamic requirement that ML Kit cannot satisfy.
+      // Static linkage drops the dynamic requirement ML Kit cannot satisfy.
+      // It does not bring module maps with it — see the next test.
       expect(podfile, contains('use_frameworks!'),
           reason: 'the plugin is Swift and needs module maps');
       expect(
@@ -179,6 +179,21 @@ void main() {
         reason: 'ML Kit ships static transitive dependencies; dynamic '
             'linkage fails pod install before anything compiles',
       );
+    });
+
+    test('every pod gets a module map', () {
+      // Static linkage is not free: GeneratedPluginRegistrant.m is
+      // Objective-C and reaches Flutter plugins with `@import`, which needs
+      // a module, and a static framework does not reliably produce one.
+      // Run 2 failed on exactly that, in the simulator build only:
+      //   Parse Issue (Xcode): Module 'flutter_tts' not found
+      // The usual advice is to go back to dynamic frameworks, which ML Kit
+      // forbids, so the remaining combination is static plus explicit
+      // module maps for everything.
+      expect(podfile, contains('use_modular_headers!'),
+          reason: 'static frameworks + an Objective-C registrant needs '
+              'module maps; without them a Swift plugin is invisible to '
+              '@import and the simulator build fails at the registrant');
     });
 
     test('the deployment target is the one ML Kit requires', () {
