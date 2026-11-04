@@ -215,6 +215,37 @@ void main() {
               'the only native tests in the project do not build');
     });
   });
+
+  group('the Xcode project agrees with the Podfile', () {
+    test('every configuration targets the version the pods require', () {
+      // Two files state the minimum iOS version and nothing reconciles
+      // them. The Podfile's platform governs the pods; the Xcode project
+      // governs the app and its test target. Run 3 found them apart:
+      //   compiling for iOS 13.0, but module 'pose_camera' has a minimum
+      //   deployment target of 15.0
+      // Swift refuses to import a module built for a newer floor, so the
+      // app compiled and the tests did not — the Flutter template's 13.0
+      // against ML Kit's 15.0.
+      final podfile = File('${root.path}/app/ios/Podfile').readAsStringSync();
+      final platform =
+          RegExp(r"platform :ios, '([\d.]+)'").firstMatch(podfile)?.group(1);
+      expect(platform, isNotNull, reason: 'the Podfile declares no platform');
+
+      final project = File(
+        '${root.path}/app/ios/Runner.xcodeproj/project.pbxproj',
+      ).readAsStringSync();
+      final targets = RegExp(r'IPHONEOS_DEPLOYMENT_TARGET = ([\d.]+);')
+          .allMatches(project)
+          .map((match) => match.group(1))
+          .toSet();
+
+      expect(targets, isNotEmpty,
+          reason: 'the project sets no deployment target at all');
+      expect(targets, {platform},
+          reason: 'the Xcode project targets $targets while the pods are '
+              'built for $platform; Swift will not import across that gap');
+    });
+  });
 }
 
 Set<String> _triggers(YamlMap workflow) {

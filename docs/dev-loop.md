@@ -500,6 +500,34 @@ forbids that, so `use_modular_headers!` is the combination left. The Podfile
 now carries three non-default lines and a test for each, and every one of
 them was bought with a CI run.
 
+### Run 3: the app builds
+
+`Build iOS` passed. **The app compiled and linked on a Mac** — the plugin's
+Swift, ML Kit, the generated registrant, the lot. That is the first time any
+Swift in this repository has been accepted by a compiler, and it took three
+runs and three configuration facts that no amount of reading could have
+supplied.
+
+It failed one step later, compiling the XCTest target:
+
+    LandmarkPackerTests.swift:4: error: compiling for iOS 13.0, but module
+    'pose_camera' has a minimum deployment target of 15.0
+
+Two files declare the minimum iOS version and nothing reconciled them. The
+Podfile says 15, which is ML Kit's floor; the Xcode project still said 13,
+which is what the Flutter template generated. Objective-C's `@import`
+tolerated the gap, so the app built; Swift's `import` does not, so the one
+file that uses `@testable import pose_camera` did not. The project now says
+15 in all three configurations, and a test reads both files and fails if
+they ever disagree again — which they will, because the template regenerates
+with its own default.
+
+`ios-test` still fails before that, on the simulator build, with
+`Module 'flutter_tts' not found` despite `use_modular_headers!`. That one is
+deliberately left for the next run rather than fixed alongside: the
+deployment-target mismatch is itself a candidate cause, and changing two
+things at once would make the result unreadable. One change, one answer.
+
 ### The Kotlin tests still do not run
 
 `LandmarkPackerTest.kt` covers the same arithmetic on Android and remains
