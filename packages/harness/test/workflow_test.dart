@@ -189,7 +189,7 @@ void main() {
 
     test('the simulator cannot be asked for arm64', () {
       expect(podfile, contains('EXCLUDED_ARCHS[sdk=iphonesimulator*]'),
-          reason: "ML Kit has no arm64 simulator slice, so Apple Silicon "
+          reason: 'ML Kit has no arm64 simulator slice, so Apple Silicon '
               'cannot link a simulator build');
     });
 
