@@ -182,8 +182,16 @@ jobs:
       - name: Say how many native tests ran
         run: |
           cd app/ios
-          summary=$(xcrun xcresulttool get test-report summary \
-            --path TestResults.xcresult --format json)
+
+          # Xcode 16 renamed this: `get test-report` is gone, and the
+          # fallback parse of the old spelling asks for --legacy. The raw
+          # summary is printed before anything is read out of it, so the
+          # next rename shows its new field names in the log rather than
+          # quietly reading as zero tests and failing the build.
+          summary=$(xcrun xcresulttool get test-results summary \
+            --path TestResults.xcresult)
+          echo "$summary"
+
           total=$(echo "$summary" | jq -r '.totalTestCount // 0')
           passed=$(echo "$summary" | jq -r '.passedTests // 0')
           echo "native tests: $passed passed of $total"
