@@ -41,10 +41,17 @@ here could see.
 ## Status
 
 The Android half has run on an emulator. The iOS half, added in M9, was
-written on Windows and had never been compiled; the CI jobs in
-`.github/workflows/ci.yml` are what compile it, and since 4 November 2026
-there is a remote for them to run on. `docs/dev-loop.md` lists the specific
-things most likely to be wrong, and what the first run made of them.
+written on Windows and never compiled locally; CI compiles it, links it,
+and runs its native tests on a simulator, all green since 4 November 2026.
+`docs/dev-loop.md` lists what the nine runs it took found, in order.
+
+The landmark packing and the ordinal table are covered on both platforms
+and execute on one. Thirteen tests run on an x86_64 simulator — nine for
+the packer, three for the ordinal table including every BlazePose index,
+and the Flutter template's own placeholder. `LandmarkPackerTest.kt` still
+has no host: a Gradle unit test needs an example app and this plugin has
+none, so the platform that cannot be built locally is the one whose native
+arithmetic is checked.
 
 ## Tests
 

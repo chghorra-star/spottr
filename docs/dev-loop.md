@@ -614,6 +614,52 @@ Until that number is in a log, the honest claim is that the native test
 suite built and reported success, not that twelve assertions about the
 landmark table were evaluated. A green tick is evidence of what it counted.
 
+### Run 9: thirteen of thirteen
+
+The whole pipeline is green, and the number is in the log:
+
+    native tests: 13 passed of 13
+
+With the device it ran on, which is worth reading too:
+
+    "deviceName" : "iPhone 16 Pro",
+    "architecture" : "x86_64",
+    "osVersion" : "18.6",
+    "platform" : "iOS Simulator"
+
+x86_64, on the Intel image, exactly as the ML Kit constraint requires. That
+reasoning was written down in M9 without any way to check it and it holds.
+
+Honest accounting of the thirteen: nine are `LandmarkPackerTests` — the
+buffer layout against the Dart contract, ordinal offsets, normalisation,
+absent joints, landmark types outside the contract, non-mirroring,
+confidence over all thirty-three rather than the reported ones, and the
+quarter-turn transpose. Three are `PoseLandmarkOrdinalTests`. The
+thirteenth is `testExample` from the Flutter template, which asserts
+nothing; it is left in place as the target's own canary, and it means the
+count to compare against is twelve.
+
+**The ordinal table is now verified, order included.**
+`testIndexesInBlazePoseOrder` ran and passed, which is the one thing a
+compiler could never have told us: the table is thirty-three distinct
+names, each at the index BlazePose puts it at, so the skeleton that reaches
+Dart on iOS is the same skeleton Android sends. That was the largest
+unverified assumption in the project and it is now a fact with a log behind
+it.
+
+### What nine runs cost, and bought
+
+Nine runs. One real bug in the Swift — the array of poses — and one real
+bug in the Dart-side tooling, the lint. Everything else was build
+configuration: four workflow defects found before the first push, then
+linkage, deployment target, arch exclusion, a duplicated build, a simulator
+that was not ready, and two renamed `xcresulttool` subcommands.
+
+That ratio is the honest result. The code was nearly right and the
+configuration around it was wrong in seven different ways, none of which
+this machine could have discovered, and each of which is now pinned by a
+test that fails in a second rather than after a queue.
+
 ### The Kotlin tests still do not run
 
 `LandmarkPackerTest.kt` covers the same arithmetic on Android and remains

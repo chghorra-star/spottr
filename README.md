@@ -11,29 +11,36 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M9 done, and the repository finally has somewhere to be compiled:
-[github.com/chghorra-star/spottr](https://github.com/chghorra-star/spottr),
-public, which is what makes the macOS runners free instead of ten times the
-price of the Linux one. The plugin's iOS half exists — AVFoundation capture,
-the same ML Kit model Android runs, the same flat buffer over the same two
-channels — and until the first CI run it had never been near a compiler,
-because there is no macOS here.
+M9 done and green in CI at
+[github.com/chghorra-star/spottr](https://github.com/chghorra-star/spottr).
+The iOS half of the plugin — AVFoundation capture, the same ML Kit model
+Android runs, the same flat buffer over the same two channels — now
+compiles, links, and passes its native tests on a simulator, having been
+written on Windows and never once run locally.
 
-Testing the workflow before that first push found four reasons it could not
-have worked: a job gated on an event the workflow never listened for, a
-runner image GitHub deleted a year ago, a simulator model named rather than
-asked for, and the accuracy-harness gap M9 had already found once.
-`packages/harness/test/workflow_test.dart` pins all four.
+**The landmark ordinal table is verified, order included.** On iOS a
+landmark's type is a string constant rather than BlazePose's index, so the
+order is written out by hand, which made it the one file that could remap
+every joint in the app while looking perfectly reasonable. Thirteen native
+tests ran on an x86_64 iPhone 16 Pro simulator and one of them checks every
+index, so the skeleton reaching Dart on iOS is the skeleton Android sends.
 
 **The same model on both platforms, on purpose.** Apple's Vision framework
 needs no pod and reports nineteen joints instead of thirty-three, with no
 heel and no toe, so one form rule would silently stop existing on iOS and
 every threshold would mean something different depending on the handset.
 
-CI also finally runs the accuracy harness, which has gated the local check
-since M5 while a stale comment in the workflow promised it would be wired in
-"once the harness exists". And the app had no camera usage description,
-which would have terminated it the moment it opened the camera on an iPhone.
+Nine CI runs to get there. One real bug in the Swift — ML Kit hands iOS an
+array of poses where it hands Android a single one — and seven separate
+pieces of build configuration that were wrong, none of which a Windows
+machine could have discovered. `packages/harness/test/workflow_test.dart`
+pins every one of them, with the reason beside it, because each looks
+arbitrary and removable until somebody removes it.
+
+CI runs the accuracy harness too, which had gated the local check since M5
+while a stale comment in the workflow promised it would be wired in "once
+the harness exists". And the app had no camera usage description, which
+would have terminated it the moment it opened the camera on an iPhone.
 
 Before that, M8 made it know what it does not know. The harness now publishes a
 per-exercise table instead of one aggregate, and two new sweeps say how much
@@ -146,7 +153,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M6 | Form rules + scoring | done |
 | M7 | Live coach UX, voice, safety | done |
 | M8 | Dataset validation and tuning | done |
-| M9 | iOS parity, cloud CI, TestFlight | builds and links in CI |
+| M9 | iOS parity, cloud CI, TestFlight | done, green in CI |
 | M10 | Supabase sync | |
 
 ## Layout
