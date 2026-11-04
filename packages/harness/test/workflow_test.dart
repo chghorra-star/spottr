@@ -153,6 +153,27 @@ void main() {
     });
   });
 
+  group('green has to mean something', () {
+    test('the job that runs native tests also says how many ran', () {
+      // "** TEST SUCCEEDED **" is what xcodebuild prints for a test target
+      // containing no tests, and this project has already shipped a test
+      // file that sat in the directory without being in the Xcode target.
+      // A suite that reports no count cannot be distinguished from a suite
+      // that ran nothing.
+      final runs = jobs.values
+          .expand((job) => (job as YamlMap)['steps'] as YamlList)
+          .map((step) => (step as YamlMap)['run'] as String? ?? '')
+          .join('\n');
+
+      expect(runs, contains('xcodebuild test'),
+          reason: 'nothing runs the native tests');
+      expect(runs, contains('-resultBundlePath'),
+          reason: 'without a result bundle the count cannot be read back');
+      expect(runs, contains('totalTestCount'),
+          reason: 'the run has to fail when the suite ran nothing');
+    });
+  });
+
   group('the Podfile', () {
     // Committed rather than generated, which means nothing regenerates it
     // when it is wrong, and nothing here compiles it. The first CI run

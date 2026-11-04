@@ -172,7 +172,25 @@ jobs:
             -workspace Runner.xcworkspace \
             -scheme Runner \
             -destination "platform=iOS Simulator,id=$udid" \
+            -resultBundlePath TestResults.xcresult \
             -only-testing:RunnerTests
+
+      # "** TEST SUCCEEDED **" is also what a test target with no tests in it
+      # prints, and this project has already shipped a test file that was in
+      # the directory but not in the Xcode target. A green suite is not
+      # evidence until it says how many tests it ran.
+      - name: Say how many native tests ran
+        run: |
+          cd app/ios
+          summary=$(xcrun xcresulttool get test-report summary \
+            --path TestResults.xcresult --format json)
+          total=$(echo "$summary" | jq -r '.totalTestCount // 0')
+          passed=$(echo "$summary" | jq -r '.passedTests // 0')
+          echo "native tests: $passed passed of $total"
+          if [ "$total" -lt 1 ]; then
+            echo "::error::the native test suite ran $total tests"
+            exit 1
+          fi
 
   # Manual, and fails fast without the secrets, because shipping to
   # TestFlight needs an Apple developer account and this project may not

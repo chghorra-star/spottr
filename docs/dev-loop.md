@@ -593,6 +593,27 @@ time instead of a test result and a failed boot says so in its own step.
 So the ordinal table's *order* is still unverified, and it is the last thing
 standing between "it compiles" and "it is right".
 
+### Run 7: the tests run
+
+Booting the simulator explicitly and waiting on `simctl bootstatus -b` was
+the last thing in the way. `ios-test` green, and with it every job in the
+workflow: the Dart suite and the accuracy harness on Linux, the app and the
+XCTest target compiled for a device, and the native tests executed on a
+simulator.
+
+With one reservation, which is the reason run 8 exists. `** TEST SUCCEEDED
+**` is also what xcodebuild prints for a test target containing no tests,
+and the log shows no individual cases — xcodebuild stopped printing them by
+default. This project has already shipped a test file that sat in the
+RunnerTests directory without being in the Xcode target, which would have
+produced exactly this: a green suite that ran nothing. So the job now writes
+a result bundle, reads `totalTestCount` back out of it with `xcresulttool`,
+prints the number, and fails if it is zero.
+
+Until that number is in a log, the honest claim is that the native test
+suite built and reported success, not that twelve assertions about the
+landmark table were evaluated. A green tick is evidence of what it counted.
+
 ### The Kotlin tests still do not run
 
 `LandmarkPackerTest.kt` covers the same arithmetic on Android and remains

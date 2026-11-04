@@ -24,3 +24,6 @@ captures/
 # OS
 Thumbs.db
 .DS_Store
+
+# Xcode test results, written by CI and by anybody running the native tests
+TestResults.xcresult/

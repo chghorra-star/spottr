@@ -146,7 +146,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M6 | Form rules + scoring | done |
 | M7 | Live coach UX, voice, safety | done |
 | M8 | Dataset validation and tuning | done |
-| M9 | iOS parity, cloud CI, TestFlight | written, never compiled |
+| M9 | iOS parity, cloud CI, TestFlight | builds and links in CI |
 | M10 | Supabase sync | |
 
 ## Layout
