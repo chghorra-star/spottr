@@ -3,17 +3,23 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 
-/// The CI workflow is the one thing in this repository that nothing else
-/// checks. It is not compiled, not analyzed, and — until there is a remote —
-/// never run, so a mistake in it is invisible until a push, and the worst
-/// mistakes are invisible even then: a job that silently never runs, or a
-/// gate that passes because it tested nothing.
+/// The CI workflow and the Podfile are the two files here that nothing else
+/// checks. Neither is compiled or analyzed; one is committed rather than
+/// generated and the other only ever runs on somebody else's machine. So a
+/// mistake in either is invisible locally, and the worst kind is invisible
+/// on a push too: a job that silently never runs, or a gate that passes
+/// because it tested nothing.
 ///
-/// M9 shipped two of exactly that shape. These tests pin both.
+/// M9 shipped two of that shape and the Podfile cost the first CI run both
+/// of its macOS jobs before a line of Swift was reached. These tests pin
+/// what each failure taught, with the reason next to it, because every one
+/// of these values looks arbitrary and removable until it is removed.
 ///
-/// Runner labels are pinned rather than fetched, which means this file goes
-/// stale the way the images do. A stale pin fails loudly here; a stale label
-/// fails on a push with "the runner image is retired", after the queue.
+/// Runner labels and ML Kit's constraints are pinned rather than fetched,
+/// which means this file goes stale the way they do. That is the trade: a
+/// stale pin fails here in a second, with a reason. A stale label fails on
+/// a runner after a queue, and a wrong linkage mode fails in CocoaPods'
+/// stack trace.
 void main() {
   late Directory root;
   late String workflowText;
@@ -144,6 +150,54 @@ void main() {
           reason: 'pick the destination from simctl at run time instead');
       expect(workflowText, isNot(matches(RegExp(r'name=iPhone\s*\d'))),
           reason: 'pick the destination from simctl at run time instead');
+    });
+  });
+
+  group('the Podfile', () {
+    // Committed rather than generated, which means nothing regenerates it
+    // when it is wrong, and nothing here compiles it. The first CI run
+    // failed on it twice before a line of Swift was reached.
+    late String podfile;
+
+    setUpAll(() {
+      podfile = File('${root.path}/app/ios/Podfile').readAsStringSync();
+    });
+
+    test('frameworks are linked statically', () {
+      // ML Kit drags in GoogleUtilitiesComponents, which ships as a static
+      // binary. A plain `use_frameworks!` asks for dynamic linkage, and
+      // CocoaPods refuses the combination outright:
+      //   The 'Pods-Runner' target has transitive dependencies that include
+      //   statically linked binaries: (GoogleUtilitiesComponents)
+      // Static linkage keeps the module maps a Swift pod needs and drops
+      // the dynamic requirement that ML Kit cannot satisfy.
+      expect(podfile, contains('use_frameworks!'),
+          reason: 'the plugin is Swift and needs module maps');
+      expect(
+        podfile,
+        matches(RegExp(r'use_frameworks!\s*:linkage\s*=>\s*:static')),
+        reason: 'ML Kit ships static transitive dependencies; dynamic '
+            'linkage fails pod install before anything compiles',
+      );
+    });
+
+    test('the deployment target is the one ML Kit requires', () {
+      expect(podfile, contains("platform :ios, '15.0'"),
+          reason: 'below 15 ML Kit will not install; above it, nothing here '
+              'needs the newer floor');
+    });
+
+    test('the simulator cannot be asked for arm64', () {
+      expect(podfile, contains('EXCLUDED_ARCHS[sdk=iphonesimulator*]'),
+          reason: "ML Kit has no arm64 simulator slice, so Apple Silicon "
+              'cannot link a simulator build');
+    });
+
+    test('the test target can link the plugin', () {
+      expect(podfile, contains("target 'RunnerTests'"));
+      expect(podfile, contains('inherit! :search_paths'),
+          reason: 'without this the XCTest target cannot see the pod, and '
+              'the only native tests in the project do not build');
     });
   });
 }

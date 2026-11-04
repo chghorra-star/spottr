@@ -1,9 +1,13 @@
-# Committed rather than generated, because two of its lines are not the
-# defaults and finding that out costs a build on a machine this project does
+# Committed rather than generated, because three of its lines are not the
+# defaults and every one of them cost a build on a machine this project does
 # not have: the deployment target has to be 15, which is ML Kit's minimum and
-# above Flutter's, and `use_frameworks!` is what a Swift pod needs.
+# above Flutter's; frameworks have to be static, because ML Kit's transitive
+# dependencies are; and the simulator cannot be asked for arm64, because ML
+# Kit ships no slice for it.
 #
-# Never run. There is no macOS here; the first `pod install` will be CI's.
+# The first `pod install` was CI's, on 4 November 2026, and it failed on the
+# linkage. packages/harness/test/workflow_test.dart pins all three with the
+# reason attached, since each looks arbitrary and removable until removed.
 platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously, which slows the build.
@@ -33,7 +37,14 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
+  # :static, not the default dynamic, and the first CI run is why. ML Kit
+  # drags in GoogleUtilitiesComponents, which ships as a static binary, and
+  # CocoaPods refuses to mix that with dynamic frameworks at all:
+  #   The 'Pods-Runner' target has transitive dependencies that include
+  #   statically linked binaries: (GoogleUtilitiesComponents)
+  # Static linkage keeps the module maps a Swift pod needs and drops the
+  # dynamic requirement ML Kit cannot meet.
+  use_frameworks! :linkage => :static
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
   # So the Runner's test target can link the plugin and test the landmark

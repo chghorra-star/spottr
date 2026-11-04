@@ -429,6 +429,41 @@ pins all four, plus the rule that every gate in `tool/check.ps1` appears in
 CI too. The runner labels are pinned with GitHub's removal dates, so the
 pin fails here in a second rather than on a runner after a queue.
 
+### What the first run found
+
+Run 1, 4 November 2026. `analyze-and-test` green: the analyzer, 1038 tests,
+the codegen-drift gate and the accuracy harness all pass on a clean Linux
+checkout, which is the first time any of that has happened anywhere but one
+laptop. `testflight` skipped, correctly — it is gated on a manual dispatch
+and this was a push.
+
+**Both macOS jobs failed, in the same place, before compiling anything.**
+`pod install`:
+
+    [!] The 'Pods-Runner' target has transitive dependencies that include
+        statically linked binaries: (GoogleUtilitiesComponents)
+
+ML Kit depends on GoogleUtilitiesComponents, which ships as a static binary.
+The Podfile said `use_frameworks!`, which asks for dynamic linkage, and
+CocoaPods refuses to mix the two at all. `use_frameworks! :linkage =>
+:static` keeps the module maps a Swift pod needs and drops the dynamic
+requirement ML Kit cannot meet. The M9 note in the Podfile — "`use_frameworks!`
+is what a Swift pod needs" — was half right, which is the expensive kind.
+
+So the honest result of run 1 is narrower than it looks: **no Swift was
+compiled.** The failure is in dependency resolution, upstream of the
+compiler, so every item in the list above — the ordinal table, the rotation
+path, the mirroring, the texture lifecycle — is exactly as unverified as it
+was before the push. What the run did prove is that the pipeline reaches the
+Mac, which is the part that could not be tested from here at all.
+
+It also surfaced a warning worth writing down: Flutter now reports that
+`pose_camera` has no Swift Package Manager manifest and that this becomes an
+error in a future version. `Package.swift` was deleted in M9 on purpose,
+because ML Kit is CocoaPods-only and an SPM manifest beside a podspec means
+the dependency vanishes the day somebody enables SPM. When Flutter makes SPM
+mandatory, that decision has to be revisited rather than rediscovered.
+
 ### The Kotlin tests still do not run
 
 `LandmarkPackerTest.kt` covers the same arithmetic on Android and remains
