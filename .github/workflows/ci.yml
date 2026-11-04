@@ -134,10 +134,15 @@ jobs:
       - name: Resolve workspace
         run: flutter pub get
 
-      # Builds the iOS app once so that the Podfile is resolved and
-      # Generated.xcconfig exists; xcodebuild cannot do either itself.
+      # --config-only runs pod install and writes Generated.xcconfig, which
+      # xcodebuild cannot do itself, and stops there. It used to compile the
+      # app as well, which was a second full build whose only contribution
+      # was to hide the compiler: `flutter build` summarises diagnostics,
+      # so three runs of "Module 'flutter_tts' not found" arrived with no
+      # clang invocation, no search paths and no reason. xcodebuild below
+      # compiles the same code and prints all of it.
       - name: Prepare the Xcode workspace
-        run: cd app && flutter build ios --simulator
+        run: cd app && flutter build ios --config-only --simulator
 
       # The destination is whatever simulator this image's Xcode shipped
       # with, asked for rather than assumed. A named model that the image
