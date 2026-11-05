@@ -11,6 +11,26 @@ medical advice and does not prevent injury.
 
 ## Status
 
+M10 under way: Spottr can replicate. `packages/sync_engine` is the whole
+protocol as pure Dart — last writer wins over a total order, soft deletes as
+tombstones, a cursor that survives an interrupted pull — with both ends
+behind interfaces, so every rule in it is tested with no database and no
+network. The app supplies those ends over the real SQLite database and over
+PostgREST, and one test runs the real engine between two real databases and
+a stand-in server, because that is the only place a boolean leaving SQLite
+as `1` gets caught.
+
+**Everything still works with no account.** The sync is additive; the plan,
+the coach and the log are local and stay local. `rep_logs` and `form_events`
+never leave the device, and the remote schema has nowhere to put a frame, a
+landmark or a video.
+
+What is not done: nobody can sign in yet. The remote schema in
+`supabase/`, like the Podfile before M9, has never been run — a test reads
+it and checks it against drift's own metadata column by column, which is the
+difference between finding a missing column now and finding it after
+somebody signs in.
+
 M9 done and green in CI at
 [github.com/chghorra-star/spottr](https://github.com/chghorra-star/spottr).
 The iOS half of the plugin — AVFoundation capture, the same ML Kit model
@@ -154,7 +174,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M7 | Live coach UX, voice, safety | done |
 | M8 | Dataset validation and tuning | done |
 | M9 | iOS parity, cloud CI, TestFlight | done, green in CI |
-| M10 | Supabase sync | |
+| M10 | Supabase sync | engine, schema and both adapters done; no sign-in yet |
 
 ## Layout
 
@@ -165,13 +185,14 @@ packages/exercise_library/  curated exercise catalog      [pure Dart]
 packages/coach_engine/  counting, form rules, scoring     [pure Dart]
 packages/plan_engine/   plan generation, progression      [pure Dart]
 packages/harness/       accuracy harness CLI              [pure Dart]
+packages/sync_engine/   two-way replication protocol      [pure Dart]
 packages/pose_camera/   native camera + pose inference    [Flutter plugin]
 ```
 
 This is a Dart pub workspace: one lockfile, and `flutter pub get` runs from the
 repo root, never inside a package.
 
-The five pure-Dart packages must never import Flutter. That constraint is
+The six pure-Dart packages must never import Flutter. That constraint is
 what lets the entire rep-counting and form-analysis stack be measured from
 recorded fixtures with no device attached:
 

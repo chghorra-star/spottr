@@ -30,7 +30,7 @@ trading a stack already proven on another shipped app for one that is not.
 ## Package layout
 
 A Dart pub workspace: one `pubspec.lock`, one `flutter pub get` at the root.
-Four of the six packages are pure Dart and test in milliseconds.
+Five of the seven packages are pure Dart and test in milliseconds.
 
 ```
 app/                    Flutter app — UI, DI, Drift, platform wiring
@@ -40,6 +40,7 @@ packages/
   coach_engine/         [pure] rep state machines, form rules, scoring, cues
   plan_engine/          [pure] templates, slot filling, progression
   harness/              [pure] CLI: replay fixtures, report accuracy, fail CI
+  sync_engine/          [pure] replication protocol, conflicts, cursors
   pose_camera/          [plugin] native camera + pose, plus FakePoseCamera
 ```
 
@@ -1201,12 +1202,17 @@ did not do is noise.
 
 ## Persistence
 
-Drift / SQLite, local-first. The MVP has no network at all.
+Drift / SQLite, local-first. Everything works with no account and no
+network; the sync in M10 is additive and the app does not depend on it.
 
-Schema v1 already carries `updated_at`, `deleted_at` and `device_id` on every
-table that will eventually replicate, so adding Supabase later is one
-implementation class rather than a migration across nine tables. Deletes are
-soft; a hard delete is invisible to a peer.
+Schema v1 carries `updated_at`, `deleted_at` and `device_id` on every table
+that replicates. Deletes are soft; a hard delete is invisible to a peer.
+
+That was most of the way there and the sentence that used to be here — that
+sync would be one implementation class rather than a migration — was wrong
+by one column. Those three are what it takes to **resolve** a conflict, and
+nothing in them says there is one to resolve: see the sync section below for
+why v2 adds `pushed_at` and a cursor table.
 
 ### Plans are immutable revisions
 
@@ -1246,6 +1252,145 @@ rule verdicts are thousands of rows per session, invaluable for debugging and
 for generating harness fixtures, and of no use to another device.
 `database_test.dart` asserts that every table is classified one way or the
 other, so a new table cannot be added without that decision being made.
+
+## Sync
+
+`packages/sync_engine` is the replication protocol, pure Dart with no
+database, no HTTP and no Flutter under it. The two ends are interfaces, so
+every rule about conflicts, cursors, pagination and interrupted syncs is
+tested in milliseconds with nothing running — the same reason the coach
+engine is pure, arrived at for the same reason.
+
+The app supplies both ends: `DriftSyncStore` over the local database and
+`SupabaseRemoteStore` over PostgREST. `app/test/data/sync/two_devices_test.dart`
+runs the real engine between two real SQLite databases and a stand-in
+server, which is the only place the three layers are checked together.
+
+### Last writer wins, over a total order
+
+A conflict is resolved on `(updatedAt, deviceId)`, and the order has to be
+**total**. Two devices resolve the same conflict without being able to ask
+each other, so the rule must be a function of the two records alone — "the
+newest, and otherwise the remote one" is not, because each side's remote is
+the other's local, and both would take the other's copy and trade the row
+for ever.
+
+What it cannot do is merge. The loser's edit is discarded whole, and a
+device with a wrong clock loses every conflict it takes part in. That is the
+known cost of timestamps over a logical clock; the report counts conflicts
+rather than resolving them quietly, so the number is at least visible.
+
+### Two clocks, and they are not the same clock
+
+`updated_at` is the **author's** clock. It travels unchanged from the device
+that made the edit and it is what the conflict rule compares.
+
+`synced_seq` is the **server's** replication order, assigned by a trigger on
+every insert and update. It is what the pull cursor walks, and it is a
+sequence rather than a timestamp on purpose: `now()` in Postgres is the
+transaction's start time, so every row in an upserted batch shares it, and a
+client paging through them would move its cursor to that value, ask for rows
+strictly after it, and never see the rest of the batch. A missing session
+with every sync reporting success.
+
+Keeping them apart is also what makes a slow clock survivable: a row written
+by a device an hour behind still reaches every peer, because reaching them
+is a question about the server's order and not about when the edit was made.
+
+### Pending is a comparison, not a flag
+
+A row is waiting to go up while `pushed_at IS NULL OR pushed_at <
+updated_at`. So the only thing a local write has to remember is to bump
+`updated_at`, which it already must do for the conflict rule — rather than a
+second piece of bookkeeping that one repository method will eventually
+forget.
+
+`pushed_at` is set to **the `updated_at` that was sent**, not to the time of
+the acknowledgement. The upload is an `await` and the user can log a set
+during it; marking the row clean at whatever it says afterwards would
+acknowledge an edit the server never saw.
+
+It is added nullable with no default, so every row that existed before sync
+did comes out pending and the first sync uploads all of it.
+
+### A pulled row is applied clean
+
+One word, and most of the protocol's good behaviour rests on it. A row
+written in from the server is marked as already acknowledged, so it is not
+pushed straight back, does not lose the same conflict again, and does not
+keep two devices talking about a row nobody is editing.
+
+It is also why the local store needs no `find`: a row that is *not* pending
+is by construction the last thing the server gave us, so an incoming row
+only has to be reconciled when its id is in the pending set. That turns
+"compare every row against local state" into one query per table.
+
+A device's own push does come back to it once, because the server stamps it
+after the cursor that device was holding. It is written over itself and the
+cursor then sits past it. Advancing the cursor to the stamp the server
+assigned the batch would avoid that and is not safe: another device's row
+can be stamped in the middle of a batch, and a cursor jumped past it loses
+that row for ever.
+
+### Order, and stopping
+
+Tables sync one at a time, parents before children, pulling before pushing.
+
+Pull first, so a conflict is decided here against the newest remote state
+rather than by whichever request reached the server last.
+
+Stop at the first table that fails, because the order is parents before
+children and carrying on sends rows referencing a parent the server was
+never given. The cursor advances per page, so an interruption costs one page
+and the next sync resumes.
+
+Offline is a report, not an exception: it is the normal state of a phone in a
+gym basement, and a thrown exception would read in a crash log like a defect.
+Only the three failures the protocol names — offline, unauthorized, rejected
+— are caught. Anything else is version skew or a bug in an adapter, and
+"sync failed, try again" would hide it behind a retry button for ever.
+
+### The server holds no more than it has to
+
+Seven tables, mirroring the seven that replicate, and nothing else.
+`rep_logs` and `form_events` are absent: per-rep traces and rule verdicts are
+thousands of rows per session and of no use to a peer, and the strongest
+form of "they stay on the phone" is that there is nowhere to put them. There
+is no table for frames, landmarks or video, and a test asserts the SQL does
+not so much as mention one.
+
+Every row is keyed by `(user_id, id)`. The app's ids are generated on the
+device — derived from a plan revision, or from a microsecond clock and a
+counter — so they are unique within one person's data and guarantee nothing
+across two accounts. It also makes every foreign key composite, which buys
+something: a child can only point at a parent in the same account.
+
+Row level security is applied in a loop over the table list rather than
+written out seven times, because the failure mode of repetition is missing
+one table and that reads as nothing at all until somebody notices they can
+see a stranger's sessions.
+
+**There is no delete policy, and delete is revoked on top of that.** Spottr's
+deletes are soft so that a peer finds out; the server refusing to hard-delete
+is that rule made structural instead of merely intended.
+
+### What cannot be checked from here
+
+`supabase/migrations/0001_init.sql` has never been run. It is the third file
+in this project that nothing compiles or analyzes, after the CI workflow and
+the Podfile, and the worst of the three: a forgotten column rejects one
+table's rows silently, and a forgotten `enable row level security` publishes
+somebody's training log. So a test reads the SQL and compares it against
+drift's own metadata, column by column and type by type, and refuses to pass
+on a line it could not parse. That is not a substitute for running the
+migration. It is the difference between finding the mistake before anybody
+signs in and after.
+
+Every URL, header and status code in `SupabaseRemoteStore` is likewise a
+reading of PostgREST's documentation rather than of a server. There is no
+Supabase SDK, deliberately: the protocol is JSON over HTTPS, and a plain
+`http.Client` keeps each request testable and adds no pod to an iOS build
+this project cannot compile locally.
 
 ## App layer
 

@@ -671,6 +671,67 @@ So the asymmetry is now the other way round from how it looked in M4 — the
 platform that cannot be built locally is the one whose native arithmetic has
 a home in CI.
 
+## Layer 4 — a server nobody here has
+
+M10's code is all written and none of it has met Supabase. This is layer 3
+again with the serial numbers filed off: a correct-looking artifact that
+only runs on somebody else's machine, and nine CI runs' worth of recent
+evidence about how that goes.
+
+What *is* verified, with no project and no network:
+
+- the protocol, in `packages/sync_engine` — 48 tests over conflicts,
+  cursors, pagination, batching and every way a sync can stop half way
+- the local store, against a real in-memory SQLite, including a walk over
+  all seven syncable tables round-tripping a synthesised row
+- the first migration, against a v1 database built from the schema snapshot
+  that shipped
+- `SupabaseRemoteStore`'s requests, against a fake HTTP client: the URL, the
+  filters, the headers, the body and the mapping of every status code
+- all three together, in `two_devices_test.dart`: two SQLite databases, the
+  real engine, real PostgREST requests, and a stand-in server answering out
+  of a map
+
+What is **not** verified, and what will say so first:
+
+1. **Whether the SQL parses.** `supabase/migrations/0001_init.sql` has never
+   been executed. The `do $$ ... $$` block that applies row level security
+   in a loop is the least conventional part of it and the most likely to
+   fail outright, which is the good kind of failure: `supabase db push`
+   either takes it or it does not.
+2. **Whether PostgREST answers the way the fake does.** The cursor filter
+   (`synced_seq=gt.N`), the ordering, the limit, and `Prefer:
+   resolution=merge-duplicates` with `on_conflict=user_id,id` are all read
+   from documentation. A wrong conflict target does not error — it inserts,
+   fails the primary key, and rejects the batch.
+3. **Whether a composite foreign key accepts a null child column.**
+   `set_logs.plan_exercise_id` and `sessions.plan_day_id` are nullable
+   halves of composite keys, which Postgres allows under MATCH SIMPLE. If
+   that reading is wrong, every hand-logged set is a rejected row.
+4. **Whether `nextval` is callable from the trigger.** The grant is there;
+   whether it is the grant that matters is a guess.
+5. **The first sync's volume.** A device with a year of training pushes
+   every row it has, in batches of two hundred, and nothing here has
+   measured what that costs on a phone connection.
+
+The order to find all this out in: apply the migration, sign in on one
+device, sync, read the `sync_state` table, then sign in on a second device
+and sync. The first two steps answer 1 and 2; the third answers 3.
+
+### What has no test at all yet
+
+There is no sign-in. The remote store asks for credentials and there is
+nothing to give it, so `SyncEngine.sync()` reports `unauthorized` on the
+first table and stops — which is the correct behaviour and also the whole
+state of the feature from a user's point of view.
+
+And `deviceId` is still the constant `'local'` for every install. The
+conflict rule's tie-break is `(updatedAt, deviceId)`, so with every device
+claiming the same id, two edits made in the same millisecond resolve to
+"keep mine" on both sides and stay different for ever. Unlikely, and the
+tie-break exists precisely to make convergence not depend on luck, so a
+persisted per-install id is not optional — it is the next thing.
+
 ## What the acceptance targets can honestly claim
 
 The MVP targets rep accuracy >= 95% at the recommended angle and form warnings
