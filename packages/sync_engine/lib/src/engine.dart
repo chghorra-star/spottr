@@ -16,6 +16,16 @@ import 'sync_report.dart';
 /// referencing a parent the server was never given. A half-finished sync is
 /// resumable; a sync that scattered children across a server that cannot
 /// hold them is not.
+///
+/// **A device's own push comes back to it once.** The server stamps an
+/// upserted row after the cursor the pusher was holding, so the next pull
+/// hands it straight back and it is written over itself — a write, not a
+/// change. The cursor then sits past it and the device goes quiet.
+///
+/// The obvious fix is to advance the cursor to the stamp the server assigned
+/// that batch, and it is wrong: another device's row can be stamped in the
+/// middle of the batch, and a cursor jumped past it loses that row for ever.
+/// One redundant download, once, beats a silently missing session.
 class SyncEngine {
   SyncEngine({
     required this.local,

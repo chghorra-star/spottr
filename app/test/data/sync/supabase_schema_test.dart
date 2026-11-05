@@ -183,7 +183,7 @@ void main() {
     test('is enabled, and reads and writes are the owner only', () {
       expect(sql, contains('enable row level security'));
       expect(sql, contains('for select'));
-      expect(sql, contains("using (user_id = auth.uid())"));
+      expect(sql, contains('using (user_id = auth.uid())'));
       // with check, not using: this is the half that stops a client writing
       // a row stamped with somebody else's account.
       expect(sql, contains('for insert'));
