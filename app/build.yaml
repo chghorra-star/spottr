@@ -1,0 +1,18 @@
+# `storeDateTimeAsText` has to be declared twice, in two different places,
+# and until M10 only one of them was.
+#
+# The runtime override in `AppDatabase.options` is what makes the app store
+# timestamps as ISO-8601 text. This build option is what makes *drift's own
+# tooling* believe it: `drift_dev schema dump` reads the schema statically,
+# so without this the snapshots in `app/drift_schemas/` described every
+# timestamp in the app as a unix integer.
+#
+# Nothing noticed, because nothing read those snapshots until the first
+# migration test did — and it failed on the one column the migration adds at
+# runtime, where the two halves finally disagreed out loud.
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          store_date_time_values_as_text: true

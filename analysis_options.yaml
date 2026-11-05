@@ -17,6 +17,10 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/generated_plugin_registrant.dart"
+    # Drift's per-version schema helpers, written by `drift_dev schema
+    # generate` so a migration test can start a database at an old version.
+    # Generated like a .g.dart file but not named like one.
+    - "app/test/data/generated_migrations/**"
 
 linter:
   rules:

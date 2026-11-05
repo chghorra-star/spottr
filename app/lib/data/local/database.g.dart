@@ -44,6 +44,17 @@ class $ProfilesTable extends Profiles
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _pushedAtMeta = const VerificationMeta(
+    'pushedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pushedAt = GeneratedColumn<DateTime>(
+    'pushed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -220,6 +231,7 @@ class $ProfilesTable extends Profiles
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     goal,
     daysPerWeek,
@@ -268,6 +280,12 @@ class $ProfilesTable extends Profiles
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('pushed_at')) {
+      context.handle(
+        _pushedAtMeta,
+        pushedAt.isAcceptableOrUnknown(data['pushed_at']!, _pushedAtMeta),
+      );
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
@@ -412,6 +430,10 @@ class $ProfilesTable extends Profiles
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      pushedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pushed_at'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -494,6 +516,21 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   final String deviceId;
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  final DateTime? pushedAt;
   final String id;
   final String goal;
   final int daysPerWeek;
@@ -529,6 +566,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    this.pushedAt,
     required this.id,
     required this.goal,
     required this.daysPerWeek,
@@ -554,6 +592,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || pushedAt != null) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt);
+    }
     map['id'] = Variable<String>(id);
     map['goal'] = Variable<String>(goal);
     map['days_per_week'] = Variable<int>(daysPerWeek);
@@ -592,6 +633,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      pushedAt: pushedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pushedAt),
       id: Value(id),
       goal: Value(goal),
       daysPerWeek: Value(daysPerWeek),
@@ -630,6 +674,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      pushedAt: serializer.fromJson<DateTime?>(json['pushedAt']),
       id: serializer.fromJson<String>(json['id']),
       goal: serializer.fromJson<String>(json['goal']),
       daysPerWeek: serializer.fromJson<int>(json['daysPerWeek']),
@@ -657,6 +702,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'pushedAt': serializer.toJson<DateTime?>(pushedAt),
       'id': serializer.toJson<String>(id),
       'goal': serializer.toJson<String>(goal),
       'daysPerWeek': serializer.toJson<int>(daysPerWeek),
@@ -682,6 +728,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    Value<DateTime?> pushedAt = const Value.absent(),
     String? id,
     String? goal,
     int? daysPerWeek,
@@ -702,6 +749,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    pushedAt: pushedAt.present ? pushedAt.value : this.pushedAt,
     id: id ?? this.id,
     goal: goal ?? this.goal,
     daysPerWeek: daysPerWeek ?? this.daysPerWeek,
@@ -726,6 +774,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pushedAt: data.pushedAt.present ? data.pushedAt.value : this.pushedAt,
       id: data.id.present ? data.id.value : this.id,
       goal: data.goal.present ? data.goal.value : this.goal,
       daysPerWeek: data.daysPerWeek.present
@@ -761,6 +810,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('goal: $goal, ')
           ..write('daysPerWeek: $daysPerWeek, ')
@@ -786,6 +836,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     goal,
     daysPerWeek,
@@ -810,6 +861,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.pushedAt == this.pushedAt &&
           other.id == this.id &&
           other.goal == this.goal &&
           other.daysPerWeek == this.daysPerWeek &&
@@ -832,6 +884,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<DateTime?> pushedAt;
   final Value<String> id;
   final Value<String> goal;
   final Value<int> daysPerWeek;
@@ -853,6 +906,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.pushedAt = const Value.absent(),
     this.id = const Value.absent(),
     this.goal = const Value.absent(),
     this.daysPerWeek = const Value.absent(),
@@ -875,6 +929,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String deviceId,
+    this.pushedAt = const Value.absent(),
     required String id,
     required String goal,
     required int daysPerWeek,
@@ -904,6 +959,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<DateTime>? pushedAt,
     Expression<String>? id,
     Expression<String>? goal,
     Expression<int>? daysPerWeek,
@@ -926,6 +982,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (pushedAt != null) 'pushed_at': pushedAt,
       if (id != null) 'id': id,
       if (goal != null) 'goal': goal,
       if (daysPerWeek != null) 'days_per_week': daysPerWeek,
@@ -951,6 +1008,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<DateTime?>? pushedAt,
     Value<String>? id,
     Value<String>? goal,
     Value<int>? daysPerWeek,
@@ -973,6 +1031,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      pushedAt: pushedAt ?? this.pushedAt,
       id: id ?? this.id,
       goal: goal ?? this.goal,
       daysPerWeek: daysPerWeek ?? this.daysPerWeek,
@@ -1004,6 +1063,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pushedAt.present) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
@@ -1067,6 +1129,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('goal: $goal, ')
           ..write('daysPerWeek: $daysPerWeek, ')
@@ -1128,6 +1191,17 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
     additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 64),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pushedAtMeta = const VerificationMeta(
+    'pushedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pushedAt = GeneratedColumn<DateTime>(
+    'pushed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
@@ -1235,6 +1309,7 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     profileId,
     templateId,
@@ -1276,6 +1351,12 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('pushed_at')) {
+      context.handle(
+        _pushedAtMeta,
+        pushedAt.isAcceptableOrUnknown(data['pushed_at']!, _pushedAtMeta),
+      );
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
@@ -1362,6 +1443,10 @@ class $PlansTable extends Plans with TableInfo<$PlansTable, PlanRow> {
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      pushedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pushed_at'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -1416,6 +1501,21 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   final String deviceId;
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  final DateTime? pushedAt;
   final String id;
   final String profileId;
   final String templateId;
@@ -1439,6 +1539,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    this.pushedAt,
     required this.id,
     required this.profileId,
     required this.templateId,
@@ -1457,6 +1558,9 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || pushedAt != null) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt);
+    }
     map['id'] = Variable<String>(id);
     map['profile_id'] = Variable<String>(profileId);
     map['template_id'] = Variable<String>(templateId);
@@ -1476,6 +1580,9 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      pushedAt: pushedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pushedAt),
       id: Value(id),
       profileId: Value(profileId),
       templateId: Value(templateId),
@@ -1497,6 +1604,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      pushedAt: serializer.fromJson<DateTime?>(json['pushedAt']),
       id: serializer.fromJson<String>(json['id']),
       profileId: serializer.fromJson<String>(json['profileId']),
       templateId: serializer.fromJson<String>(json['templateId']),
@@ -1515,6 +1623,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'pushedAt': serializer.toJson<DateTime?>(pushedAt),
       'id': serializer.toJson<String>(id),
       'profileId': serializer.toJson<String>(profileId),
       'templateId': serializer.toJson<String>(templateId),
@@ -1531,6 +1640,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    Value<DateTime?> pushedAt = const Value.absent(),
     String? id,
     String? profileId,
     String? templateId,
@@ -1544,6 +1654,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    pushedAt: pushedAt.present ? pushedAt.value : this.pushedAt,
     id: id ?? this.id,
     profileId: profileId ?? this.profileId,
     templateId: templateId ?? this.templateId,
@@ -1559,6 +1670,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pushedAt: data.pushedAt.present ? data.pushedAt.value : this.pushedAt,
       id: data.id.present ? data.id.value : this.id,
       profileId: data.profileId.present ? data.profileId.value : this.profileId,
       templateId: data.templateId.present
@@ -1581,6 +1693,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('profileId: $profileId, ')
           ..write('templateId: $templateId, ')
@@ -1599,6 +1712,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     profileId,
     templateId,
@@ -1616,6 +1730,7 @@ class PlanRow extends DataClass implements Insertable<PlanRow> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.pushedAt == this.pushedAt &&
           other.id == this.id &&
           other.profileId == this.profileId &&
           other.templateId == this.templateId &&
@@ -1631,6 +1746,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<DateTime?> pushedAt;
   final Value<String> id;
   final Value<String> profileId;
   final Value<String> templateId;
@@ -1645,6 +1761,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.pushedAt = const Value.absent(),
     this.id = const Value.absent(),
     this.profileId = const Value.absent(),
     this.templateId = const Value.absent(),
@@ -1660,6 +1777,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String deviceId,
+    this.pushedAt = const Value.absent(),
     required String id,
     required String profileId,
     required String templateId,
@@ -1680,6 +1798,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<DateTime>? pushedAt,
     Expression<String>? id,
     Expression<String>? profileId,
     Expression<String>? templateId,
@@ -1695,6 +1814,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (pushedAt != null) 'pushed_at': pushedAt,
       if (id != null) 'id': id,
       if (profileId != null) 'profile_id': profileId,
       if (templateId != null) 'template_id': templateId,
@@ -1712,6 +1832,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<DateTime?>? pushedAt,
     Value<String>? id,
     Value<String>? profileId,
     Value<String>? templateId,
@@ -1727,6 +1848,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      pushedAt: pushedAt ?? this.pushedAt,
       id: id ?? this.id,
       profileId: profileId ?? this.profileId,
       templateId: templateId ?? this.templateId,
@@ -1751,6 +1873,9 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pushedAt.present) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
@@ -1791,6 +1916,7 @@ class PlansCompanion extends UpdateCompanion<PlanRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('profileId: $profileId, ')
           ..write('templateId: $templateId, ')
@@ -1846,6 +1972,17 @@ class $PlanDaysTable extends PlanDays
     additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 64),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pushedAtMeta = const VerificationMeta(
+    'pushedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pushedAt = GeneratedColumn<DateTime>(
+    'pushed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
@@ -1918,6 +2055,7 @@ class $PlanDaysTable extends PlanDays
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     planId,
     weekday,
@@ -1956,6 +2094,12 @@ class $PlanDaysTable extends PlanDays
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('pushed_at')) {
+      context.handle(
+        _pushedAtMeta,
+        pushedAt.isAcceptableOrUnknown(data['pushed_at']!, _pushedAtMeta),
+      );
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
@@ -2024,6 +2168,10 @@ class $PlanDaysTable extends PlanDays
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      pushedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pushed_at'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -2066,6 +2214,21 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   final String deviceId;
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  final DateTime? pushedAt;
   final String id;
   final String planId;
 
@@ -2085,6 +2248,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    this.pushedAt,
     required this.id,
     required this.planId,
     required this.weekday,
@@ -2100,6 +2264,9 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || pushedAt != null) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt);
+    }
     map['id'] = Variable<String>(id);
     map['plan_id'] = Variable<String>(planId);
     map['weekday'] = Variable<int>(weekday);
@@ -2116,6 +2283,9 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      pushedAt: pushedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pushedAt),
       id: Value(id),
       planId: Value(planId),
       weekday: Value(weekday),
@@ -2134,6 +2304,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      pushedAt: serializer.fromJson<DateTime?>(json['pushedAt']),
       id: serializer.fromJson<String>(json['id']),
       planId: serializer.fromJson<String>(json['planId']),
       weekday: serializer.fromJson<int>(json['weekday']),
@@ -2149,6 +2320,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'pushedAt': serializer.toJson<DateTime?>(pushedAt),
       'id': serializer.toJson<String>(id),
       'planId': serializer.toJson<String>(planId),
       'weekday': serializer.toJson<int>(weekday),
@@ -2162,6 +2334,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    Value<DateTime?> pushedAt = const Value.absent(),
     String? id,
     String? planId,
     int? weekday,
@@ -2172,6 +2345,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    pushedAt: pushedAt.present ? pushedAt.value : this.pushedAt,
     id: id ?? this.id,
     planId: planId ?? this.planId,
     weekday: weekday ?? this.weekday,
@@ -2184,6 +2358,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pushedAt: data.pushedAt.present ? data.pushedAt.value : this.pushedAt,
       id: data.id.present ? data.id.value : this.id,
       planId: data.planId.present ? data.planId.value : this.planId,
       weekday: data.weekday.present ? data.weekday.value : this.weekday,
@@ -2201,6 +2376,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('planId: $planId, ')
           ..write('weekday: $weekday, ')
@@ -2216,6 +2392,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     planId,
     weekday,
@@ -2230,6 +2407,7 @@ class PlanDayRow extends DataClass implements Insertable<PlanDayRow> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.pushedAt == this.pushedAt &&
           other.id == this.id &&
           other.planId == this.planId &&
           other.weekday == this.weekday &&
@@ -2242,6 +2420,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<DateTime?> pushedAt;
   final Value<String> id;
   final Value<String> planId;
   final Value<int> weekday;
@@ -2253,6 +2432,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.pushedAt = const Value.absent(),
     this.id = const Value.absent(),
     this.planId = const Value.absent(),
     this.weekday = const Value.absent(),
@@ -2265,6 +2445,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String deviceId,
+    this.pushedAt = const Value.absent(),
     required String id,
     required String planId,
     required int weekday,
@@ -2282,6 +2463,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<DateTime>? pushedAt,
     Expression<String>? id,
     Expression<String>? planId,
     Expression<int>? weekday,
@@ -2294,6 +2476,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (pushedAt != null) 'pushed_at': pushedAt,
       if (id != null) 'id': id,
       if (planId != null) 'plan_id': planId,
       if (weekday != null) 'weekday': weekday,
@@ -2308,6 +2491,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<DateTime?>? pushedAt,
     Value<String>? id,
     Value<String>? planId,
     Value<int>? weekday,
@@ -2320,6 +2504,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      pushedAt: pushedAt ?? this.pushedAt,
       id: id ?? this.id,
       planId: planId ?? this.planId,
       weekday: weekday ?? this.weekday,
@@ -2341,6 +2526,9 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pushedAt.present) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
@@ -2372,6 +2560,7 @@ class PlanDaysCompanion extends UpdateCompanion<PlanDayRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('planId: $planId, ')
           ..write('weekday: $weekday, ')
@@ -2424,6 +2613,17 @@ class $PlanExercisesTable extends PlanExercises
     additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 64),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pushedAtMeta = const VerificationMeta(
+    'pushedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pushedAt = GeneratedColumn<DateTime>(
+    'pushed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
@@ -2591,6 +2791,7 @@ class $PlanExercisesTable extends PlanExercises
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     planDayId,
     orderIndex,
@@ -2638,6 +2839,12 @@ class $PlanExercisesTable extends PlanExercises
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('pushed_at')) {
+      context.handle(
+        _pushedAtMeta,
+        pushedAt.isAcceptableOrUnknown(data['pushed_at']!, _pushedAtMeta),
+      );
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
@@ -2793,6 +3000,10 @@ class $PlanExercisesTable extends PlanExercises
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      pushedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pushed_at'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -2871,6 +3082,21 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   final String deviceId;
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  final DateTime? pushedAt;
   final String id;
   final String planDayId;
   final int orderIndex;
@@ -2904,6 +3130,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    this.pushedAt,
     required this.id,
     required this.planDayId,
     required this.orderIndex,
@@ -2928,6 +3155,9 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || pushedAt != null) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt);
+    }
     map['id'] = Variable<String>(id);
     map['plan_day_id'] = Variable<String>(planDayId);
     map['order_index'] = Variable<int>(orderIndex);
@@ -2961,6 +3191,9 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      pushedAt: pushedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pushedAt),
       id: Value(id),
       planDayId: Value(planDayId),
       orderIndex: Value(orderIndex),
@@ -2996,6 +3229,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      pushedAt: serializer.fromJson<DateTime?>(json['pushedAt']),
       id: serializer.fromJson<String>(json['id']),
       planDayId: serializer.fromJson<String>(json['planDayId']),
       orderIndex: serializer.fromJson<int>(json['orderIndex']),
@@ -3020,6 +3254,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'pushedAt': serializer.toJson<DateTime?>(pushedAt),
       'id': serializer.toJson<String>(id),
       'planDayId': serializer.toJson<String>(planDayId),
       'orderIndex': serializer.toJson<int>(orderIndex),
@@ -3042,6 +3277,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    Value<DateTime?> pushedAt = const Value.absent(),
     String? id,
     String? planDayId,
     int? orderIndex,
@@ -3061,6 +3297,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    pushedAt: pushedAt.present ? pushedAt.value : this.pushedAt,
     id: id ?? this.id,
     planDayId: planDayId ?? this.planDayId,
     orderIndex: orderIndex ?? this.orderIndex,
@@ -3090,6 +3327,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pushedAt: data.pushedAt.present ? data.pushedAt.value : this.pushedAt,
       id: data.id.present ? data.id.value : this.id,
       planDayId: data.planDayId.present ? data.planDayId.value : this.planDayId,
       orderIndex: data.orderIndex.present
@@ -3136,6 +3374,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('planDayId: $planDayId, ')
           ..write('orderIndex: $orderIndex, ')
@@ -3160,6 +3399,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     planDayId,
     orderIndex,
@@ -3183,6 +3423,7 @@ class PlanExerciseRow extends DataClass implements Insertable<PlanExerciseRow> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.pushedAt == this.pushedAt &&
           other.id == this.id &&
           other.planDayId == this.planDayId &&
           other.orderIndex == this.orderIndex &&
@@ -3204,6 +3445,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<DateTime?> pushedAt;
   final Value<String> id;
   final Value<String> planDayId;
   final Value<int> orderIndex;
@@ -3224,6 +3466,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.pushedAt = const Value.absent(),
     this.id = const Value.absent(),
     this.planDayId = const Value.absent(),
     this.orderIndex = const Value.absent(),
@@ -3245,6 +3488,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String deviceId,
+    this.pushedAt = const Value.absent(),
     required String id,
     required String planDayId,
     required int orderIndex,
@@ -3277,6 +3521,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<DateTime>? pushedAt,
     Expression<String>? id,
     Expression<String>? planDayId,
     Expression<int>? orderIndex,
@@ -3298,6 +3543,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (pushedAt != null) 'pushed_at': pushedAt,
       if (id != null) 'id': id,
       if (planDayId != null) 'plan_day_id': planDayId,
       if (orderIndex != null) 'order_index': orderIndex,
@@ -3321,6 +3567,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<DateTime?>? pushedAt,
     Value<String>? id,
     Value<String>? planDayId,
     Value<int>? orderIndex,
@@ -3342,6 +3589,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      pushedAt: pushedAt ?? this.pushedAt,
       id: id ?? this.id,
       planDayId: planDayId ?? this.planDayId,
       orderIndex: orderIndex ?? this.orderIndex,
@@ -3372,6 +3620,9 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pushedAt.present) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
@@ -3430,6 +3681,7 @@ class PlanExercisesCompanion extends UpdateCompanion<PlanExerciseRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('planDayId: $planDayId, ')
           ..write('orderIndex: $orderIndex, ')
@@ -3491,6 +3743,17 @@ class $SessionsTable extends Sessions
     additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 64),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pushedAtMeta = const VerificationMeta(
+    'pushedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pushedAt = GeneratedColumn<DateTime>(
+    'pushed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
@@ -3572,6 +3835,7 @@ class $SessionsTable extends Sessions
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     planDayId,
     startedAt,
@@ -3611,6 +3875,12 @@ class $SessionsTable extends Sessions
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('pushed_at')) {
+      context.handle(
+        _pushedAtMeta,
+        pushedAt.isAcceptableOrUnknown(data['pushed_at']!, _pushedAtMeta),
+      );
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
@@ -3679,6 +3949,10 @@ class $SessionsTable extends Sessions
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      pushedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pushed_at'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -3725,6 +3999,21 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   final String deviceId;
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  final DateTime? pushedAt;
   final String id;
   final String? planDayId;
   final DateTime startedAt;
@@ -3740,6 +4029,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    this.pushedAt,
     required this.id,
     this.planDayId,
     required this.startedAt,
@@ -3756,6 +4046,9 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || pushedAt != null) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt);
+    }
     map['id'] = Variable<String>(id);
     if (!nullToAbsent || planDayId != null) {
       map['plan_day_id'] = Variable<String>(planDayId);
@@ -3781,6 +4074,9 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      pushedAt: pushedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pushedAt),
       id: Value(id),
       planDayId: planDayId == null && nullToAbsent
           ? const Value.absent()
@@ -3808,6 +4104,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      pushedAt: serializer.fromJson<DateTime?>(json['pushedAt']),
       id: serializer.fromJson<String>(json['id']),
       planDayId: serializer.fromJson<String?>(json['planDayId']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
@@ -3824,6 +4121,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'pushedAt': serializer.toJson<DateTime?>(pushedAt),
       'id': serializer.toJson<String>(id),
       'planDayId': serializer.toJson<String?>(planDayId),
       'startedAt': serializer.toJson<DateTime>(startedAt),
@@ -3838,6 +4136,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    Value<DateTime?> pushedAt = const Value.absent(),
     String? id,
     Value<String?> planDayId = const Value.absent(),
     DateTime? startedAt,
@@ -3849,6 +4148,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    pushedAt: pushedAt.present ? pushedAt.value : this.pushedAt,
     id: id ?? this.id,
     planDayId: planDayId.present ? planDayId.value : this.planDayId,
     startedAt: startedAt ?? this.startedAt,
@@ -3862,6 +4162,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pushedAt: data.pushedAt.present ? data.pushedAt.value : this.pushedAt,
       id: data.id.present ? data.id.value : this.id,
       planDayId: data.planDayId.present ? data.planDayId.value : this.planDayId,
       startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
@@ -3880,6 +4181,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('planDayId: $planDayId, ')
           ..write('startedAt: $startedAt, ')
@@ -3896,6 +4198,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     planDayId,
     startedAt,
@@ -3911,6 +4214,7 @@ class SessionRow extends DataClass implements Insertable<SessionRow> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.pushedAt == this.pushedAt &&
           other.id == this.id &&
           other.planDayId == this.planDayId &&
           other.startedAt == this.startedAt &&
@@ -3924,6 +4228,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<DateTime?> pushedAt;
   final Value<String> id;
   final Value<String?> planDayId;
   final Value<DateTime> startedAt;
@@ -3936,6 +4241,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.pushedAt = const Value.absent(),
     this.id = const Value.absent(),
     this.planDayId = const Value.absent(),
     this.startedAt = const Value.absent(),
@@ -3949,6 +4255,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String deviceId,
+    this.pushedAt = const Value.absent(),
     required String id,
     this.planDayId = const Value.absent(),
     required DateTime startedAt,
@@ -3964,6 +4271,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<DateTime>? pushedAt,
     Expression<String>? id,
     Expression<String>? planDayId,
     Expression<DateTime>? startedAt,
@@ -3977,6 +4285,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (pushedAt != null) 'pushed_at': pushedAt,
       if (id != null) 'id': id,
       if (planDayId != null) 'plan_day_id': planDayId,
       if (startedAt != null) 'started_at': startedAt,
@@ -3992,6 +4301,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<DateTime?>? pushedAt,
     Value<String>? id,
     Value<String?>? planDayId,
     Value<DateTime>? startedAt,
@@ -4005,6 +4315,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      pushedAt: pushedAt ?? this.pushedAt,
       id: id ?? this.id,
       planDayId: planDayId ?? this.planDayId,
       startedAt: startedAt ?? this.startedAt,
@@ -4027,6 +4338,9 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pushedAt.present) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
@@ -4061,6 +4375,7 @@ class SessionsCompanion extends UpdateCompanion<SessionRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('planDayId: $planDayId, ')
           ..write('startedAt: $startedAt, ')
@@ -4113,6 +4428,17 @@ class $SetLogsTable extends SetLogs with TableInfo<$SetLogsTable, SetLogRow> {
     additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 64),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pushedAtMeta = const VerificationMeta(
+    'pushedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pushedAt = GeneratedColumn<DateTime>(
+    'pushed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
@@ -4236,6 +4562,7 @@ class $SetLogsTable extends SetLogs with TableInfo<$SetLogsTable, SetLogRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     sessionId,
     planExerciseId,
@@ -4279,6 +4606,12 @@ class $SetLogsTable extends SetLogs with TableInfo<$SetLogsTable, SetLogRow> {
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('pushed_at')) {
+      context.handle(
+        _pushedAtMeta,
+        pushedAt.isAcceptableOrUnknown(data['pushed_at']!, _pushedAtMeta),
+      );
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
@@ -4388,6 +4721,10 @@ class $SetLogsTable extends SetLogs with TableInfo<$SetLogsTable, SetLogRow> {
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      pushedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pushed_at'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -4450,6 +4787,21 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   final String deviceId;
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  final DateTime? pushedAt;
   final String id;
   final String sessionId;
   final String? planExerciseId;
@@ -4469,6 +4821,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    this.pushedAt,
     required this.id,
     required this.sessionId,
     this.planExerciseId,
@@ -4489,6 +4842,9 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || pushedAt != null) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt);
+    }
     map['id'] = Variable<String>(id);
     map['session_id'] = Variable<String>(sessionId);
     if (!nullToAbsent || planExerciseId != null) {
@@ -4520,6 +4876,9 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      pushedAt: pushedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pushedAt),
       id: Value(id),
       sessionId: Value(sessionId),
       planExerciseId: planExerciseId == null && nullToAbsent
@@ -4553,6 +4912,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      pushedAt: serializer.fromJson<DateTime?>(json['pushedAt']),
       id: serializer.fromJson<String>(json['id']),
       sessionId: serializer.fromJson<String>(json['sessionId']),
       planExerciseId: serializer.fromJson<String?>(json['planExerciseId']),
@@ -4573,6 +4933,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'pushedAt': serializer.toJson<DateTime?>(pushedAt),
       'id': serializer.toJson<String>(id),
       'sessionId': serializer.toJson<String>(sessionId),
       'planExerciseId': serializer.toJson<String?>(planExerciseId),
@@ -4591,6 +4952,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    Value<DateTime?> pushedAt = const Value.absent(),
     String? id,
     String? sessionId,
     Value<String?> planExerciseId = const Value.absent(),
@@ -4606,6 +4968,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    pushedAt: pushedAt.present ? pushedAt.value : this.pushedAt,
     id: id ?? this.id,
     sessionId: sessionId ?? this.sessionId,
     planExerciseId: planExerciseId.present
@@ -4625,6 +4988,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pushedAt: data.pushedAt.present ? data.pushedAt.value : this.pushedAt,
       id: data.id.present ? data.id.value : this.id,
       sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
       planExerciseId: data.planExerciseId.present
@@ -4655,6 +5019,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('sessionId: $sessionId, ')
           ..write('planExerciseId: $planExerciseId, ')
@@ -4675,6 +5040,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     sessionId,
     planExerciseId,
@@ -4694,6 +5060,7 @@ class SetLogRow extends DataClass implements Insertable<SetLogRow> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.pushedAt == this.pushedAt &&
           other.id == this.id &&
           other.sessionId == this.sessionId &&
           other.planExerciseId == this.planExerciseId &&
@@ -4711,6 +5078,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<DateTime?> pushedAt;
   final Value<String> id;
   final Value<String> sessionId;
   final Value<String?> planExerciseId;
@@ -4727,6 +5095,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.pushedAt = const Value.absent(),
     this.id = const Value.absent(),
     this.sessionId = const Value.absent(),
     this.planExerciseId = const Value.absent(),
@@ -4744,6 +5113,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String deviceId,
+    this.pushedAt = const Value.absent(),
     required String id,
     required String sessionId,
     this.planExerciseId = const Value.absent(),
@@ -4767,6 +5137,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<DateTime>? pushedAt,
     Expression<String>? id,
     Expression<String>? sessionId,
     Expression<String>? planExerciseId,
@@ -4784,6 +5155,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (pushedAt != null) 'pushed_at': pushedAt,
       if (id != null) 'id': id,
       if (sessionId != null) 'session_id': sessionId,
       if (planExerciseId != null) 'plan_exercise_id': planExerciseId,
@@ -4803,6 +5175,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<DateTime?>? pushedAt,
     Value<String>? id,
     Value<String>? sessionId,
     Value<String?>? planExerciseId,
@@ -4820,6 +5193,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      pushedAt: pushedAt ?? this.pushedAt,
       id: id ?? this.id,
       sessionId: sessionId ?? this.sessionId,
       planExerciseId: planExerciseId ?? this.planExerciseId,
@@ -4846,6 +5220,9 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pushedAt.present) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
@@ -4892,6 +5269,7 @@ class SetLogsCompanion extends UpdateCompanion<SetLogRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('sessionId: $sessionId, ')
           ..write('planExerciseId: $planExerciseId, ')
@@ -5990,6 +6368,17 @@ class $PersonalRecordsTable extends PersonalRecords
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _pushedAtMeta = const VerificationMeta(
+    'pushedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pushedAt = GeneratedColumn<DateTime>(
+    'pushed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -6055,6 +6444,7 @@ class $PersonalRecordsTable extends PersonalRecords
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     exerciseId,
     kind,
@@ -6093,6 +6483,12 @@ class $PersonalRecordsTable extends PersonalRecords
       );
     } else if (isInserting) {
       context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('pushed_at')) {
+      context.handle(
+        _pushedAtMeta,
+        pushedAt.isAcceptableOrUnknown(data['pushed_at']!, _pushedAtMeta),
+      );
     }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
@@ -6158,6 +6554,10 @@ class $PersonalRecordsTable extends PersonalRecords
         DriftSqlType.string,
         data['${effectivePrefix}device_id'],
       )!,
+      pushedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pushed_at'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -6201,6 +6601,21 @@ class PersonalRecordRow extends DataClass
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   final String deviceId;
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  final DateTime? pushedAt;
   final String id;
   final String exerciseId;
 
@@ -6213,6 +6628,7 @@ class PersonalRecordRow extends DataClass
     required this.updatedAt,
     this.deletedAt,
     required this.deviceId,
+    this.pushedAt,
     required this.id,
     required this.exerciseId,
     required this.kind,
@@ -6228,6 +6644,9 @@ class PersonalRecordRow extends DataClass
       map['deleted_at'] = Variable<DateTime>(deletedAt);
     }
     map['device_id'] = Variable<String>(deviceId);
+    if (!nullToAbsent || pushedAt != null) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt);
+    }
     map['id'] = Variable<String>(id);
     map['exercise_id'] = Variable<String>(exerciseId);
     map['kind'] = Variable<String>(kind);
@@ -6246,6 +6665,9 @@ class PersonalRecordRow extends DataClass
           ? const Value.absent()
           : Value(deletedAt),
       deviceId: Value(deviceId),
+      pushedAt: pushedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pushedAt),
       id: Value(id),
       exerciseId: Value(exerciseId),
       kind: Value(kind),
@@ -6266,6 +6688,7 @@ class PersonalRecordRow extends DataClass
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       deviceId: serializer.fromJson<String>(json['deviceId']),
+      pushedAt: serializer.fromJson<DateTime?>(json['pushedAt']),
       id: serializer.fromJson<String>(json['id']),
       exerciseId: serializer.fromJson<String>(json['exerciseId']),
       kind: serializer.fromJson<String>(json['kind']),
@@ -6281,6 +6704,7 @@ class PersonalRecordRow extends DataClass
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'deviceId': serializer.toJson<String>(deviceId),
+      'pushedAt': serializer.toJson<DateTime?>(pushedAt),
       'id': serializer.toJson<String>(id),
       'exerciseId': serializer.toJson<String>(exerciseId),
       'kind': serializer.toJson<String>(kind),
@@ -6294,6 +6718,7 @@ class PersonalRecordRow extends DataClass
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
     String? deviceId,
+    Value<DateTime?> pushedAt = const Value.absent(),
     String? id,
     String? exerciseId,
     String? kind,
@@ -6304,6 +6729,7 @@ class PersonalRecordRow extends DataClass
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     deviceId: deviceId ?? this.deviceId,
+    pushedAt: pushedAt.present ? pushedAt.value : this.pushedAt,
     id: id ?? this.id,
     exerciseId: exerciseId ?? this.exerciseId,
     kind: kind ?? this.kind,
@@ -6316,6 +6742,7 @@ class PersonalRecordRow extends DataClass
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      pushedAt: data.pushedAt.present ? data.pushedAt.value : this.pushedAt,
       id: data.id.present ? data.id.value : this.id,
       exerciseId: data.exerciseId.present
           ? data.exerciseId.value
@@ -6335,6 +6762,7 @@ class PersonalRecordRow extends DataClass
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('exerciseId: $exerciseId, ')
           ..write('kind: $kind, ')
@@ -6350,6 +6778,7 @@ class PersonalRecordRow extends DataClass
     updatedAt,
     deletedAt,
     deviceId,
+    pushedAt,
     id,
     exerciseId,
     kind,
@@ -6364,6 +6793,7 @@ class PersonalRecordRow extends DataClass
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.deviceId == this.deviceId &&
+          other.pushedAt == this.pushedAt &&
           other.id == this.id &&
           other.exerciseId == this.exerciseId &&
           other.kind == this.kind &&
@@ -6376,6 +6806,7 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
   final Value<String> deviceId;
+  final Value<DateTime?> pushedAt;
   final Value<String> id;
   final Value<String> exerciseId;
   final Value<String> kind;
@@ -6387,6 +6818,7 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.deviceId = const Value.absent(),
+    this.pushedAt = const Value.absent(),
     this.id = const Value.absent(),
     this.exerciseId = const Value.absent(),
     this.kind = const Value.absent(),
@@ -6399,6 +6831,7 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
     required String deviceId,
+    this.pushedAt = const Value.absent(),
     required String id,
     required String exerciseId,
     required String kind,
@@ -6416,6 +6849,7 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
     Expression<String>? deviceId,
+    Expression<DateTime>? pushedAt,
     Expression<String>? id,
     Expression<String>? exerciseId,
     Expression<String>? kind,
@@ -6428,6 +6862,7 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (deviceId != null) 'device_id': deviceId,
+      if (pushedAt != null) 'pushed_at': pushedAt,
       if (id != null) 'id': id,
       if (exerciseId != null) 'exercise_id': exerciseId,
       if (kind != null) 'kind': kind,
@@ -6442,6 +6877,7 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
     Value<String>? deviceId,
+    Value<DateTime?>? pushedAt,
     Value<String>? id,
     Value<String>? exerciseId,
     Value<String>? kind,
@@ -6454,6 +6890,7 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
       deviceId: deviceId ?? this.deviceId,
+      pushedAt: pushedAt ?? this.pushedAt,
       id: id ?? this.id,
       exerciseId: exerciseId ?? this.exerciseId,
       kind: kind ?? this.kind,
@@ -6475,6 +6912,9 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
     }
     if (deviceId.present) {
       map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (pushedAt.present) {
+      map['pushed_at'] = Variable<DateTime>(pushedAt.value);
     }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
@@ -6506,12 +6946,298 @@ class PersonalRecordsCompanion extends UpdateCompanion<PersonalRecordRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('deviceId: $deviceId, ')
+          ..write('pushedAt: $pushedAt, ')
           ..write('id: $id, ')
           ..write('exerciseId: $exerciseId, ')
           ..write('kind: $kind, ')
           ..write('value: $value, ')
           ..write('achievedAt: $achievedAt, ')
           ..write('sessionId: $sessionId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncStateTable extends SyncState
+    with TableInfo<$SyncStateTable, SyncStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncStateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _targetTableMeta = const VerificationMeta(
+    'targetTable',
+  );
+  @override
+  late final GeneratedColumn<String> targetTable = GeneratedColumn<String>(
+    'target_table',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 64),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cursorMeta = const VerificationMeta('cursor');
+  @override
+  late final GeneratedColumn<String> cursor = GeneratedColumn<String>(
+    'cursor',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [targetTable, cursor, syncedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('target_table')) {
+      context.handle(
+        _targetTableMeta,
+        targetTable.isAcceptableOrUnknown(
+          data['target_table']!,
+          _targetTableMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetTableMeta);
+    }
+    if (data.containsKey('cursor')) {
+      context.handle(
+        _cursorMeta,
+        cursor.isAcceptableOrUnknown(data['cursor']!, _cursorMeta),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {targetTable};
+  @override
+  SyncStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncStateRow(
+      targetTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_table'],
+      )!,
+      cursor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cursor'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      ),
+    );
+  }
+
+  @override
+  $SyncStateTable createAlias(String alias) {
+    return $SyncStateTable(attachedDatabase, alias);
+  }
+}
+
+class SyncStateRow extends DataClass implements Insertable<SyncStateRow> {
+  /// Which table this cursor is for.
+  ///
+  /// Not `tableName`: drift's own [Table] declares that getter for naming a
+  /// table, and the clash is invisible in the app's generated code and fails
+  /// to compile only in the generated *migration* helper, where the column
+  /// name is turned back into a getter.
+  final String targetTable;
+
+  /// The server's own replication stamp, kept opaque.
+  ///
+  /// Deliberately not parsed here. It is the server's ordering, not a time
+  /// this app can reason about, and a client that read it as a date would
+  /// start comparing it against its own clock.
+  final String? cursor;
+
+  /// When a sync last finished this table, for telling the user.
+  final DateTime? syncedAt;
+  const SyncStateRow({required this.targetTable, this.cursor, this.syncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['target_table'] = Variable<String>(targetTable);
+    if (!nullToAbsent || cursor != null) {
+      map['cursor'] = Variable<String>(cursor);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    return map;
+  }
+
+  SyncStateCompanion toCompanion(bool nullToAbsent) {
+    return SyncStateCompanion(
+      targetTable: Value(targetTable),
+      cursor: cursor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cursor),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+    );
+  }
+
+  factory SyncStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncStateRow(
+      targetTable: serializer.fromJson<String>(json['targetTable']),
+      cursor: serializer.fromJson<String?>(json['cursor']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'targetTable': serializer.toJson<String>(targetTable),
+      'cursor': serializer.toJson<String?>(cursor),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+    };
+  }
+
+  SyncStateRow copyWith({
+    String? targetTable,
+    Value<String?> cursor = const Value.absent(),
+    Value<DateTime?> syncedAt = const Value.absent(),
+  }) => SyncStateRow(
+    targetTable: targetTable ?? this.targetTable,
+    cursor: cursor.present ? cursor.value : this.cursor,
+    syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+  );
+  SyncStateRow copyWithCompanion(SyncStateCompanion data) {
+    return SyncStateRow(
+      targetTable: data.targetTable.present
+          ? data.targetTable.value
+          : this.targetTable,
+      cursor: data.cursor.present ? data.cursor.value : this.cursor,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateRow(')
+          ..write('targetTable: $targetTable, ')
+          ..write('cursor: $cursor, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(targetTable, cursor, syncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncStateRow &&
+          other.targetTable == this.targetTable &&
+          other.cursor == this.cursor &&
+          other.syncedAt == this.syncedAt);
+}
+
+class SyncStateCompanion extends UpdateCompanion<SyncStateRow> {
+  final Value<String> targetTable;
+  final Value<String?> cursor;
+  final Value<DateTime?> syncedAt;
+  final Value<int> rowid;
+  const SyncStateCompanion({
+    this.targetTable = const Value.absent(),
+    this.cursor = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncStateCompanion.insert({
+    required String targetTable,
+    this.cursor = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : targetTable = Value(targetTable);
+  static Insertable<SyncStateRow> custom({
+    Expression<String>? targetTable,
+    Expression<String>? cursor,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (targetTable != null) 'target_table': targetTable,
+      if (cursor != null) 'cursor': cursor,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncStateCompanion copyWith({
+    Value<String>? targetTable,
+    Value<String?>? cursor,
+    Value<DateTime?>? syncedAt,
+    Value<int>? rowid,
+  }) {
+    return SyncStateCompanion(
+      targetTable: targetTable ?? this.targetTable,
+      cursor: cursor ?? this.cursor,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (targetTable.present) {
+      map['target_table'] = Variable<String>(targetTable.value);
+    }
+    if (cursor.present) {
+      map['cursor'] = Variable<String>(cursor.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateCompanion(')
+          ..write('targetTable: $targetTable, ')
+          ..write('cursor: $cursor, ')
+          ..write('syncedAt: $syncedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6532,6 +7258,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PersonalRecordsTable personalRecords = $PersonalRecordsTable(
     this,
   );
+  late final $SyncStateTable syncState = $SyncStateTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6546,7 +7273,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     repLogs,
     formEvents,
     personalRecords,
+    syncState,
   ];
+  @override
+  DriftDatabaseOptions get options =>
+      const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
 typedef $$ProfilesTableCreateCompanionBuilder =
@@ -6554,6 +7285,7 @@ typedef $$ProfilesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String deviceId,
+      Value<DateTime?> pushedAt,
       required String id,
       required String goal,
       required int daysPerWeek,
@@ -6577,6 +7309,7 @@ typedef $$ProfilesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<DateTime?> pushedAt,
       Value<String> id,
       Value<String> goal,
       Value<int> daysPerWeek,
@@ -6617,6 +7350,11 @@ class $$ProfilesTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6725,6 +7463,11 @@ class $$ProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -6824,6 +7567,9 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get pushedAt =>
+      $composableBuilder(column: $table.pushedAt, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -6917,6 +7663,7 @@ class $$ProfilesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<DateTime?> pushedAt = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> goal = const Value.absent(),
                 Value<int> daysPerWeek = const Value.absent(),
@@ -6938,6 +7685,7 @@ class $$ProfilesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 goal: goal,
                 daysPerWeek: daysPerWeek,
@@ -6961,6 +7709,7 @@ class $$ProfilesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String deviceId,
+                Value<DateTime?> pushedAt = const Value.absent(),
                 required String id,
                 required String goal,
                 required int daysPerWeek,
@@ -6982,6 +7731,7 @@ class $$ProfilesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 goal: goal,
                 daysPerWeek: daysPerWeek,
@@ -7027,6 +7777,7 @@ typedef $$PlansTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String deviceId,
+      Value<DateTime?> pushedAt,
       required String id,
       required String profileId,
       required String templateId,
@@ -7043,6 +7794,7 @@ typedef $$PlansTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<DateTime?> pushedAt,
       Value<String> id,
       Value<String> profileId,
       Value<String> templateId,
@@ -7075,6 +7827,11 @@ class $$PlansTableFilterComposer extends Composer<_$AppDatabase, $PlansTable> {
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7148,6 +7905,11 @@ class $$PlansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -7212,6 +7974,9 @@ class $$PlansTableAnnotationComposer
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get pushedAt =>
+      $composableBuilder(column: $table.pushedAt, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -7275,6 +8040,7 @@ class $$PlansTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<DateTime?> pushedAt = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> profileId = const Value.absent(),
                 Value<String> templateId = const Value.absent(),
@@ -7289,6 +8055,7 @@ class $$PlansTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 profileId: profileId,
                 templateId: templateId,
@@ -7305,6 +8072,7 @@ class $$PlansTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String deviceId,
+                Value<DateTime?> pushedAt = const Value.absent(),
                 required String id,
                 required String profileId,
                 required String templateId,
@@ -7319,6 +8087,7 @@ class $$PlansTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 profileId: profileId,
                 templateId: templateId,
@@ -7357,6 +8126,7 @@ typedef $$PlanDaysTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String deviceId,
+      Value<DateTime?> pushedAt,
       required String id,
       required String planId,
       required int weekday,
@@ -7370,6 +8140,7 @@ typedef $$PlanDaysTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<DateTime?> pushedAt,
       Value<String> id,
       Value<String> planId,
       Value<int> weekday,
@@ -7400,6 +8171,11 @@ class $$PlanDaysTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7458,6 +8234,11 @@ class $$PlanDaysTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -7506,6 +8287,9 @@ class $$PlanDaysTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get pushedAt =>
+      $composableBuilder(column: $table.pushedAt, builder: (column) => column);
 
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
@@ -7562,6 +8346,7 @@ class $$PlanDaysTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<DateTime?> pushedAt = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> planId = const Value.absent(),
                 Value<int> weekday = const Value.absent(),
@@ -7573,6 +8358,7 @@ class $$PlanDaysTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 planId: planId,
                 weekday: weekday,
@@ -7586,6 +8372,7 @@ class $$PlanDaysTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String deviceId,
+                Value<DateTime?> pushedAt = const Value.absent(),
                 required String id,
                 required String planId,
                 required int weekday,
@@ -7597,6 +8384,7 @@ class $$PlanDaysTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 planId: planId,
                 weekday: weekday,
@@ -7632,6 +8420,7 @@ typedef $$PlanExercisesTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String deviceId,
+      Value<DateTime?> pushedAt,
       required String id,
       required String planDayId,
       required int orderIndex,
@@ -7654,6 +8443,7 @@ typedef $$PlanExercisesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<DateTime?> pushedAt,
       Value<String> id,
       Value<String> planDayId,
       Value<int> orderIndex,
@@ -7693,6 +8483,11 @@ class $$PlanExercisesTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7796,6 +8591,11 @@ class $$PlanExercisesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -7889,6 +8689,9 @@ class $$PlanExercisesTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get pushedAt =>
+      $composableBuilder(column: $table.pushedAt, builder: (column) => column);
 
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
@@ -7992,6 +8795,7 @@ class $$PlanExercisesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<DateTime?> pushedAt = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> planDayId = const Value.absent(),
                 Value<int> orderIndex = const Value.absent(),
@@ -8012,6 +8816,7 @@ class $$PlanExercisesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 planDayId: planDayId,
                 orderIndex: orderIndex,
@@ -8034,6 +8839,7 @@ class $$PlanExercisesTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String deviceId,
+                Value<DateTime?> pushedAt = const Value.absent(),
                 required String id,
                 required String planDayId,
                 required int orderIndex,
@@ -8054,6 +8860,7 @@ class $$PlanExercisesTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 planDayId: planDayId,
                 orderIndex: orderIndex,
@@ -8101,6 +8908,7 @@ typedef $$SessionsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String deviceId,
+      Value<DateTime?> pushedAt,
       required String id,
       Value<String?> planDayId,
       required DateTime startedAt,
@@ -8115,6 +8923,7 @@ typedef $$SessionsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<DateTime?> pushedAt,
       Value<String> id,
       Value<String?> planDayId,
       Value<DateTime> startedAt,
@@ -8146,6 +8955,11 @@ class $$SessionsTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8209,6 +9023,11 @@ class $$SessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -8262,6 +9081,9 @@ class $$SessionsTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get pushedAt =>
+      $composableBuilder(column: $table.pushedAt, builder: (column) => column);
 
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
@@ -8321,6 +9143,7 @@ class $$SessionsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<DateTime?> pushedAt = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String?> planDayId = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
@@ -8333,6 +9156,7 @@ class $$SessionsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 planDayId: planDayId,
                 startedAt: startedAt,
@@ -8347,6 +9171,7 @@ class $$SessionsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String deviceId,
+                Value<DateTime?> pushedAt = const Value.absent(),
                 required String id,
                 Value<String?> planDayId = const Value.absent(),
                 required DateTime startedAt,
@@ -8359,6 +9184,7 @@ class $$SessionsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 planDayId: planDayId,
                 startedAt: startedAt,
@@ -8395,6 +9221,7 @@ typedef $$SetLogsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String deviceId,
+      Value<DateTime?> pushedAt,
       required String id,
       required String sessionId,
       Value<String?> planExerciseId,
@@ -8413,6 +9240,7 @@ typedef $$SetLogsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<DateTime?> pushedAt,
       Value<String> id,
       Value<String> sessionId,
       Value<String?> planExerciseId,
@@ -8448,6 +9276,11 @@ class $$SetLogsTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8531,6 +9364,11 @@ class $$SetLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -8604,6 +9442,9 @@ class $$SetLogsTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get pushedAt =>
+      $composableBuilder(column: $table.pushedAt, builder: (column) => column);
 
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
@@ -8680,6 +9521,7 @@ class $$SetLogsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<DateTime?> pushedAt = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> sessionId = const Value.absent(),
                 Value<String?> planExerciseId = const Value.absent(),
@@ -8696,6 +9538,7 @@ class $$SetLogsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 sessionId: sessionId,
                 planExerciseId: planExerciseId,
@@ -8714,6 +9557,7 @@ class $$SetLogsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String deviceId,
+                Value<DateTime?> pushedAt = const Value.absent(),
                 required String id,
                 required String sessionId,
                 Value<String?> planExerciseId = const Value.absent(),
@@ -8730,6 +9574,7 @@ class $$SetLogsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 sessionId: sessionId,
                 planExerciseId: planExerciseId,
@@ -9284,6 +10129,7 @@ typedef $$PersonalRecordsTableCreateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       required String deviceId,
+      Value<DateTime?> pushedAt,
       required String id,
       required String exerciseId,
       required String kind,
@@ -9297,6 +10143,7 @@ typedef $$PersonalRecordsTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
       Value<String> deviceId,
+      Value<DateTime?> pushedAt,
       Value<String> id,
       Value<String> exerciseId,
       Value<String> kind,
@@ -9327,6 +10174,11 @@ class $$PersonalRecordsTableFilterComposer
 
   ColumnFilters<String> get deviceId => $composableBuilder(
     column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9385,6 +10237,11 @@ class $$PersonalRecordsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get pushedAt => $composableBuilder(
+    column: $table.pushedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -9433,6 +10290,9 @@ class $$PersonalRecordsTableAnnotationComposer
 
   GeneratedColumn<String> get deviceId =>
       $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get pushedAt =>
+      $composableBuilder(column: $table.pushedAt, builder: (column) => column);
 
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
@@ -9497,6 +10357,7 @@ class $$PersonalRecordsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<String> deviceId = const Value.absent(),
+                Value<DateTime?> pushedAt = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> exerciseId = const Value.absent(),
                 Value<String> kind = const Value.absent(),
@@ -9508,6 +10369,7 @@ class $$PersonalRecordsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 exerciseId: exerciseId,
                 kind: kind,
@@ -9521,6 +10383,7 @@ class $$PersonalRecordsTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required String deviceId,
+                Value<DateTime?> pushedAt = const Value.absent(),
                 required String id,
                 required String exerciseId,
                 required String kind,
@@ -9532,6 +10395,7 @@ class $$PersonalRecordsTableTableManager
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 deviceId: deviceId,
+                pushedAt: pushedAt,
                 id: id,
                 exerciseId: exerciseId,
                 kind: kind,
@@ -9565,6 +10429,170 @@ typedef $$PersonalRecordsTableProcessedTableManager =
       PersonalRecordRow,
       PrefetchHooks Function()
     >;
+typedef $$SyncStateTableCreateCompanionBuilder =
+    SyncStateCompanion Function({
+      required String targetTable,
+      Value<String?> cursor,
+      Value<DateTime?> syncedAt,
+      Value<int> rowid,
+    });
+typedef $$SyncStateTableUpdateCompanionBuilder =
+    SyncStateCompanion Function({
+      Value<String> targetTable,
+      Value<String?> cursor,
+      Value<DateTime?> syncedAt,
+      Value<int> rowid,
+    });
+
+class $$SyncStateTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncStateTable> {
+  $$SyncStateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cursor => $composableBuilder(
+    column: $table.cursor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncStateTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncStateTable> {
+  $$SyncStateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cursor => $composableBuilder(
+    column: $table.cursor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncStateTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncStateTable> {
+  $$SyncStateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cursor =>
+      $composableBuilder(column: $table.cursor, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$SyncStateTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncStateTable,
+          SyncStateRow,
+          $$SyncStateTableFilterComposer,
+          $$SyncStateTableOrderingComposer,
+          $$SyncStateTableAnnotationComposer,
+          $$SyncStateTableCreateCompanionBuilder,
+          $$SyncStateTableUpdateCompanionBuilder,
+          (
+            SyncStateRow,
+            BaseReferences<_$AppDatabase, $SyncStateTable, SyncStateRow>,
+          ),
+          SyncStateRow,
+          PrefetchHooks Function()
+        > {
+  $$SyncStateTableTableManager(_$AppDatabase db, $SyncStateTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncStateTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncStateTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncStateTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> targetTable = const Value.absent(),
+                Value<String?> cursor = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncStateCompanion(
+                targetTable: targetTable,
+                cursor: cursor,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String targetTable,
+                Value<String?> cursor = const Value.absent(),
+                Value<DateTime?> syncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncStateCompanion.insert(
+                targetTable: targetTable,
+                cursor: cursor,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncStateTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncStateTable,
+      SyncStateRow,
+      $$SyncStateTableFilterComposer,
+      $$SyncStateTableOrderingComposer,
+      $$SyncStateTableAnnotationComposer,
+      $$SyncStateTableCreateCompanionBuilder,
+      $$SyncStateTableUpdateCompanionBuilder,
+      (
+        SyncStateRow,
+        BaseReferences<_$AppDatabase, $SyncStateTable, SyncStateRow>,
+      ),
+      SyncStateRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9587,4 +10615,6 @@ class $AppDatabaseManager {
       $$FormEventsTableTableManager(_db, _db.formEvents);
   $$PersonalRecordsTableTableManager get personalRecords =>
       $$PersonalRecordsTableTableManager(_db, _db.personalRecords);
+  $$SyncStateTableTableManager get syncState =>
+      $$SyncStateTableTableManager(_db, _db.syncState);
 }

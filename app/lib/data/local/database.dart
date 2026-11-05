@@ -17,6 +17,21 @@ mixin SyncMeta on Table {
 
   /// Which install wrote this revision; used for last-writer-wins tie-breaks.
   TextColumn get deviceId => text().withLength(max: 64)();
+
+  /// The [updatedAt] the server last acknowledged, or null for never.
+  ///
+  /// The one sync column that is **not** replicated: it is this install's
+  /// record of what has been uploaded, and it is what makes the dirty set
+  /// exact. A row is pending while `pushed_at IS NULL OR pushed_at <
+  /// updated_at`, so the only thing a local write has to remember is to bump
+  /// `updated_at` — which it already must do for the conflict rule, rather
+  /// than being a second piece of bookkeeping to forget.
+  ///
+  /// The alternative, comparing `updated_at` against a single watermark,
+  /// silently drops an edit made by a device whose clock is behind. Added in
+  /// v2: the three columns v1 chose were the right ones for resolving a
+  /// conflict and not enough for noticing there was something to resolve.
+  DateTimeColumn get pushedAt => dateTime().nullable()();
 }
 
 @DataClassName('ProfileRow')
@@ -245,6 +260,38 @@ class PersonalRecords extends Table with SyncMeta {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Where this install got to when pulling each table.
+///
+/// One row per syncable table rather than one watermark for the database,
+/// because a sync stops at the table it failed on and has to resume there.
+///
+/// Not syncable itself, and not a diagnostic either: it is this device's
+/// bookkeeping about the shared copy, and replicating it would hand every
+/// other device a cursor into a stream it has not read.
+@DataClassName('SyncStateRow')
+class SyncState extends Table {
+  /// Which table this cursor is for.
+  ///
+  /// Not `tableName`: drift's own [Table] declares that getter for naming a
+  /// table, and the clash is invisible in the app's generated code and fails
+  /// to compile only in the generated *migration* helper, where the column
+  /// name is turned back into a getter.
+  TextColumn get targetTable => text().withLength(max: 64)();
+
+  /// The server's own replication stamp, kept opaque.
+  ///
+  /// Deliberately not parsed here. It is the server's ordering, not a time
+  /// this app can reason about, and a client that read it as a date would
+  /// start comparing it against its own clock.
+  TextColumn get cursor => text().nullable()();
+
+  /// When a sync last finished this table, for telling the user.
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {targetTable};
+}
+
 @DriftDatabase(
   tables: [
     Profiles,
@@ -256,6 +303,7 @@ class PersonalRecords extends Table with SyncMeta {
     RepLogs,
     FormEvents,
     PersonalRecords,
+    SyncState,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -282,16 +330,55 @@ class AppDatabase extends _$AppDatabase {
     'form_events',
   };
 
+  /// This install's own bookkeeping about the sync, which belongs to the
+  /// device rather than to the user. A third category because it is neither
+  /// user data to replicate nor a diagnostic to keep: sending it anywhere
+  /// would give another device a cursor into a stream it has not read.
+  static const Set<String> deviceStateTableNames = {'sync_state'};
+
   /// Timestamps are stored as ISO-8601 text, not as unix seconds.
   ///
   /// The integer format says nothing about the zone and truncates to the
   /// second, so a UTC value written on one device reads back as a local one
   /// with its sub-second part gone. For rows that will eventually be
   /// reconciled across devices by their timestamps, that is not a detail.
+  ///
+  /// This is **half** of the decision. `app/build.yaml` carries the other
+  /// half, because drift's own tooling reads the schema statically and does
+  /// not see this getter — so until M10 every snapshot in
+  /// `app/drift_schemas/` described these columns as integers. Removing
+  /// either half is caught: this one by `database_test.dart` asking SQLite
+  /// what it actually stored, and the build option by `migration_test.dart`,
+  /// which is where the disagreement first surfaced.
   @override
   DriftDatabaseOptions get options =>
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  /// v2 adds `pushed_at` to every syncable table and the cursor table.
+  ///
+  /// `pushed_at` goes in **nullable with no default**, so every row that was
+  /// on the device before sync existed comes out pending and the first sync
+  /// uploads all of it. Backfilling it to the migration time would mark the
+  /// user's whole training history as already uploaded: the first sync would
+  /// push nothing, report success, and the second device would show an empty
+  /// app. `migration_test.dart` runs this against a real v1 database.
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(profiles, profiles.pushedAt);
+            await m.addColumn(plans, plans.pushedAt);
+            await m.addColumn(planDays, planDays.pushedAt);
+            await m.addColumn(planExercises, planExercises.pushedAt);
+            await m.addColumn(sessions, sessions.pushedAt);
+            await m.addColumn(setLogs, setLogs.pushedAt);
+            await m.addColumn(personalRecords, personalRecords.pushedAt);
+            await m.createTable(syncState);
+          }
+        },
+      );
 }
