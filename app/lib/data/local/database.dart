@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 
 part 'database.g.dart';
 
@@ -292,6 +291,45 @@ class SyncState extends Table {
   Set<Column<Object>> get primaryKey => {targetTable};
 }
 
+/// This installation's own identity, and whose training it holds.
+///
+/// The install id is what the conflict rule's tie-break compares, so it has
+/// to be stable for the life of the installation and distinct from every
+/// other installation. A device that renamed itself on launch would start
+/// losing tie-breaks it used to win, and two devices sharing a name cannot
+/// converge on two edits that claim the same instant at all.
+///
+/// The account sits in the same row with a shorter life: it is cleared on
+/// sign-out while the install id stays. Neither of them is a secret, and
+/// neither is the point of this table being local-only — the point is that
+/// it describes *this* device. The refresh token is not here; that lives in
+/// the platform keychain.
+@DataClassName('LocalIdentityRow')
+class LocalIdentity extends Table {
+  /// One row, ever. The default is spelled out rather than named, because
+  /// `drift_dev schema dump` copies a column's default expression into a
+  /// file of its own to run it, where a private constant does not exist —
+  /// and the export then falls back to static analysis for the whole
+  /// database.
+  TextColumn get id => text().withDefault(const Constant('this_device'))();
+
+  TextColumn get installId => text().withLength(max: 64)();
+
+  /// Whose training this database holds, once somebody has signed in.
+  ///
+  /// Not "who is signed in right now" — that question is answered by
+  /// whether there is a session in the keychain. This outlives a sign-out
+  /// on purpose: the rows on this device belong to that account, and
+  /// letting a second account sign in over them would push one person's
+  /// training into another person's account.
+  TextColumn get userId => text().nullable()();
+  TextColumn get email => text().nullable()();
+  DateTimeColumn get claimedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     Profiles,
@@ -304,14 +342,22 @@ class SyncState extends Table {
     FormEvents,
     PersonalRecords,
     SyncState,
+    LocalIdentity,
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(driftDatabase(name: 'spottr'));
+  /// Opening the file is the caller's job, so that this library does not
+  /// import `drift_flutter` and therefore does not reach `dart:ui`.
+  ///
+  /// Not a style preference. `drift_dev schema dump` *runs* parts of this
+  /// code to export as complete a schema as it can, and it cannot run
+  /// anything that reaches dart:ui: it warns, falls back to static analysis
+  /// and exports whatever that pass can see. The snapshots are what the
+  /// migration tests compare the real migration against, so the fewer of
+  /// them that come from a fallback the better.
+  AppDatabase(super.e);
 
-  AppDatabase.forTesting(super.e);
-
-  /// Tables that will replicate once the sync milestone lands.
+  /// Tables that replicate.
   static const Set<String> syncableTableNames = {
     'profiles',
     'plans',
@@ -334,7 +380,10 @@ class AppDatabase extends _$AppDatabase {
   /// device rather than to the user. A third category because it is neither
   /// user data to replicate nor a diagnostic to keep: sending it anywhere
   /// would give another device a cursor into a stream it has not read.
-  static const Set<String> deviceStateTableNames = {'sync_state'};
+  static const Set<String> deviceStateTableNames = {
+    'sync_state',
+    'local_identity',
+  };
 
   /// Timestamps are stored as ISO-8601 text, not as unix seconds.
   ///
@@ -355,9 +404,10 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
-  /// v2 adds `pushed_at` to every syncable table and the cursor table.
+  /// v2 adds `pushed_at` to every syncable table and the cursor table; v3
+  /// adds the table that gives this installation a name.
   ///
   /// `pushed_at` goes in **nullable with no default**, so every row that was
   /// on the device before sync existed comes out pending and the first sync
@@ -378,6 +428,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(setLogs, setLogs.pushedAt);
             await m.addColumn(personalRecords, personalRecords.pushedAt);
             await m.createTable(syncState);
+          }
+          if (from < 3) {
+            // v3 gives the installation a name of its own. Nothing
+            // backfills it: the id is generated the first time it is asked
+            // for, so an upgraded install gets one on its next launch and
+            // keeps it.
+            await m.createTable(localIdentity);
           }
         },
       );

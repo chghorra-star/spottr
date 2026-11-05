@@ -22,7 +22,7 @@ void main() {
     db = openTestDatabase();
     addTearDown(db.close);
     container = ProviderContainer.test(
-      overrides: [databaseProvider.overrideWithValue(db)],
+      overrides: testOverrides(db),
     );
     await container
         .read(profileControllerProvider)

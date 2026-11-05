@@ -7244,6 +7244,380 @@ class SyncStateCompanion extends UpdateCompanion<SyncStateRow> {
   }
 }
 
+class $LocalIdentityTable extends LocalIdentity
+    with TableInfo<$LocalIdentityTable, LocalIdentityRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalIdentityTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('this_device'),
+  );
+  static const VerificationMeta _installIdMeta = const VerificationMeta(
+    'installId',
+  );
+  @override
+  late final GeneratedColumn<String> installId = GeneratedColumn<String>(
+    'install_id',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 64),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _claimedAtMeta = const VerificationMeta(
+    'claimedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> claimedAt = GeneratedColumn<DateTime>(
+    'claimed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    installId,
+    userId,
+    email,
+    claimedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_identity';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalIdentityRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('install_id')) {
+      context.handle(
+        _installIdMeta,
+        installId.isAcceptableOrUnknown(data['install_id']!, _installIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_installIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
+    if (data.containsKey('claimed_at')) {
+      context.handle(
+        _claimedAtMeta,
+        claimedAt.isAcceptableOrUnknown(data['claimed_at']!, _claimedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LocalIdentityRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalIdentityRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      installId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}install_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      ),
+      claimedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}claimed_at'],
+      ),
+    );
+  }
+
+  @override
+  $LocalIdentityTable createAlias(String alias) {
+    return $LocalIdentityTable(attachedDatabase, alias);
+  }
+}
+
+class LocalIdentityRow extends DataClass
+    implements Insertable<LocalIdentityRow> {
+  /// One row, ever. The default is spelled out rather than named, because
+  /// `drift_dev schema dump` copies a column's default expression into a
+  /// file of its own to run it, where a private constant does not exist —
+  /// and the export then falls back to static analysis for the whole
+  /// database.
+  final String id;
+  final String installId;
+
+  /// Whose training this database holds, once somebody has signed in.
+  ///
+  /// Not "who is signed in right now" — that question is answered by
+  /// whether there is a session in the keychain. This outlives a sign-out
+  /// on purpose: the rows on this device belong to that account, and
+  /// letting a second account sign in over them would push one person's
+  /// training into another person's account.
+  final String? userId;
+  final String? email;
+  final DateTime? claimedAt;
+  const LocalIdentityRow({
+    required this.id,
+    required this.installId,
+    this.userId,
+    this.email,
+    this.claimedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['install_id'] = Variable<String>(installId);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
+    if (!nullToAbsent || email != null) {
+      map['email'] = Variable<String>(email);
+    }
+    if (!nullToAbsent || claimedAt != null) {
+      map['claimed_at'] = Variable<DateTime>(claimedAt);
+    }
+    return map;
+  }
+
+  LocalIdentityCompanion toCompanion(bool nullToAbsent) {
+    return LocalIdentityCompanion(
+      id: Value(id),
+      installId: Value(installId),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      email: email == null && nullToAbsent
+          ? const Value.absent()
+          : Value(email),
+      claimedAt: claimedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(claimedAt),
+    );
+  }
+
+  factory LocalIdentityRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalIdentityRow(
+      id: serializer.fromJson<String>(json['id']),
+      installId: serializer.fromJson<String>(json['installId']),
+      userId: serializer.fromJson<String?>(json['userId']),
+      email: serializer.fromJson<String?>(json['email']),
+      claimedAt: serializer.fromJson<DateTime?>(json['claimedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'installId': serializer.toJson<String>(installId),
+      'userId': serializer.toJson<String?>(userId),
+      'email': serializer.toJson<String?>(email),
+      'claimedAt': serializer.toJson<DateTime?>(claimedAt),
+    };
+  }
+
+  LocalIdentityRow copyWith({
+    String? id,
+    String? installId,
+    Value<String?> userId = const Value.absent(),
+    Value<String?> email = const Value.absent(),
+    Value<DateTime?> claimedAt = const Value.absent(),
+  }) => LocalIdentityRow(
+    id: id ?? this.id,
+    installId: installId ?? this.installId,
+    userId: userId.present ? userId.value : this.userId,
+    email: email.present ? email.value : this.email,
+    claimedAt: claimedAt.present ? claimedAt.value : this.claimedAt,
+  );
+  LocalIdentityRow copyWithCompanion(LocalIdentityCompanion data) {
+    return LocalIdentityRow(
+      id: data.id.present ? data.id.value : this.id,
+      installId: data.installId.present ? data.installId.value : this.installId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      email: data.email.present ? data.email.value : this.email,
+      claimedAt: data.claimedAt.present ? data.claimedAt.value : this.claimedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalIdentityRow(')
+          ..write('id: $id, ')
+          ..write('installId: $installId, ')
+          ..write('userId: $userId, ')
+          ..write('email: $email, ')
+          ..write('claimedAt: $claimedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, installId, userId, email, claimedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalIdentityRow &&
+          other.id == this.id &&
+          other.installId == this.installId &&
+          other.userId == this.userId &&
+          other.email == this.email &&
+          other.claimedAt == this.claimedAt);
+}
+
+class LocalIdentityCompanion extends UpdateCompanion<LocalIdentityRow> {
+  final Value<String> id;
+  final Value<String> installId;
+  final Value<String?> userId;
+  final Value<String?> email;
+  final Value<DateTime?> claimedAt;
+  final Value<int> rowid;
+  const LocalIdentityCompanion({
+    this.id = const Value.absent(),
+    this.installId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.email = const Value.absent(),
+    this.claimedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalIdentityCompanion.insert({
+    this.id = const Value.absent(),
+    required String installId,
+    this.userId = const Value.absent(),
+    this.email = const Value.absent(),
+    this.claimedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : installId = Value(installId);
+  static Insertable<LocalIdentityRow> custom({
+    Expression<String>? id,
+    Expression<String>? installId,
+    Expression<String>? userId,
+    Expression<String>? email,
+    Expression<DateTime>? claimedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (installId != null) 'install_id': installId,
+      if (userId != null) 'user_id': userId,
+      if (email != null) 'email': email,
+      if (claimedAt != null) 'claimed_at': claimedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalIdentityCompanion copyWith({
+    Value<String>? id,
+    Value<String>? installId,
+    Value<String?>? userId,
+    Value<String?>? email,
+    Value<DateTime?>? claimedAt,
+    Value<int>? rowid,
+  }) {
+    return LocalIdentityCompanion(
+      id: id ?? this.id,
+      installId: installId ?? this.installId,
+      userId: userId ?? this.userId,
+      email: email ?? this.email,
+      claimedAt: claimedAt ?? this.claimedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (installId.present) {
+      map['install_id'] = Variable<String>(installId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (claimedAt.present) {
+      map['claimed_at'] = Variable<DateTime>(claimedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalIdentityCompanion(')
+          ..write('id: $id, ')
+          ..write('installId: $installId, ')
+          ..write('userId: $userId, ')
+          ..write('email: $email, ')
+          ..write('claimedAt: $claimedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7259,6 +7633,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $SyncStateTable syncState = $SyncStateTable(this);
+  late final $LocalIdentityTable localIdentity = $LocalIdentityTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7274,6 +7649,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     formEvents,
     personalRecords,
     syncState,
+    localIdentity,
   ];
   @override
   DriftDatabaseOptions get options =>
@@ -10593,6 +10969,210 @@ typedef $$SyncStateTableProcessedTableManager =
       SyncStateRow,
       PrefetchHooks Function()
     >;
+typedef $$LocalIdentityTableCreateCompanionBuilder =
+    LocalIdentityCompanion Function({
+      Value<String> id,
+      required String installId,
+      Value<String?> userId,
+      Value<String?> email,
+      Value<DateTime?> claimedAt,
+      Value<int> rowid,
+    });
+typedef $$LocalIdentityTableUpdateCompanionBuilder =
+    LocalIdentityCompanion Function({
+      Value<String> id,
+      Value<String> installId,
+      Value<String?> userId,
+      Value<String?> email,
+      Value<DateTime?> claimedAt,
+      Value<int> rowid,
+    });
+
+class $$LocalIdentityTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalIdentityTable> {
+  $$LocalIdentityTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get installId => $composableBuilder(
+    column: $table.installId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get claimedAt => $composableBuilder(
+    column: $table.claimedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalIdentityTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalIdentityTable> {
+  $$LocalIdentityTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get installId => $composableBuilder(
+    column: $table.installId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get claimedAt => $composableBuilder(
+    column: $table.claimedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalIdentityTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalIdentityTable> {
+  $$LocalIdentityTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get installId =>
+      $composableBuilder(column: $table.installId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get claimedAt =>
+      $composableBuilder(column: $table.claimedAt, builder: (column) => column);
+}
+
+class $$LocalIdentityTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalIdentityTable,
+          LocalIdentityRow,
+          $$LocalIdentityTableFilterComposer,
+          $$LocalIdentityTableOrderingComposer,
+          $$LocalIdentityTableAnnotationComposer,
+          $$LocalIdentityTableCreateCompanionBuilder,
+          $$LocalIdentityTableUpdateCompanionBuilder,
+          (
+            LocalIdentityRow,
+            BaseReferences<
+              _$AppDatabase,
+              $LocalIdentityTable,
+              LocalIdentityRow
+            >,
+          ),
+          LocalIdentityRow,
+          PrefetchHooks Function()
+        > {
+  $$LocalIdentityTableTableManager(_$AppDatabase db, $LocalIdentityTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalIdentityTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalIdentityTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalIdentityTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> installId = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<String?> email = const Value.absent(),
+                Value<DateTime?> claimedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalIdentityCompanion(
+                id: id,
+                installId: installId,
+                userId: userId,
+                email: email,
+                claimedAt: claimedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String installId,
+                Value<String?> userId = const Value.absent(),
+                Value<String?> email = const Value.absent(),
+                Value<DateTime?> claimedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalIdentityCompanion.insert(
+                id: id,
+                installId: installId,
+                userId: userId,
+                email: email,
+                claimedAt: claimedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalIdentityTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalIdentityTable,
+      LocalIdentityRow,
+      $$LocalIdentityTableFilterComposer,
+      $$LocalIdentityTableOrderingComposer,
+      $$LocalIdentityTableAnnotationComposer,
+      $$LocalIdentityTableCreateCompanionBuilder,
+      $$LocalIdentityTableUpdateCompanionBuilder,
+      (
+        LocalIdentityRow,
+        BaseReferences<_$AppDatabase, $LocalIdentityTable, LocalIdentityRow>,
+      ),
+      LocalIdentityRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -10617,4 +11197,6 @@ class $AppDatabaseManager {
       $$PersonalRecordsTableTableManager(_db, _db.personalRecords);
   $$SyncStateTableTableManager get syncState =>
       $$SyncStateTableTableManager(_db, _db.syncState);
+  $$LocalIdentityTableTableManager get localIdentity =>
+      $$LocalIdentityTableTableManager(_db, _db.localIdentity);
 }

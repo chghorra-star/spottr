@@ -19,7 +19,7 @@ void main() {
     db = openTestDatabase();
     addTearDown(db.close);
     container = ProviderContainer.test(
-      overrides: [databaseProvider.overrideWithValue(db)],
+      overrides: testOverrides(db),
     );
     await container
         .read(profileControllerProvider)
@@ -256,7 +256,7 @@ void main() {
       db = openTestDatabase();
       addTearDown(db.close);
       container = ProviderContainer.test(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: testOverrides(db),
       );
 
       await expectLater(
@@ -271,7 +271,7 @@ void main() {
     db = openTestDatabase();
     addTearDown(db.close);
     container = ProviderContainer.test(
-      overrides: [databaseProvider.overrideWithValue(db)],
+      overrides: testOverrides(db),
     );
     await container.read(profileRepositoryProvider).save(onboardedProfile());
 

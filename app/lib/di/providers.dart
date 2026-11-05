@@ -1,4 +1,5 @@
 import 'package:coach_engine/coach_engine.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -23,7 +24,7 @@ import '../state/session_controller.dart';
 /// Tests override this with an in-memory executor; see
 /// `test/support/test_database.dart`.
 final Provider<AppDatabase> databaseProvider = Provider<AppDatabase>((ref) {
-  final database = AppDatabase();
+  final database = AppDatabase(driftDatabase(name: 'spottr'));
   ref.onDispose(database.close);
   return database;
 });
@@ -45,19 +46,45 @@ final Provider<PlanEdits> planEditsProvider =
 final Provider<Progression> progressionProvider =
     Provider<Progression>((ref) => Progression(ref.watch(catalogProvider)));
 
+/// This installation's own id, read once before the first frame.
+///
+/// No usable default, deliberately. Reading it is a database call and every
+/// repository needs it synchronously, so `bootstrap()` reads it and
+/// overrides this — and a scope that builds a repository without the
+/// override would stamp somebody's training with the wrong device, which is
+/// precisely what the sync's tie-break cannot survive. Better to fail where
+/// the wiring is wrong than to fall back to a constant that is wrong on
+/// every install at once.
+final Provider<String> installIdProvider = Provider<String>((ref) {
+  throw StateError(
+    'installIdProvider was not overridden: the install id is read from the '
+    'database by bootstrap() before the app starts. A test that builds a '
+    'repository needs the same override.',
+  );
+});
+
 final Provider<ProfileRepository> profileRepositoryProvider =
     Provider<ProfileRepository>(
-  (ref) => ProfileRepository(ref.watch(databaseProvider)),
+  (ref) => ProfileRepository(
+    ref.watch(databaseProvider),
+    deviceId: ref.watch(installIdProvider),
+  ),
 );
 
 final Provider<PlanRepository> planRepositoryProvider =
     Provider<PlanRepository>(
-  (ref) => PlanRepository(ref.watch(databaseProvider)),
+  (ref) => PlanRepository(
+    ref.watch(databaseProvider),
+    deviceId: ref.watch(installIdProvider),
+  ),
 );
 
 final Provider<SessionRepository> sessionRepositoryProvider =
     Provider<SessionRepository>(
-  (ref) => SessionRepository(ref.watch(databaseProvider)),
+  (ref) => SessionRepository(
+    ref.watch(databaseProvider),
+    deviceId: ref.watch(installIdProvider),
+  ),
 );
 
 /// The stored profile, or null while there is none.

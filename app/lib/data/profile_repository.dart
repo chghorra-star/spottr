@@ -15,12 +15,19 @@ class ProfileRepository {
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
-  /// Stands in for a per-install id until sync lands.
+  /// What a repository built without an install id calls itself.
   ///
-  /// Every row on a device with no account was written by that device, so a
-  /// constant is honest here. The sync milestone replaces it with a
-  /// persisted install id, which is what makes last-writer-wins tie-breaks
-  /// mean anything.
+  /// The real one comes from `LocalIdentityStore` through
+  /// `installIdProvider`, read once at startup — and it has to, because a
+  /// constant shared by every installation is a tie-break that cannot break
+  /// anything. Two edits claiming the same instant would resolve to "keep
+  /// mine" on both devices and stay different for ever.
+  ///
+  /// This stays as the convenient default for a repository constructed
+  /// directly in a test, where one device is the only device. It is also
+  /// what every row written before M10 carries, and those rows keep it:
+  /// rewriting them to this install's new id would be a claim about who
+  /// wrote them that a second device would contradict.
   static const String defaultDeviceId = 'local';
 
   final AppDatabase _db;
