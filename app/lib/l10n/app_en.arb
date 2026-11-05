@@ -809,6 +809,78 @@
   "coachRuleElbowFlare": "elbow flare",
   "coachRuleElbowPath": "elbow path",
   "coachRuleKneeTravel": "knee travel",
+  "@_account": {
+    "description": "The account and sync screen. Spottr works with no account at all, so everything here is additive and says so."
+  },
+
+  "accountTitle": "Account and sync",
+  "accountLocalFirstBody": "Spottr works without an account. Signing in copies your plan and your training log to your other devices. Nothing from the camera is ever uploaded.",
+  "accountUnavailableTitle": "Sync is not set up in this build",
+  "accountUnavailableBody": "This copy of Spottr was built without a Supabase project, so there is nowhere to sync to. Everything else works as usual.",
+
+  "accountEmail": "Email",
+  "accountPassword": "Password",
+  "accountSignIn": "Sign in",
+  "accountSignUp": "Create an account",
+  "accountSignOut": "Sign out",
+  "accountSignedInAs": "Signed in as {email}",
+  "@accountSignedInAs": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "accountSignedOutOf": "Signed out of {email}. This device still holds that training.",
+  "@accountSignedOutOf": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "accountEmailMissing": "Enter the email address for your account.",
+  "accountPasswordMissing": "Enter your password.",
+
+  "accountSyncNow": "Sync now",
+  "accountSyncing": "Syncing",
+  "accountSyncedNothing": "Up to date. Nothing to send or fetch.",
+  "accountSyncedCounts": "Sent {pushed}, fetched {pulled}.",
+  "@accountSyncedCounts": {
+    "placeholders": {
+      "pushed": {"type": "int"},
+      "pulled": {"type": "int"}
+    }
+  },
+  "accountSyncConflicts": "{count, plural, =1{One change was made in two places; the later one was kept.} other{{count} changes were made in two places; the later one was kept each time.}}",
+  "@accountSyncConflicts": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "accountSyncStoppedOffline": "Stopped: no connection. Your training is on this device and the next sync picks up where this one left off.",
+  "accountSyncStoppedUnauthorized": "Stopped: your sign-in has expired. Sign in again to carry on syncing.",
+  "accountSyncStoppedRejected": "Stopped: the server refused a change. {detail}",
+  "@accountSyncStoppedRejected": {
+    "placeholders": {
+      "detail": {"type": "String"}
+    }
+  },
+
+  "authErrorInvalidCredentials": "That email and password do not match an account.",
+  "authErrorEmailTaken": "There is already an account with that email. Sign in instead.",
+  "authErrorWeakPassword": "That password was refused: {detail}",
+  "@authErrorWeakPassword": {
+    "placeholders": {
+      "detail": {"type": "String"}
+    }
+  },
+  "authErrorConfirmationRequired": "Check your email and confirm the address, then sign in.",
+  "authErrorOffline": "No connection. Nothing was changed on this device.",
+  "authErrorRejected": "The server refused the request: {detail}",
+  "@authErrorRejected": {
+    "placeholders": {
+      "detail": {"type": "String"}
+    }
+  },
+  "authErrorForeignAccount": "This device holds another account's training. Signing in as somebody else would move it into their account, so Spottr will not do it.",
+
   "@_exercise_names": {
     "description": "Display names for every catalog entry. The catalog stores an ARB key, never prose, so adding an exercise adds a key here; a test fails if one is missing."
   },

@@ -39,11 +39,23 @@ abstract final class UiKeys {
   static const Key planRebuild = Key('spottr.plan.rebuild');
   static const Key planRebuildConfirm = Key('spottr.plan.rebuild.confirm');
   static const Key planOpenProfile = Key('spottr.plan.profile');
+  static const Key planOpenAccount = Key('spottr.plan.account');
   static const Key planReorderDone = Key('spottr.plan.reorder.done');
 
   static const Key swapSheet = Key('spottr.swap');
   static const Key swapEmpty = Key('spottr.swap.empty');
   static const Key moveDaySheet = Key('spottr.moveDay');
+
+  static const Key accountScreen = Key('spottr.account');
+  static const Key accountUnavailable = Key('spottr.account.unavailable');
+  static const Key accountEmail = Key('spottr.account.email');
+  static const Key accountPassword = Key('spottr.account.password');
+  static const Key accountSignIn = Key('spottr.account.signIn');
+  static const Key accountSignUp = Key('spottr.account.signUp');
+  static const Key accountSignOut = Key('spottr.account.signOut');
+  static const Key accountSyncNow = Key('spottr.account.syncNow');
+  static const Key accountResult = Key('spottr.account.result');
+  static const Key accountError = Key('spottr.account.error');
 
   static const Key profileScreen = Key('spottr.profile');
   static const Key profileSave = Key('spottr.profile.save');

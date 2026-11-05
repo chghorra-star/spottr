@@ -7,13 +7,23 @@ import 'package:meta/meta.dart';
 import 'package:plan_engine/plan_engine.dart';
 import 'package:pose_camera/pose_camera.dart';
 import 'package:pose_core/pose_core.dart';
+import 'package:sync_engine/sync_engine.dart';
 
 import '../data/local/database.dart';
+import '../data/local/local_identity_store.dart';
 import '../data/plan_repository.dart';
 import '../data/profile_repository.dart';
 import '../data/session_repository.dart';
+import '../data/sync/drift_sync_store.dart';
+import '../data/sync/session_store.dart';
+import '../data/sync/supabase_auth.dart';
+import '../data/sync/supabase_config.dart';
+import '../data/sync/supabase_remote_store.dart';
+import '../data/sync/sync_account.dart';
+import '../data/sync/sync_tables.dart';
 import '../domain/user_profile.dart';
 import '../domain/workout_session.dart';
+import '../state/account_controller.dart';
 import '../state/plan_controller.dart';
 import '../state/profile_controller.dart';
 import '../services/coach_voice.dart';
@@ -86,6 +96,73 @@ final Provider<SessionRepository> sessionRepositoryProvider =
     deviceId: ref.watch(installIdProvider),
   ),
 );
+
+/// The Supabase project this build was given, or null for a build without
+/// one — in which case sync is simply not offered and everything else is
+/// unchanged.
+final Provider<SupabaseConfig?> supabaseConfigProvider =
+    Provider<SupabaseConfig?>((ref) => SupabaseConfig.fromEnvironment());
+
+/// Where the session is kept between launches.
+///
+/// The platform keychain. A provider because a widget test cannot reach one
+/// — it is a method channel — and because the in-memory store is what the
+/// app's own tests sync against.
+final Provider<SessionStore> sessionStoreProvider =
+    Provider<SessionStore>((ref) => KeychainSessionStore());
+
+final Provider<LocalIdentityStore> localIdentityProvider =
+    Provider<LocalIdentityStore>(
+  (ref) => LocalIdentityStore(ref.watch(databaseProvider)),
+);
+
+/// The account, the sync, and nothing when this build has no project.
+///
+/// Null rather than throwing, because "no sync in this build" is a state
+/// the screen has a sentence for, not a fault.
+final Provider<AccountController?> accountControllerProvider =
+    Provider<AccountController?>((ref) {
+  final config = ref.watch(supabaseConfigProvider);
+  if (config == null) return null;
+
+  final auth = SupabaseAuth(projectUrl: config.url, anonKey: config.anonKey);
+  final account = SyncAccount(
+    auth: auth,
+    sessions: ref.watch(sessionStoreProvider),
+    identity: ref.watch(localIdentityProvider),
+  );
+  ref.onDispose(account.dispose);
+
+  return SyncAccountController(
+    account: account,
+    engine: SyncEngine(
+      local: DriftSyncStore(ref.watch(databaseProvider)),
+      remote: SupabaseRemoteStore(
+        projectUrl: config.url,
+        anonKey: config.anonKey,
+        // Asked on every request rather than held, so a token renewed
+        // between two tables is the one the second table uses.
+        credentials: account.credentials,
+      ),
+      tables: spottrSyncTables,
+    ),
+  );
+});
+
+/// The account as it stands, and every change to it.
+///
+/// Reads the stored session first so the screen has an answer on its first
+/// frame, then follows the controller.
+final StreamProvider<AccountState> accountProvider =
+    StreamProvider<AccountState>((ref) async* {
+  final controller = ref.watch(accountControllerProvider);
+  if (controller == null) {
+    yield const AccountState();
+    return;
+  }
+  yield await controller.load();
+  yield* controller.watch();
+});
 
 /// The stored profile, or null while there is none.
 ///

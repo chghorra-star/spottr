@@ -5,6 +5,7 @@ import 'package:plan_engine/plan_engine.dart';
 import '../../di/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/plan_strings.dart';
+import '../account/account_screen.dart';
 import '../common/async_view.dart';
 import '../common/ui_keys.dart';
 import '../profile/profile_screen.dart';
@@ -64,6 +65,16 @@ class _PlanBody extends ConsumerWidget {
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (context) => const ProfileScreen(),
+                ),
+              ),
+            ),
+            IconButton(
+              key: UiKeys.planOpenAccount,
+              icon: const Icon(Icons.cloud_outlined),
+              tooltip: l10n.accountTitle,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) => const AccountScreen(),
                 ),
               ),
             ),

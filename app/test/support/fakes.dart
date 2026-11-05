@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:coach_engine/coach_engine.dart';
 import 'package:exercise_library/exercise_library.dart';
 import 'package:plan_engine/plan_engine.dart';
 import 'package:pose_core/pose_core.dart';
+import 'package:spottr/data/local/local_identity_store.dart';
+import 'package:spottr/data/sync/sync_account.dart';
+import 'package:spottr/state/account_controller.dart';
 import 'package:spottr/domain/user_profile.dart';
 import 'package:spottr/state/plan_controller.dart';
 import 'package:spottr/state/profile_controller.dart';
 import 'package:spottr/state/session_controller.dart';
+import 'package:sync_engine/sync_engine.dart';
 
 /// Records what a screen asked for, instead of doing it.
 ///
@@ -194,5 +200,84 @@ class RecordingPlanController implements PlanController {
       if (call.name == name) return call;
     }
     return null;
+  }
+}
+
+/// Records what the account screen asked for.
+///
+/// The screen is the thing under test: which call a tap makes, and which
+/// sentence it shows when that call fails. Whether signing in actually
+/// works is `SyncAccount`'s business, against a fake HTTP client.
+class RecordingAccountController implements AccountController {
+  RecordingAccountController({
+    AccountState initial = const AccountState(),
+    this.onSignIn,
+    this.onSignUp,
+    this.onSync,
+  }) : _state = initial;
+
+  /// Lets a test make a call fail, to check the screen says why.
+  final Future<void> Function(String email, String password)? onSignIn;
+  final Future<void> Function(String email, String password)? onSignUp;
+
+  /// Lets a test decide what the sync reports.
+  final Future<SyncReport> Function()? onSync;
+
+  final List<String> signedIn = [];
+  final List<String> signedUp = [];
+  int signOuts = 0;
+  int syncs = 0;
+
+  AccountState _state;
+  final StreamController<AccountState> _changes =
+      StreamController<AccountState>.broadcast();
+
+  @override
+  Stream<AccountState> watch() => _changes.stream;
+
+  @override
+  Future<AccountState> load() async => _state;
+
+  @override
+  Future<AccountState> signIn({
+    required String email,
+    required String password,
+  }) async {
+    signedIn.add(email);
+    if (onSignIn != null) await onSignIn!(email, password);
+    return _publish(
+      AccountState(owner: DeviceOwner(userId: 'user-1', email: email), signedIn: true),
+    );
+  }
+
+  @override
+  Future<AccountState> signUp({
+    required String email,
+    required String password,
+  }) async {
+    signedUp.add(email);
+    if (onSignUp != null) await onSignUp!(email, password);
+    return _publish(
+      AccountState(owner: DeviceOwner(userId: 'user-1', email: email), signedIn: true),
+    );
+  }
+
+  @override
+  Future<AccountState> signOut() async {
+    signOuts++;
+    return _publish(AccountState(owner: _state.owner));
+  }
+
+  @override
+  Future<SyncReport> syncNow() async {
+    syncs++;
+    if (onSync != null) return onSync!();
+    return const SyncReport(tables: []);
+  }
+
+  AccountState _publish(AccountState next) {
+    _state = next;
+    _changes.add(next);
+    return next;
   }
 }

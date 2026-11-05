@@ -1247,6 +1247,120 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRuleKneeTravel => 'knee travel';
 
   @override
+  String get accountTitle => 'Account and sync';
+
+  @override
+  String get accountLocalFirstBody =>
+      'Spottr works without an account. Signing in copies your plan and your training log to your other devices. Nothing from the camera is ever uploaded.';
+
+  @override
+  String get accountUnavailableTitle => 'Sync is not set up in this build';
+
+  @override
+  String get accountUnavailableBody =>
+      'This copy of Spottr was built without a Supabase project, so there is nowhere to sync to. Everything else works as usual.';
+
+  @override
+  String get accountEmail => 'Email';
+
+  @override
+  String get accountPassword => 'Password';
+
+  @override
+  String get accountSignIn => 'Sign in';
+
+  @override
+  String get accountSignUp => 'Create an account';
+
+  @override
+  String get accountSignOut => 'Sign out';
+
+  @override
+  String accountSignedInAs(String email) {
+    return 'Signed in as $email';
+  }
+
+  @override
+  String accountSignedOutOf(String email) {
+    return 'Signed out of $email. This device still holds that training.';
+  }
+
+  @override
+  String get accountEmailMissing => 'Enter the email address for your account.';
+
+  @override
+  String get accountPasswordMissing => 'Enter your password.';
+
+  @override
+  String get accountSyncNow => 'Sync now';
+
+  @override
+  String get accountSyncing => 'Syncing';
+
+  @override
+  String get accountSyncedNothing => 'Up to date. Nothing to send or fetch.';
+
+  @override
+  String accountSyncedCounts(int pushed, int pulled) {
+    return 'Sent $pushed, fetched $pulled.';
+  }
+
+  @override
+  String accountSyncConflicts(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count changes were made in two places; the later one was kept each time.',
+      one: 'One change was made in two places; the later one was kept.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get accountSyncStoppedOffline =>
+      'Stopped: no connection. Your training is on this device and the next sync picks up where this one left off.';
+
+  @override
+  String get accountSyncStoppedUnauthorized =>
+      'Stopped: your sign-in has expired. Sign in again to carry on syncing.';
+
+  @override
+  String accountSyncStoppedRejected(String detail) {
+    return 'Stopped: the server refused a change. $detail';
+  }
+
+  @override
+  String get authErrorInvalidCredentials =>
+      'That email and password do not match an account.';
+
+  @override
+  String get authErrorEmailTaken =>
+      'There is already an account with that email. Sign in instead.';
+
+  @override
+  String authErrorWeakPassword(String detail) {
+    return 'That password was refused: $detail';
+  }
+
+  @override
+  String get authErrorConfirmationRequired =>
+      'Check your email and confirm the address, then sign in.';
+
+  @override
+  String get authErrorOffline =>
+      'No connection. Nothing was changed on this device.';
+
+  @override
+  String authErrorRejected(String detail) {
+    return 'The server refused the request: $detail';
+  }
+
+  @override
+  String get authErrorForeignAccount =>
+      'This device holds another account\'s training. Signing in as somebody else would move it into their account, so Spottr will not do it.';
+
+  @override
   String get exerciseBandAssistedPullUp => 'Band-Assisted Pull-Up';
 
   @override

@@ -2146,6 +2146,174 @@ abstract class AppLocalizations {
   /// **'knee travel'**
   String get coachRuleKneeTravel;
 
+  /// No description provided for @accountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account and sync'**
+  String get accountTitle;
+
+  /// No description provided for @accountLocalFirstBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Spottr works without an account. Signing in copies your plan and your training log to your other devices. Nothing from the camera is ever uploaded.'**
+  String get accountLocalFirstBody;
+
+  /// No description provided for @accountUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync is not set up in this build'**
+  String get accountUnavailableTitle;
+
+  /// No description provided for @accountUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This copy of Spottr was built without a Supabase project, so there is nowhere to sync to. Everything else works as usual.'**
+  String get accountUnavailableBody;
+
+  /// No description provided for @accountEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get accountEmail;
+
+  /// No description provided for @accountPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get accountPassword;
+
+  /// No description provided for @accountSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get accountSignIn;
+
+  /// No description provided for @accountSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account'**
+  String get accountSignUp;
+
+  /// No description provided for @accountSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get accountSignOut;
+
+  /// No description provided for @accountSignedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as {email}'**
+  String accountSignedInAs(String email);
+
+  /// No description provided for @accountSignedOutOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed out of {email}. This device still holds that training.'**
+  String accountSignedOutOf(String email);
+
+  /// No description provided for @accountEmailMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the email address for your account.'**
+  String get accountEmailMissing;
+
+  /// No description provided for @accountPasswordMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password.'**
+  String get accountPasswordMissing;
+
+  /// No description provided for @accountSyncNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get accountSyncNow;
+
+  /// No description provided for @accountSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing'**
+  String get accountSyncing;
+
+  /// No description provided for @accountSyncedNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to date. Nothing to send or fetch.'**
+  String get accountSyncedNothing;
+
+  /// No description provided for @accountSyncedCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {pushed}, fetched {pulled}.'**
+  String accountSyncedCounts(int pushed, int pulled);
+
+  /// No description provided for @accountSyncConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{One change was made in two places; the later one was kept.} other{{count} changes were made in two places; the later one was kept each time.}}'**
+  String accountSyncConflicts(int count);
+
+  /// No description provided for @accountSyncStoppedOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped: no connection. Your training is on this device and the next sync picks up where this one left off.'**
+  String get accountSyncStoppedOffline;
+
+  /// No description provided for @accountSyncStoppedUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped: your sign-in has expired. Sign in again to carry on syncing.'**
+  String get accountSyncStoppedUnauthorized;
+
+  /// No description provided for @accountSyncStoppedRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped: the server refused a change. {detail}'**
+  String accountSyncStoppedRejected(String detail);
+
+  /// No description provided for @authErrorInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'That email and password do not match an account.'**
+  String get authErrorInvalidCredentials;
+
+  /// No description provided for @authErrorEmailTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'There is already an account with that email. Sign in instead.'**
+  String get authErrorEmailTaken;
+
+  /// No description provided for @authErrorWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'That password was refused: {detail}'**
+  String authErrorWeakPassword(String detail);
+
+  /// No description provided for @authErrorConfirmationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email and confirm the address, then sign in.'**
+  String get authErrorConfirmationRequired;
+
+  /// No description provided for @authErrorOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Nothing was changed on this device.'**
+  String get authErrorOffline;
+
+  /// No description provided for @authErrorRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The server refused the request: {detail}'**
+  String authErrorRejected(String detail);
+
+  /// No description provided for @authErrorForeignAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'This device holds another account\'s training. Signing in as somebody else would move it into their account, so Spottr will not do it.'**
+  String get authErrorForeignAccount;
+
   /// No description provided for @exerciseBandAssistedPullUp.
   ///
   /// In en, this message translates to:
