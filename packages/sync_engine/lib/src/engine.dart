@@ -130,7 +130,7 @@ class SyncEngine {
       await remote.upsert(table, batch);
       // Only after the server has taken them. Marking first would lose the
       // batch on a dropped connection: clean rows are never offered again.
-      await local.markPushed(table, [for (final r in batch) r.id]);
+      await local.markPushed(table, batch);
       progress.pushed += batch.length;
     }
   }

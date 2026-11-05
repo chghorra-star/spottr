@@ -27,11 +27,14 @@ abstract class SyncLocalStore {
   /// devices talking about a row nobody is editing.
   Future<void> applyRemote(SyncRecord record);
 
-  /// Mark these rows as acknowledged at their current `updated_at`.
+  /// Mark these rows as acknowledged **at the `updated_at` that was sent**.
   ///
-  /// At their own timestamp rather than at "now": an edit made between the
-  /// push and this call has a later `updated_at` and must stay pending.
-  Future<void> markPushed(String table, List<String> ids);
+  /// The records rather than their ids, and their own timestamp rather than
+  /// "now", because the user can write to the database during the `await` on
+  /// the upload. Marking clean at the current `updated_at` would then
+  /// acknowledge an edit the server never saw, and that edit would never be
+  /// offered again.
+  Future<void> markPushed(String table, List<SyncRecord> records);
 
   /// The opaque cursor this device last pulled up to, or null for never.
   Future<String?> cursor(String table);

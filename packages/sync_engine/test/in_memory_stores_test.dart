@@ -111,12 +111,31 @@ void main() {
     });
 
     test('a pushed row stops being pending', () async {
-      local.seed(record('s1'), pending: true);
+      final pushed = record('s1');
+      local.seed(pushed, pending: true);
 
-      await local.markPushed('sessions', ['s1']);
+      await local.markPushed('sessions', [pushed]);
 
       expect(await local.pendingUpload('sessions'), isEmpty);
       expect(local.row('sessions', 's1'), isNotNull);
+    });
+
+    test('an edit made while the upload was in flight stays pending',
+        () async {
+      // The upload is an await, and the user can log a set during it.
+      // Marking the row clean at whatever updated_at is in storage *now*
+      // would acknowledge an edit the server never saw, and nothing would
+      // ever offer it again.
+      final sent = record('s1', hour: 10);
+      local.seed(sent, pending: true);
+      local.seed(record('s1', hour: 11), pending: true);
+
+      await local.markPushed('sessions', [sent]);
+
+      expect(
+        (await local.pendingUpload('sessions')).single.updatedAt.hour,
+        11,
+      );
     });
 
     test('a remote row is applied clean, not pending', () async {

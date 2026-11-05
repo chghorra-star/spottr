@@ -50,12 +50,14 @@ class InMemoryLocalStore implements SyncLocalStore {
   }
 
   @override
-  Future<void> markPushed(String table, List<String> ids) async {
-    for (final id in ids) {
-      final stored = _rows(table)[id];
+  Future<void> markPushed(String table, List<SyncRecord> records) async {
+    for (final pushed in records) {
+      final stored = _rows(table)[pushed.id];
       if (stored == null) continue;
-      _rows(table)[id] =
-          _Stored(stored.record, pushedAt: stored.record.updatedAt);
+      // The timestamp that was uploaded, not the one in storage now: an edit
+      // made during the upload has a later one and has to stay pending.
+      _rows(table)[pushed.id] =
+          _Stored(stored.record, pushedAt: pushed.updatedAt);
     }
   }
 

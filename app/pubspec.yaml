@@ -24,6 +24,8 @@ dependencies:
     path: ../packages/pose_camera
   pose_core:
     path: ../packages/pose_core
+  sync_engine:
+    path: ../packages/sync_engine
 
   # Local-first persistence
   drift: ^2.20.0
