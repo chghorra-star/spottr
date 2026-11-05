@@ -25,11 +25,19 @@ the coach and the log are local and stay local. `rep_logs` and `form_events`
 never leave the device, and the remote schema has nowhere to put a frame, a
 landmark or a video.
 
-What is not done: nobody can sign in yet. The remote schema in
-`supabase/`, like the Podfile before M9, has never been run — a test reads
-it and checks it against drift's own metadata column by column, which is the
+There is a sign-in, and the account screen leads with the sentence above
+rather than with a wall. A build given no Supabase project says so and
+offers no form, because that is the ordinary local-first app rather than an
+error. Every install now has a name of its own, which is what makes the
+conflict tie-break able to break anything at all — before M10 they all
+called themselves `local`.
+
+What is not done: **none of it has met a server.** The remote schema in
+`supabase/`, like the Podfile before M9, has never been run. A test reads it
+and checks it against drift's own metadata column by column, which is the
 difference between finding a missing column now and finding it after
-somebody signs in.
+somebody signs in — but it is not a substitute for `supabase db push`, and
+`docs/dev-loop.md` lists the five things the first real sync will find out.
 
 M9 done and green in CI at
 [github.com/chghorra-star/spottr](https://github.com/chghorra-star/spottr).

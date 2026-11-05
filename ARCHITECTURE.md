@@ -1332,6 +1332,57 @@ assigned the batch would avoid that and is not safe: another device's row
 can be stamped in the middle of a batch, and a cursor jumped past it loses
 that row for ever.
 
+### Signing in, and whose training this is
+
+Sync needs an identity, and the app does not. Everything works with no
+account; signing in is additive, and the account screen says so before it
+says anything else.
+
+**The device has a name of its own.** `local_identity.install_id` is
+generated on first use and is what the conflict rule's tie-break compares.
+Before M10 every install called itself `'local'`, which made the tie-break
+unable to break anything: two edits claiming the same instant resolved to
+"keep mine" on both devices and stayed different for ever. It is generated
+rather than derived, because a hash of something about the device is
+reproducible — and a restored backup would then hand two installations the
+same name, which is the one thing it exists to prevent.
+
+Reading it is a database call and every repository needs it synchronously,
+so `bootstrap()` reads it once before the first frame and injects it.
+`installIdProvider` has no usable default on purpose: a scope that builds a
+repository without the override throws by name, where a working default
+would silently stamp rows with the wrong device on every install at once.
+
+**The same row records whose training this is**, and that is deliberately
+not "who is signed in" — that question is answered by whether there is a
+session in the keychain. The owner outlives a sign-out. The first account
+to sign in adopts whatever is already on the device, which is what makes
+somebody's existing training follow them to a second phone; a *second*
+account adopting it would push one person's sessions into another person's
+account, and there is no undo and no way to tell afterwards whose rows were
+whose. So it is refused, and the session that was just issued is handed
+straight back rather than left live for an account this device will never
+sync.
+
+**The refresh token lives in the platform keychain**, not in the SQLite file
+beside the training, which is readable from an unencrypted backup. It is
+stored as `first_unlock_this_device`, so it is not restored onto a new phone
+— a session belongs to an installation, and two devices waking up as the
+same installation is exactly what the tie-break cannot survive.
+
+**Renewal is single-flighted.** GoTrue rotates the refresh token on every
+use, so the one in hand is always the only live one: two renewals at once
+spend it twice and the second answer is "signed out". A sync walking seven
+tables can ask for credentials more than once, so that is a thing that
+happens rather than a thing that could. The renewed pair is stored before it
+is handed out, because a device that kept the old token would be signed out
+on its next launch having been signed in all along.
+
+And one rule on its own: **only the server saying the credential is invalid
+may end a session.** Not a rate limit, not a bad gateway, not a dropped
+connection. Otherwise the app signs people out of their training because a
+proxy had a bad minute.
+
 ### Order, and stopping
 
 Tables sync one at a time, parents before children, pulling before pushing.

@@ -718,19 +718,27 @@ The order to find all this out in: apply the migration, sign in on one
 device, sync, read the `sync_state` table, then sign in on a second device
 and sync. The first two steps answer 1 and 2; the third answers 3.
 
-### What has no test at all yet
+### What has no test on this machine
 
-There is no sign-in. The remote store asks for credentials and there is
-nothing to give it, so `SyncEngine.sync()` reports `unauthorized` on the
-first table and stops — which is the correct behaviour and also the whole
-state of the feature from a user's point of view.
+The keychain. `KeychainSessionStore` is a method channel, so a test here
+answers with `MissingPluginException` — which is why the part that could
+corrupt a sign-in, the encoding, is a class of its own with tests of its
+own, and the store around it is twenty lines of glue. What is untested is
+whether the platform hands the blob back after a restart, and whether
+`first_unlock_this_device` behaves as documented when a phone is restored
+from a backup.
 
-And `deviceId` is still the constant `'local'` for every install. The
-conflict rule's tie-break is `(updatedAt, deviceId)`, so with every device
-claiming the same id, two edits made in the same millisecond resolve to
-"keep mine" on both sides and stay different for ever. Unlikely, and the
-tie-break exists precisely to make convergence not depend on luck, so a
-persisted per-install id is not optional — it is the next thing.
+`flutter_secure_storage` is also the first new pod since M9. It compiles in
+CI or it does not, and that is one run to find out.
+
+### What this layer already closed
+
+Two things that were open when the protocol landed, now done and tested:
+there is a sign-in, and `deviceId` is this installation's own id rather
+than the constant `'local'` every install used to share. The second was the
+one that mattered — the tie-break that makes last-writer-wins converge
+cannot break anything if every device claims the same name — and
+`bootstrap_test.dart` asserts a row written afterwards carries the real id.
 
 ## What the acceptance targets can honestly claim
 
