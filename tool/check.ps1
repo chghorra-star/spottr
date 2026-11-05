@@ -10,6 +10,7 @@ $pureDartPackages = @(
   'exercise_library',
   'coach_engine',
   'plan_engine',
+  'sync_engine',
   'harness'
 )
 

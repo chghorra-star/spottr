@@ -1,0 +1,16 @@
+name: sync_engine
+description: Two-way replication of local records against a remote store. Pure Dart, no Flutter, no HTTP.
+version: 0.1.0
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  collection: ^1.19.0
+  meta: ^1.15.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
