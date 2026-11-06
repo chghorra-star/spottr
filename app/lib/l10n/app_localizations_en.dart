@@ -1361,6 +1361,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'This device holds another account\'s training. Signing in as somebody else would move it into their account, so Spottr will not do it.';
 
   @override
+  String get accountEraseTitle => 'Handing this phone on';
+
+  @override
+  String get accountEraseExplain =>
+      'Erasing clears everything this device holds about one person\'s training, so somebody else can sign in on it. It is the only way past the refusal above.';
+
+  @override
+  String get accountErase => 'Erase the training on this device';
+
+  @override
+  String get accountEraseConfirmTitle => 'Erase the training on this device?';
+
+  @override
+  String get accountEraseConfirmBody =>
+      'The profile, the plan and every session logged on this phone are deleted from it, and it stops being signed in. On this device there is no undo.\n\nWhatever has already synced stays in the account and is untouched on its other devices. This does not close an account or delete anything from the server.';
+
+  @override
+  String get accountEraseConfirmAction => 'Erase it';
+
+  @override
+  String get accountEraseCancel => 'Keep it';
+
+  @override
+  String get accountEraseFailed =>
+      'Erasing did not finish, so this device still holds that training. Try again.';
+
+  @override
+  String get accountErased =>
+      'Erased. This device holds no training and is signed out.';
+
+  @override
   String get exerciseBandAssistedPullUp => 'Band-Assisted Pull-Up';
 
   @override

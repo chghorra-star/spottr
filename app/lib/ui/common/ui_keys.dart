@@ -56,6 +56,9 @@ abstract final class UiKeys {
   static const Key accountSyncNow = Key('spottr.account.syncNow');
   static const Key accountResult = Key('spottr.account.result');
   static const Key accountError = Key('spottr.account.error');
+  static const Key accountErase = Key('spottr.account.erase');
+  static const Key accountEraseConfirm = Key('spottr.account.erase.confirm');
+  static const Key accountEraseCancel = Key('spottr.account.erase.cancel');
 
   static const Key profileScreen = Key('spottr.profile');
   static const Key profileSave = Key('spottr.profile.save');

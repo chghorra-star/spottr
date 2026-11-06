@@ -2314,6 +2314,60 @@ abstract class AppLocalizations {
   /// **'This device holds another account\'s training. Signing in as somebody else would move it into their account, so Spottr will not do it.'**
   String get authErrorForeignAccount;
 
+  /// No description provided for @accountEraseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Handing this phone on'**
+  String get accountEraseTitle;
+
+  /// No description provided for @accountEraseExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Erasing clears everything this device holds about one person\'s training, so somebody else can sign in on it. It is the only way past the refusal above.'**
+  String get accountEraseExplain;
+
+  /// No description provided for @accountErase.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase the training on this device'**
+  String get accountErase;
+
+  /// No description provided for @accountEraseConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase the training on this device?'**
+  String get accountEraseConfirmTitle;
+
+  /// No description provided for @accountEraseConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The profile, the plan and every session logged on this phone are deleted from it, and it stops being signed in. On this device there is no undo.\n\nWhatever has already synced stays in the account and is untouched on its other devices. This does not close an account or delete anything from the server.'**
+  String get accountEraseConfirmBody;
+
+  /// No description provided for @accountEraseConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Erase it'**
+  String get accountEraseConfirmAction;
+
+  /// No description provided for @accountEraseCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it'**
+  String get accountEraseCancel;
+
+  /// No description provided for @accountEraseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Erasing did not finish, so this device still holds that training. Try again.'**
+  String get accountEraseFailed;
+
+  /// No description provided for @accountErased.
+  ///
+  /// In en, this message translates to:
+  /// **'Erased. This device holds no training and is signed out.'**
+  String get accountErased;
+
   /// No description provided for @exerciseBandAssistedPullUp.
   ///
   /// In en, this message translates to:

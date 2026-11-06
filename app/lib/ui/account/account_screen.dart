@@ -61,6 +61,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                 onSignUp: () => _authenticate(signUp: true),
                 onSignOut: _signOut,
                 onSync: _sync,
+                onErase: _erase,
               ),
             )
           : const _Unavailable(),
@@ -118,6 +119,61 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     });
     try {
       await controller.signOut();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Erasing this device's training, after asking.
+  ///
+  /// Asked rather than offered twice, and the question says what survives:
+  /// somebody tapping this is deleting their own training off a phone, and
+  /// the two things they need to know are that this device cannot undo it
+  /// and that their account still has whatever had synced.
+  Future<void> _erase() async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.accountEraseConfirmTitle),
+        content: Text(l10n.accountEraseConfirmBody),
+        actions: [
+          TextButton(
+            key: UiKeys.accountEraseCancel,
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.accountEraseCancel),
+          ),
+          FilledButton(
+            key: UiKeys.accountEraseConfirm,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.accountEraseConfirmAction),
+          ),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !mounted) return;
+
+    final controller = ref.read(accountControllerProvider);
+    if (controller == null) return;
+
+    setState(() {
+      _busy = true;
+      _error = null;
+      _result = const [];
+    });
+    try {
+      await controller.eraseTraining();
+      // The next person's screen. Leaving the previous one's address in the
+      // field would be a small thing to get wrong on this particular screen.
+      _email.clear();
+      _password.clear();
+      if (mounted) setState(() => _result = [l10n.accountErased]);
+    } on Object catch (_) {
+      // One sentence for every failure, because what the user needs to know
+      // is not what went wrong but what the device is left holding — and
+      // the owner is released last precisely so that answer is "still
+      // yours, try again".
+      if (mounted) setState(() => _error = l10n.accountEraseFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -194,6 +250,7 @@ class _Body extends StatelessWidget {
     required this.onSignUp,
     required this.onSignOut,
     required this.onSync,
+    required this.onErase,
   });
 
   final AccountState state;
@@ -206,6 +263,7 @@ class _Body extends StatelessWidget {
   final VoidCallback onSignUp;
   final VoidCallback onSignOut;
   final VoidCallback onSync;
+  final VoidCallback onErase;
 
   @override
   Widget build(BuildContext context) {
@@ -249,8 +307,45 @@ class _Body extends StatelessWidget {
             ],
           ),
         ],
+        // Last, and only on a device that holds somebody's training. On one
+        // nobody has signed in on there is nothing to hand over and nobody
+        // is stuck, and a delete-everything button on a screen about sync
+        // would be a different feature wearing this one's clothes.
+        if (state.owner != null) ..._erase(context, l10n, theme),
       ],
     );
+  }
+
+  List<Widget> _erase(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    return [
+      const SizedBox(height: 32),
+      const Divider(),
+      const SizedBox(height: 16),
+      Text(l10n.accountEraseTitle, style: theme.textTheme.titleMedium),
+      const SizedBox(height: 8),
+      Text(
+        l10n.accountEraseExplain,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      const SizedBox(height: 16),
+      // Deliberately the plainest control on the screen. It is the one
+      // irreversible thing here, and a filled button inviting the tap would
+      // be the wrong shape for it.
+      TextButton(
+        key: UiKeys.accountErase,
+        onPressed: busy ? null : onErase,
+        style: TextButton.styleFrom(
+          foregroundColor: theme.colorScheme.error,
+        ),
+        child: Text(l10n.accountErase),
+      ),
+    ];
   }
 
   List<Widget> _signedIn(
