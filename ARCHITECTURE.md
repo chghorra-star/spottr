@@ -1383,6 +1383,49 @@ may end a session.** Not a rate limit, not a bad gateway, not a dropped
 connection. Otherwise the app signs people out of their training because a
 proxy had a bad minute.
 
+### Handing a device on
+
+The refusal above is right and being stuck with it is not, so there is one
+way out: erase this device's training. It is the counterpart of the refusal
+rather than a settings convenience, and it is offered only on a device that
+holds somebody's training — on a device nobody has signed in on there is
+nothing to hand over and nobody is stuck, and a delete-everything button on
+a screen about sync would be a different feature wearing this one's clothes.
+
+**It is the only hard delete in the app, and that is the whole design.**
+Everywhere else a delete is a tombstone, because a row that simply vanished
+would be invisible to the other device and come straight back. Here that
+machinery is precisely the hazard: a tombstone per row is a deletion queued
+for the departing person's *other* phone, and their next sync there would
+empty it. Two tests say so — one that nothing is left pending, and one that
+no row is left at all, because `pushed_at` would satisfy the first on its
+own.
+
+What goes is derived from the schema rather than listed, so a table added
+later is covered without anyone remembering to come back; `database_test.dart`
+keeps the three table-name sets exhaustive, which is what makes that safe.
+Two things are kept. The **install id**, because it names this device in the
+tie-break and says nothing about the person leaving. And nothing at all on
+the server: whatever had synced belongs to that account and is untouched on
+their other devices. Erasing a phone is not closing an account, and the
+confirmation says so rather than leaving somebody to find out.
+
+**Every cursor goes too.** A cursor is a position in the server's own
+replication order, and that order is shared between accounts: the next
+person's rows can sit behind the number this device stopped at, so a
+surviving cursor would make their first sync skip their training and report
+success.
+
+The order is the part a failure tests. The session goes first — a live
+session on a phone being handed over is the one outcome worse than not
+having erased at all. Then the rows, in one transaction. The owner is
+released **last**, so a failure anywhere above leaves the device still
+owned, still refusing the second account, and still able to try again;
+releasing first would hand a half-erased device to the next account, which
+is the mixing this entire mechanism exists to prevent. The screen's one
+sentence for every failure — "this device still holds that training" — is
+true because of that ordering rather than as a figure of speech.
+
 ### Order, and stopping
 
 Tables sync one at a time, parents before children, pulling before pushing.

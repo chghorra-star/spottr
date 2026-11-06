@@ -11,7 +11,7 @@ medical advice and does not prevent injury.
 
 ## Status
 
-M10 under way: Spottr can replicate. `packages/sync_engine` is the whole
+M10 is code-complete: Spottr can replicate. `packages/sync_engine` is the whole
 protocol as pure Dart — last writer wins over a total order, soft deletes as
 tombstones, a cursor that survives an interrupted pull — with both ends
 behind interfaces, so every rule in it is tested with no database and no
@@ -31,6 +31,15 @@ offers no form, because that is the ordinary local-first app rather than an
 error. Every install now has a name of its own, which is what makes the
 conflict tie-break able to break anything at all — before M10 they all
 called themselves `local`.
+
+**A device that holds one person's training refuses the next account**, and
+can now be handed on. The refusal is right — once two people's rows are
+mixed there is no telling afterwards whose were whose — but it needed a way
+out, and erasing this device is it. It is the only hard delete in the app,
+deliberately: every other delete is a tombstone that replicates, so an
+erase through the ordinary path would queue a deletion for every row and
+empty the departing person's *other* phone. Nothing is touched on the
+server; what had synced is still theirs, and the confirmation says so.
 
 What is not done: **none of it has met a server.** The remote schema in
 `supabase/`, like the Podfile before M9, has never been run. A test reads it
@@ -182,7 +191,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
 | M7 | Live coach UX, voice, safety | done |
 | M8 | Dataset validation and tuning | done |
 | M9 | iOS parity, cloud CI, TestFlight | done, green in CI |
-| M10 | Supabase sync | engine, schema and both adapters done; no sign-in yet |
+| M10 | Supabase sync | engine, schema, both adapters and sign-in done; never run against a server |
 
 ## Layout
 

@@ -728,17 +728,34 @@ whether the platform hands the blob back after a restart, and whether
 `first_unlock_this_device` behaves as documented when a phone is restored
 from a backup.
 
-`flutter_secure_storage` is also the first new pod since M9. It compiles in
-CI or it does not, and that is one run to find out.
+`flutter_secure_storage` was also the first new pod since M9, and that part
+is now answered: it installs, compiles and links beside ML Kit's static
+frameworks, and the thirteen native tests still pass on an x86_64 iPhone 16
+Pro. One run, which after M9's nine is worth writing down.
 
 ### What this layer already closed
 
-Two things that were open when the protocol landed, now done and tested:
-there is a sign-in, and `deviceId` is this installation's own id rather
-than the constant `'local'` every install used to share. The second was the
-one that mattered — the tie-break that makes last-writer-wins converge
-cannot break anything if every device claims the same name — and
-`bootstrap_test.dart` asserts a row written afterwards carries the real id.
+Three things that were open when the protocol landed, now done and tested:
+there is a sign-in, `deviceId` is this installation's own id rather than the
+constant `'local'` every install used to share, and a device that holds one
+person's training can be handed on. The second was the one that mattered —
+the tie-break that makes last-writer-wins converge cannot break anything if
+every device claims the same name — and `bootstrap_test.dart` asserts a row
+written afterwards carries the real id.
+
+The third closed a gap this layer created. Refusing a second account was
+right, and until the erase existed there was no way out of it from inside
+the app: the only escape was to delete and reinstall. It needs no server to
+verify, so unlike the rest of M10 it is tested the whole way down — the
+rows, the cursors, the keychain, the order a failure leaves things in, and
+the screen.
+
+What it deliberately does not cover: a build with no Supabase project. That
+app never claims an owner and so never refuses anybody, and the account
+screen it shows has no form and no erase. Such a phone still holds somebody's
+training with no in-app way to delete it — which is a "delete my data"
+control and a different feature from this one, and Spottr does not have one
+yet.
 
 ## What the acceptance targets can honestly claim
 
