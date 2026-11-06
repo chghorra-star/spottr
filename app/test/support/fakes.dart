@@ -214,6 +214,7 @@ class RecordingAccountController implements AccountController {
     this.onSignIn,
     this.onSignUp,
     this.onSync,
+    this.onErase,
   }) : _state = initial;
 
   /// Lets a test make a call fail, to check the screen says why.
@@ -223,10 +224,15 @@ class RecordingAccountController implements AccountController {
   /// Lets a test decide what the sync reports.
   final Future<SyncReport> Function()? onSync;
 
+  /// Lets a test make the erase fail, to check the screen says the training
+  /// is still here.
+  final Future<void> Function()? onErase;
+
   final List<String> signedIn = [];
   final List<String> signedUp = [];
   int signOuts = 0;
   int syncs = 0;
+  int erases = 0;
 
   AccountState _state;
   final StreamController<AccountState> _changes =
@@ -266,6 +272,15 @@ class RecordingAccountController implements AccountController {
   Future<AccountState> signOut() async {
     signOuts++;
     return _publish(AccountState(owner: _state.owner));
+  }
+
+  @override
+  Future<AccountState> eraseTraining() async {
+    erases++;
+    if (onErase != null) await onErase!();
+    // Nobody signed in and nobody owning it: what the real one leaves
+    // behind, and what sends the screen back to offering a sign-in.
+    return _publish(const AccountState());
   }
 
   @override

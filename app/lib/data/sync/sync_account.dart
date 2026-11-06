@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:sync_engine/sync_engine.dart';
 
 import '../local/local_identity_store.dart';
+import '../local/training_eraser.dart';
 import 'session_store.dart';
 import 'supabase_auth.dart';
 import 'supabase_remote_store.dart';
@@ -56,6 +57,7 @@ class SyncAccount {
     required this.auth,
     required this.sessions,
     required this.identity,
+    required this.eraser,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -63,6 +65,7 @@ class SyncAccount {
 
   final SessionStore sessions;
   final LocalIdentityStore identity;
+  final TrainingEraser eraser;
 
   final DateTime Function() _now;
 
@@ -107,6 +110,28 @@ class SyncAccount {
     // Told after the local state is already gone: the user tapped sign out,
     // and leaving them signed in because a request failed is the wrong way
     // round — especially if they are handing the phone to somebody.
+    if (session != null) await auth.signOut(session.accessToken);
+
+    return _publish();
+  }
+
+  /// Erases this device's training and forgets whose it was.
+  ///
+  /// The way out of [ForeignAccount], and the way to hand a phone on. What
+  /// goes is in [TrainingEraser]; what this adds is the two things only the
+  /// session holder can do — forget the live session, and tell the server
+  /// to stop honouring it.
+  ///
+  /// The erase happens first and the server is told afterwards, as with
+  /// [signOut] and for the same reason, only more so: somebody doing this
+  /// is quite possibly standing next to the person they are handing the
+  /// phone to, and a device that stayed as it was because a request timed
+  /// out is the wrong way round.
+  Future<AccountState> eraseTraining() async {
+    final session = _session;
+    _session = null;
+
+    await eraser.erase();
     if (session != null) await auth.signOut(session.accessToken);
 
     return _publish();

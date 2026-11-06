@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:spottr/data/local/database.dart';
 import 'package:spottr/data/local/local_identity_store.dart';
+import 'package:spottr/data/local/training_eraser.dart';
 import 'package:spottr/data/sync/session_store.dart';
 import 'package:spottr/data/sync/supabase_auth.dart';
 import 'package:spottr/data/sync/sync_account.dart';
@@ -92,6 +93,11 @@ void main() {
       auth: auth,
       sessions: sessions,
       identity: identity,
+      eraser: TrainingEraser(
+        database: db,
+        identity: identity,
+        sessions: sessions,
+      ),
       now: () => clock,
     );
     addTearDown(subject.dispose);
@@ -377,6 +383,102 @@ void main() {
 
       expect(state.signedIn, isFalse);
       expect(await sessions.read(), isNull);
+    });
+  });
+
+  group('erasing this device', () {
+    test('leaves nobody signed in and nobody owning it', () async {
+      // What the eraser leaves in the database has its own test file. What
+      // matters here is that the object holding the session agrees with it:
+      // a `SyncAccount` still reporting a signed-in user over an erased
+      // database would offer credentials for a sync with nothing to sync.
+      final subject = account(server());
+      await subject.signIn(email: 'a@example.com', password: 'x');
+
+      final state = await subject.eraseTraining();
+
+      expect(state.signedIn, isFalse);
+      expect(state.owner, isNull);
+      expect(state.isReturning, isFalse);
+      expect(await subject.credentials(), isNull);
+      expect(await sessions.read(), isNull);
+    });
+
+    test('hands the access token back to the server', () async {
+      // Erased or not, the token is live until it expires. Handing a phone
+      // on with a usable token still on it would be a session nobody can
+      // see and nobody can end.
+      final subject = account(server());
+      await subject.signIn(email: 'a@example.com', password: 'x');
+
+      await subject.eraseTraining();
+
+      expect(sent.any((r) => r.url.path == '/auth/v1/logout'), isTrue);
+    });
+
+    test('erases anyway when the server will not take it back', () async {
+      // The order the erase is done in, asserted from outside: the rows and
+      // the session go first and the courtesy call comes after, so a device
+      // with no signal still gets erased.
+      final client = MockClient((request) async {
+        sent.add(request);
+        if (request.url.path == '/auth/v1/logout') {
+          throw http.ClientException('Connection closed');
+        }
+        return http.Response(
+          jsonEncode({
+            'access_token': 'access-1',
+            'refresh_token': 'refresh-1',
+            'expires_in': 3600,
+            'user': {'id': 'user-1', 'email': 'a@example.com'},
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+      final subject = account(client);
+      await subject.signIn(email: 'a@example.com', password: 'x');
+
+      final state = await subject.eraseTraining();
+
+      expect(state.owner, isNull);
+      expect(await sessions.read(), isNull);
+    });
+
+    test('works on a device that is signed out but still owned', () async {
+      // The state somebody is in when the refusal has just happened: signed
+      // out of an account this device still holds the training for. It is
+      // the one they most need the button from, and there is no token to
+      // hand back.
+      final subject = account(server());
+      await subject.signIn(email: 'a@example.com', password: 'x');
+      await subject.signOut();
+      expect((await subject.load()).isReturning, isTrue);
+      sent.clear();
+
+      final state = await subject.eraseTraining();
+
+      expect(state.owner, isNull);
+      expect(
+        sent.where((r) => r.url.path == '/auth/v1/logout'),
+        isEmpty,
+        reason: 'the session was already handed back when they signed out',
+      );
+    });
+
+    test('and then the other account can have the device', () async {
+      // End to end, through the object the screen actually talks to: the
+      // sign-in that was refused a moment ago now works. Without the erase
+      // in the middle this throws `ForeignAccount`.
+      final first = account(server());
+      await first.signIn(email: 'a@example.com', password: 'x');
+      await first.eraseTraining();
+
+      final second = account(server(userId: 'user-2', email: 'b@example.com'));
+      final state = await second.signIn(email: 'b@example.com', password: 'x');
+
+      expect(state.signedIn, isTrue);
+      expect(state.owner?.userId, 'user-2');
     });
   });
 

@@ -11,6 +11,7 @@ import 'package:sync_engine/sync_engine.dart';
 
 import '../data/local/database.dart';
 import '../data/local/local_identity_store.dart';
+import '../data/local/training_eraser.dart';
 import '../data/plan_repository.dart';
 import '../data/profile_repository.dart';
 import '../data/session_repository.dart';
@@ -116,6 +117,20 @@ final Provider<LocalIdentityStore> localIdentityProvider =
   (ref) => LocalIdentityStore(ref.watch(databaseProvider)),
 );
 
+/// Taking one person's training off this device.
+///
+/// Independent of whether this build has a Supabase project: the training
+/// is on the device either way, and this is the only way out of a device
+/// that already holds somebody's.
+final Provider<TrainingEraser> trainingEraserProvider =
+    Provider<TrainingEraser>(
+  (ref) => TrainingEraser(
+    database: ref.watch(databaseProvider),
+    identity: ref.watch(localIdentityProvider),
+    sessions: ref.watch(sessionStoreProvider),
+  ),
+);
+
 /// The account, the sync, and nothing when this build has no project.
 ///
 /// Null rather than throwing, because "no sync in this build" is a state
@@ -130,6 +145,7 @@ final Provider<AccountController?> accountControllerProvider =
     auth: auth,
     sessions: ref.watch(sessionStoreProvider),
     identity: ref.watch(localIdentityProvider),
+    eraser: ref.watch(trainingEraserProvider),
   );
   ref.onDispose(account.dispose);
 

@@ -28,6 +28,9 @@ abstract class AccountController {
 
   Future<AccountState> signOut();
 
+  /// Takes this device's training off it, for handing the phone on.
+  Future<AccountState> eraseTraining();
+
   /// Replicates now, and says what happened.
   Future<SyncReport> syncNow();
 }
@@ -61,6 +64,9 @@ class SyncAccountController implements AccountController {
 
   @override
   Future<AccountState> signOut() => account.signOut();
+
+  @override
+  Future<AccountState> eraseTraining() => account.eraseTraining();
 
   @override
   Future<SyncReport> syncNow() => engine.sync();
