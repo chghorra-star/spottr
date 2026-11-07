@@ -864,12 +864,24 @@ verify, so unlike the rest of M10 it is tested the whole way down — the
 rows, the cursors, the keychain, the order a failure leaves things in, and
 the screen.
 
-What it deliberately does not cover: a build with no Supabase project. That
-app never claims an owner and so never refuses anybody, and the account
-screen it shows has no form and no erase. Such a phone still holds somebody's
-training with no in-app way to delete it — which is a "delete my data"
-control and a different feature from this one, and Spottr does not have one
-yet.
+That gap had a gap of its own, now closed. A build with no Supabase project
+never claims an owner and so never refuses anybody, and the account screen
+it shows has no form and no erase — which left every such phone holding a
+profile, a plan and every session ever logged, with no way to delete any of
+it from inside the app. The profile screen now ends with that control, on
+any device nobody has signed in on. Same eraser, different door, and a
+stronger sentence in the confirmation: nothing here has been sent anywhere,
+so there is no copy to restore it from.
+
+It needs no server either, so it is tested the same way: six widget tests
+over which device offers it, what the question says, that cancelling does
+nothing, and that a failure leaves the training where it was. One of them
+was worthless when written — an assertion that the control is absent on an
+owned device, which passed with the condition hard-coded to `true`, because
+a `ListView` builds no children below the viewport and the profile form is
+far taller than one. Found by mutating the condition to `true` and watching
+nothing fail; the same mutation against the account screen does fail its
+equivalent test, which is why that one was worth checking too.
 
 ## What the acceptance targets can honestly claim
 

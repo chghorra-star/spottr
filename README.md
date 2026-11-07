@@ -41,6 +41,13 @@ erase through the ordinary path would queue a deletion for every row and
 empty the departing person's *other* phone. Nothing is touched on the
 server; what had synced is still theirs, and the confirmation says so.
 
+**And a build with no account at all can still delete everything.** The
+erase above is on the account screen, which a build with no Supabase
+project does not really have — so the same mechanism is at the bottom of
+the profile screen on any device nobody has signed in on, where the
+confirmation can say the stronger thing: nothing here has been sent
+anywhere, so there is no copy to restore it from.
+
 What is not done: **none of it has met a server.** The remote schema in
 `supabase/`, like the Podfile before M9, has never been run. A test reads it
 and checks it against drift's own metadata column by column, which is the

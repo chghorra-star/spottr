@@ -1390,7 +1390,9 @@ way out: erase this device's training. It is the counterpart of the refusal
 rather than a settings convenience, and it is offered only on a device that
 holds somebody's training — on a device nobody has signed in on there is
 nothing to hand over and nobody is stuck, and a delete-everything button on
-a screen about sync would be a different feature wearing this one's clothes.
+a screen about sync would be a different feature wearing this one's
+clothes. That feature exists too, and the next section is about why it is
+on the profile screen rather than here.
 
 **It is the only hard delete in the app, and that is the whole design.**
 Everywhere else a delete is a tombstone, because a row that simply vanished
@@ -1425,6 +1427,37 @@ releasing first would hand a half-erased device to the next account, which
 is the mixing this entire mechanism exists to prevent. The screen's one
 sentence for every failure — "this device still holds that training" — is
 true because of that ordering rather than as a figure of speech.
+
+### The other door: deleting everything
+
+Everything above is about the account screen, which leaves a hole the size
+of every build that has no Supabase project. Such a build shows no sign-in,
+claims no owner and so never offers the erase — and everything the app
+knows about somebody is on that phone, with no way to delete any of it from
+inside the app. That is a "delete my data" control, a different feature
+from handing a phone on, and it is at the bottom of the profile screen.
+
+**One mechanism, two doors, each worded for where it stands.** Both call
+the same eraser. The account screen's is the way past the refusal, and it
+has to say that whatever synced stays in the account. The profile screen's
+can say something stronger — that there is no copy of this anywhere — and
+the condition that puts it there is exactly what makes that true: it
+appears only when nobody owns the device, an unowned device is one nobody
+has signed in on, and that is one that has never synced a row. The same
+condition is why the two doors are never open at once.
+
+Where the account screen reports the result and stays, this one leaves.
+There is no profile left for a profile form to show, and the router
+underneath is already switching to onboarding now the row is gone, which is
+the clearest statement that it worked the app can make.
+
+The test that earns its keep is the one asserting the control is **absent**
+on a device with an owner. Its first version passed with the condition
+hard-coded to `true`: a `ListView` does not build children below the
+viewport, so an assertion that never reached the bottom of the form could
+not tell a missing button from an unbuilt one. It now drags until the
+scroll position is at `maxScrollExtent` and says so, which is the only
+place where "not in the tree" means "not offered".
 
 ### Order, and stopping
 
