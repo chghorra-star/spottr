@@ -39,6 +39,11 @@ Or paste the file into the SQL editor. It is written to run once on an empty
 project; a change goes in a second numbered file rather than an edit to this
 one.
 
+Then check that the security half of the file actually applied, which is the
+one failure here that does not announce itself — "Standing the server up" in
+[docs/dev-loop.md](../docs/dev-loop.md) has the query and the rest of the
+order to do this in.
+
 ## What the app needs back
 
 Two values, which are not secrets and are not in this repository:

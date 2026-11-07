@@ -714,9 +714,123 @@ What is **not** verified, and what will say so first:
    every row it has, in batches of two hundred, and nothing here has
    measured what that costs on a phone connection.
 
-The order to find all this out in: apply the migration, sign in on one
-device, sync, read the `sync_state` table, then sign in on a second device
-and sync. The first two steps answer 1 and 2; the third answers 3.
+### Standing the server up
+
+Nobody here has done this, so what follows is the order to do it in rather
+than a checklist somebody has ticked. Steps 2 and 3 settle question 1 above;
+the rest of the questions are answered by the first real sync, in the
+section after this one.
+
+**1. A project, and the two values it gives back.** Create one from the
+Supabase dashboard; the free tier is more than one person's training needs,
+and the region only changes latency. Its API settings carry the two things
+the app wants: the project URL, `https://<ref>.supabase.co`, and the `anon`
+public key. The ref is that subdomain, and `supabase link` wants it on its
+own.
+
+Neither value belongs in this repository. The anon key is designed to ship
+inside a client — row level security is what protects the data, not the key
+— but this repository is public, and a key in a public repository is still a
+key somebody can point at the project's auth endpoint, which is a bill
+rather than a breach.
+
+**2. The migration.** From the repo root:
+
+```bash
+supabase link --project-ref <ref>
+supabase db push
+```
+
+Or paste `supabase/migrations/0001_init.sql` into the dashboard's SQL
+editor, which needs no CLI and reports the same errors. Either way this is
+question 1 answering itself: the `do $$ ... $$` block that applies row level
+security over a list of seven tables either parses or it does not.
+
+**3. Then check that the security actually got applied**, because that is
+the one failure here that does not announce itself. The schema is two halves
+— seven `create table`s, then one `do` block that adds the trigger, the
+cursor index, RLS and three policies to each. A `create table` that succeeds
+beside a security block that failed is an **open database**: every row of
+everybody's training readable by any authenticated user. The dashboard's SQL
+editor runs statements one at a time and makes no promise about the pair, so
+do not take "no errors scrolled past" for an answer:
+
+```sql
+select relname, relrowsecurity, (
+         select count(*) from pg_policies
+         where schemaname = 'public' and tablename = relname
+       ) as policies
+from pg_class
+where relnamespace = 'public'::regnamespace and relkind = 'r'
+order by relname;
+```
+
+Seven rows, every `relrowsecurity` true, every count 3. Three and not four:
+there is no delete policy, and delete is revoked on top of that, because
+Spottr's deletes are tombstones and a hard delete is invisible to a peer
+that has not synced since.
+
+**4. Decide about email confirmation before signing up, not after.** A
+project with confirmation on answers a sign-up `200` with a user and no
+tokens; `SupabaseAuth` reads exactly that case and the screen says "Check
+your email and confirm the address, then sign in." That is correct, and it is
+tested — but on a fresh project with no mail configured it is also a dead
+end. For a first run either turn confirmation off in the email provider's
+settings, or confirm the address by hand from the dashboard's user list.
+Both work; one is shorter.
+
+**5. A build that knows where the project is.**
+
+```bash
+cd app
+flutter run \
+  --dart-define=SUPABASE_URL=https://<ref>.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=<anon key>
+```
+
+Both defines or neither. Half of one is an `ArgumentError` at startup rather
+than a quietly unavailable feature, because a mistyped define read as "no
+project configured" would look exactly like the working local-first app.
+Then: the cloud icon on the plan screen, **Create an account**, **Sync
+now**.
+
+### What the first sync says, and when it is lying
+
+The account screen is the instrument. It reports `Sent n, fetched m`, or it
+says what stopped it, and that sentence is the only place some of these
+distinctions appear.
+
+- **One device with training on it, first sync.** Everything local was
+  written before there was an account, so every row is pending: it should
+  send all of them and fetch nothing. `Sent 0` is not success — it means
+  the pending query matched nothing, which is a different bug from the
+  server refusing anything.
+- **`Stopped: the server refused a change`** is question 2 or question 3,
+  and the detail line carries PostgREST's own message, which is what tells
+  them apart: a wrong conflict target fails on the primary key, a composite
+  foreign key rejecting a null child column fails on the constraint by
+  name. The first means `on_conflict=user_id,id` is wrong; the second means
+  every hand-logged set is unsyncable and the schema needs a second
+  migration.
+- **A second install, same person.** A second emulator, or an emulator and
+  a phone — two runs of the same install share an id, and the conflict
+  tie-break is between installations, so one install cannot demonstrate it.
+  Sign in as the same account and sync: it should fetch everything and send
+  nothing.
+- **The same thing edited on both, offline, then both synced.** The later
+  edit wins and the screen says a change was made in two places. This is
+  the only step that exercises the part of the protocol that is hardest to
+  be sure of, and the only one that two devices are required for.
+- **A second account on a device that already holds the first one's
+  training** is refused, and the way out is on the same screen. Worth doing
+  once deliberately: it is the one M10 behaviour that is fully tested here,
+  so a difference on a real device is a difference in the platform rather
+  than in the rules.
+
+What none of this measures is question 5, the volume. A device with a year
+of training pushes every row it has in batches of two hundred, and the only
+honest way to know what that costs is to watch it happen on a phone
+connection.
 
 ### What has no test on this machine
 
@@ -842,6 +956,12 @@ powershell -ExecutionPolicy Bypass -File tool/generate.ps1
 
 # The accuracy harness on its own, with the report
 cd packages/harness && dart run bin/harness.dart
+
+# Run against a Supabase project — see "Standing the server up" in Layer 4
+# for where these two values come from and what to check first
+cd app && flutter run \
+  --dart-define=SUPABASE_URL=https://<ref>.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=<anon key>
 ```
 
 Android builds need the Android Studio JDK:
