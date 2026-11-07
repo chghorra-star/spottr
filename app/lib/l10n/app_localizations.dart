@@ -1480,6 +1480,54 @@ abstract class AppLocalizations {
   /// **'Saving a change to your goal, days, session length, experience, equipment or injuries rebuilds your week.'**
   String get profileRebuildWarning;
 
+  /// No description provided for @profileDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting your training'**
+  String get profileDeleteTitle;
+
+  /// No description provided for @profileDeleteExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything Spottr knows about you is on this phone. Nothing has been sent anywhere, so deleting it here deletes it.'**
+  String get profileDeleteExplain;
+
+  /// No description provided for @profileDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything on this device'**
+  String get profileDelete;
+
+  /// No description provided for @profileDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything?'**
+  String get profileDeleteConfirmTitle;
+
+  /// No description provided for @profileDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile, your plan and every session you have logged are deleted from this phone, and Spottr starts again from the first question.\n\nNothing here has been sent anywhere, so there is no copy to restore it from. There is no undo.'**
+  String get profileDeleteConfirmBody;
+
+  /// No description provided for @profileDeleteConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete it'**
+  String get profileDeleteConfirmAction;
+
+  /// No description provided for @profileDeleteCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it'**
+  String get profileDeleteCancel;
+
+  /// No description provided for @profileDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting did not finish, so your training is still on this device. Try again.'**
+  String get profileDeleteFailed;
+
   /// No description provided for @coachTitle.
   ///
   /// In en, this message translates to:

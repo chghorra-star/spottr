@@ -62,6 +62,11 @@ abstract final class UiKeys {
 
   static const Key profileScreen = Key('spottr.profile');
   static const Key profileSave = Key('spottr.profile.save');
+  static const Key profileDelete = Key('spottr.profile.delete');
+  static const Key profileDeleteConfirm =
+      Key('spottr.profile.delete.confirm');
+  static const Key profileDeleteCancel = Key('spottr.profile.delete.cancel');
+  static const Key profileDeleteError = Key('spottr.profile.delete.error');
 
   static const Key sessionScreen = Key('spottr.session');
   static const Key sessionEmpty = Key('spottr.session.empty');

@@ -25,6 +25,7 @@ import '../data/sync/sync_tables.dart';
 import '../domain/user_profile.dart';
 import '../domain/workout_session.dart';
 import '../state/account_controller.dart';
+import '../state/erase_controller.dart';
 import '../state/plan_controller.dart';
 import '../state/profile_controller.dart';
 import '../services/coach_voice.dart';
@@ -164,6 +165,17 @@ final Provider<AccountController?> accountControllerProvider =
     ),
   );
 });
+
+/// Deleting everything this device holds, for somebody who wants it gone.
+///
+/// Separate from the account controller, and deliberately: this one exists
+/// on every build, including the ones with no Supabase project at all. The
+/// account screen's erase is the same mechanism behind a different door,
+/// worded for somebody handing a phone to another person.
+final Provider<EraseController> eraseControllerProvider =
+    Provider<EraseController>(
+  (ref) => DeviceEraseController(ref.watch(trainingEraserProvider)),
+);
 
 /// The account as it stands, and every change to it.
 ///

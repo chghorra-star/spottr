@@ -7,6 +7,7 @@ import 'package:pose_core/pose_core.dart';
 import 'package:spottr/data/local/local_identity_store.dart';
 import 'package:spottr/data/sync/sync_account.dart';
 import 'package:spottr/state/account_controller.dart';
+import 'package:spottr/state/erase_controller.dart';
 import 'package:spottr/domain/user_profile.dart';
 import 'package:spottr/state/plan_controller.dart';
 import 'package:spottr/state/profile_controller.dart';
@@ -294,5 +295,24 @@ class RecordingAccountController implements AccountController {
     _state = next;
     _changes.add(next);
     return next;
+  }
+}
+
+/// Records a delete instead of performing one.
+///
+/// What goes and in what order is [TrainingEraser]'s business and is tested
+/// against a real database; what the profile screen has to get right is
+/// asking first, and only once the answer is yes.
+class RecordingEraseController implements EraseController {
+  RecordingEraseController({this.onErase});
+
+  final Future<void> Function()? onErase;
+
+  int erases = 0;
+
+  @override
+  Future<void> erase() async {
+    erases++;
+    if (onErase != null) await onErase!();
   }
 }

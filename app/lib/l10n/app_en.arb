@@ -643,6 +643,15 @@
   "profileSave": "Save",
   "profileRebuildWarning": "Saving a change to your goal, days, session length, experience, equipment or injuries rebuilds your week.",
 
+  "profileDeleteTitle": "Deleting your training",
+  "profileDeleteExplain": "Everything Spottr knows about you is on this phone. Nothing has been sent anywhere, so deleting it here deletes it.",
+  "profileDelete": "Delete everything on this device",
+  "profileDeleteConfirmTitle": "Delete everything?",
+  "profileDeleteConfirmBody": "Your profile, your plan and every session you have logged are deleted from this phone, and Spottr starts again from the first question.\n\nNothing here has been sent anywhere, so there is no copy to restore it from. There is no undo.",
+  "profileDeleteConfirmAction": "Delete it",
+  "profileDeleteCancel": "Keep it",
+  "profileDeleteFailed": "Deleting did not finish, so your training is still on this device. Try again.",
+
 
   "@_coach": {
     "description": "The camera check: where to put the phone, whether it can see you, and what to do when it cannot. Framing advice is one sentence per primary issue, never a list — a setup screen with four complaints on it gets read as none of them."

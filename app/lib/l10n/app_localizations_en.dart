@@ -839,6 +839,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'Saving a change to your goal, days, session length, experience, equipment or injuries rebuilds your week.';
 
   @override
+  String get profileDeleteTitle => 'Deleting your training';
+
+  @override
+  String get profileDeleteExplain =>
+      'Everything Spottr knows about you is on this phone. Nothing has been sent anywhere, so deleting it here deletes it.';
+
+  @override
+  String get profileDelete => 'Delete everything on this device';
+
+  @override
+  String get profileDeleteConfirmTitle => 'Delete everything?';
+
+  @override
+  String get profileDeleteConfirmBody =>
+      'Your profile, your plan and every session you have logged are deleted from this phone, and Spottr starts again from the first question.\n\nNothing here has been sent anywhere, so there is no copy to restore it from. There is no undo.';
+
+  @override
+  String get profileDeleteConfirmAction => 'Delete it';
+
+  @override
+  String get profileDeleteCancel => 'Keep it';
+
+  @override
+  String get profileDeleteFailed =>
+      'Deleting did not finish, so your training is still on this device. Try again.';
+
+  @override
   String get coachTitle => 'Camera check';
 
   @override
